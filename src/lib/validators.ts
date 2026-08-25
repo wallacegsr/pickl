@@ -91,8 +91,13 @@ export const recipeMealTypeSchema = z.enum([
 
 export const recipeSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(300),
-  ingredients: z.string().trim().min(1, "Ingredients are required"),
-  instructions: z.string().trim().min(1, "Instructions are required"),
+  // Optional on purpose. A recipe you can shake for is often just a name -
+  // "Leftovers", "Fish and chips", something you already know how to cook.
+  // Requiring the full write-up turns adding one into a chore and stops the
+  // jar getting filled. Stored as "" rather than NULL to keep the existing
+  // NOT NULL columns, so no migration and no null-handling downstream.
+  ingredients: z.string().trim().optional().default(""),
+  instructions: z.string().trim().optional().default(""),
   prepTimeMinutes: z.coerce.number().int().min(0).nullable().optional(),
   cookTimeMinutes: z.coerce.number().int().min(0).nullable().optional(),
   servings: z.coerce.number().int().min(0).nullable().optional(),
@@ -106,7 +111,12 @@ export const recipeSchema = z.object({
   mealType: z
     .array(recipeMealTypeSchema)
     .min(1, "Pick at least one meal type")
-    .default(["any"]),
+    .default(["any"])
+    // "any" already means every slot, so pairing it with specific meals is
+    // either redundant or contradictory. Collapse it here as well as in the
+    // form, so an API client cannot store ["any","dinner"] and leave the UI
+    // showing a state it will not let you create.
+    .transform((v) => (v.includes("any") ? ["any"] : v)),
 });
 
 export const scopeSchema = z.enum(["shared", "private"]);

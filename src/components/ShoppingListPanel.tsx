@@ -200,6 +200,13 @@ export default function ShoppingListPanel({
         <div className="fw-semibold mb-1">
           {MEAL_LABELS[meal.mealType]} — {meal.recipeName}
         </div>
+        {/* Ingredients are optional on a recipe, so a planned meal can have
+            none. Say so rather than rendering an empty bordered table. */}
+        {meal.ingredients.length === 0 ? (
+          <p className="text-body-secondary small fst-italic mb-0">
+            No ingredients listed for this one.
+          </p>
+        ) : (
         <div className="table-responsive">
           <Table size="sm" bordered className="mb-0 align-middle">
             <tbody>
@@ -225,6 +232,7 @@ export default function ShoppingListPanel({
             </tbody>
           </Table>
         </div>
+        )}
       </div>
     );
   }

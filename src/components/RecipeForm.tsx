@@ -73,13 +73,26 @@ export default function RecipeForm({
     setValues((prev) => ({ ...prev, [key]: value }));
   }
 
+  /**
+   * "Any meal" is an override, not a fourth option: it already covers every
+   * slot, so it clears the specific meals and they are disabled while it is
+   * on. Ticking a specific meal turns it back off. The same collapse happens
+   * in the zod schema, so the rule does not depend on this component.
+   */
   function toggleMealType(value: string) {
     setValues((prev) => {
       const has = prev.mealType.includes(value);
-      const next = has
-        ? prev.mealType.filter((v) => v !== value)
-        : [...prev.mealType, value];
-      return { ...prev, mealType: next.length > 0 ? next : prev.mealType };
+
+      if (value === "any") {
+        // Turning it off leaves nothing selected, so fall back to dinner
+        // rather than an invalid empty state.
+        return { ...prev, mealType: has ? ["dinner"] : ["any"] };
+      }
+
+      // Picking a specific meal supersedes "any".
+      const base = prev.mealType.filter((v) => v !== "any");
+      const next = has ? base.filter((v) => v !== value) : [...base, value];
+      return { ...prev, mealType: next.length > 0 ? next : ["any"] };
     });
   }
 
@@ -177,22 +190,28 @@ export default function RecipeForm({
       </Row>
 
       <Form.Group className="mb-3" controlId="recipe-ingredients">
-        <Form.Label>Ingredients (one per line)</Form.Label>
+        <Form.Label>
+          Ingredients{" "}
+          <span className="fw-normal text-body-secondary">
+            (one per line — optional)
+          </span>
+        </Form.Label>
         <Form.Control
           as="textarea"
           rows={6}
-          required
           value={values.ingredients}
           onChange={(e) => update("ingredients", e.target.value)}
         />
       </Form.Group>
 
       <Form.Group className="mb-3" controlId="recipe-instructions">
-        <Form.Label>Instructions</Form.Label>
+        <Form.Label>
+          Instructions{" "}
+          <span className="fw-normal text-body-secondary">(optional)</span>
+        </Form.Label>
         <Form.Control
           as="textarea"
           rows={6}
-          required
           value={values.instructions}
           onChange={(e) => update("instructions", e.target.value)}
         />
@@ -217,12 +236,15 @@ export default function RecipeForm({
               id={`recipe-meal-${opt.value}`}
               label={opt.label}
               checked={values.mealType.includes(opt.value)}
+              disabled={opt.value !== "any" && values.mealType.includes("any")}
               onChange={() => toggleMealType(opt.value)}
             />
           ))}
         </div>
         <Form.Text muted>
-          &quot;Any meal&quot; makes this recipe eligible for every meal slot.
+          &quot;Any meal&quot; makes this recipe eligible for every slot, so it
+          replaces the individual choices rather than adding to them. Tick a
+          specific meal to switch back.
         </Form.Text>
       </Form.Group>
 

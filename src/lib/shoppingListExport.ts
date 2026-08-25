@@ -34,6 +34,11 @@ export function buildShoppingListText(days: ExportDay[]): string {
     lines.push("");
     for (const meal of day.meals) {
       lines.push(`${MEAL_LABELS[meal.mealType]} — ${meal.recipeName}`);
+      if (meal.ingredients.length === 0) {
+        // Ingredients are optional on a recipe; a bare heading reads like a
+        // truncated file, so say why it is empty.
+        lines.push("  (no ingredients listed)");
+      }
       for (const ing of meal.ingredients) {
         lines.push(`  ${ing.onHand ? "☑" : "☐"} ${ing.ingredientText}`);
       }
