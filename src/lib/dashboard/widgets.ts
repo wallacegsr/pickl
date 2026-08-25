@@ -83,7 +83,8 @@ export const WIDGET_REGISTRY: Record<WidgetId, WidgetMeta> = {
     description: "The Sunday–Saturday grid, with your calendar column.",
     minW: 4,
     minH: 6,
-    defaultPlacement: { x: 0, y: 0, w: 12, h: 13 },
+    // 11 rows = 600px, against ~562px of content for a fully planned week.
+    defaultPlacement: { x: 0, y: 0, w: 12, h: 11 },
     mobileOrder: 1,
   },
   "shake-controls": {
@@ -91,8 +92,11 @@ export const WIDGET_REGISTRY: Record<WidgetId, WidgetMeta> = {
     title: "Shake the jar",
     description: "Pick meals, then Crunch Time or Shake the Jar.",
     minW: 3,
-    minH: 4,
-    defaultPlacement: { x: 0, y: 13, w: 6, h: 6 },
+    // The controls are a checkbox row and two buttons: ~150px. minH was 4,
+    // which forced 208px and was most of the empty space here.
+    minH: 3,
+    // 3 rows = 152px.
+    defaultPlacement: { x: 0, y: 11, w: 6, h: 3 },
     mobileOrder: 0,
   },
   "recipe-quick-look": {
@@ -101,7 +105,8 @@ export const WIDGET_REGISTRY: Record<WidgetId, WidgetMeta> = {
     description: "Search the jar and see tonight's recipe at a glance.",
     minW: 3,
     minH: 5,
-    defaultPlacement: { x: 6, y: 13, w: 6, h: 9 },
+    // 8 rows = 432px, against ~381px of content.
+    defaultPlacement: { x: 6, y: 11, w: 6, h: 8 },
     mobileOrder: 2,
   },
   "shopping-list": {
@@ -110,7 +115,10 @@ export const WIDGET_REGISTRY: Record<WidgetId, WidgetMeta> = {
     description: "Today or the full week's ingredients, with export.",
     minW: 3,
     minH: 6,
-    defaultPlacement: { x: 0, y: 19, w: 6, h: 12 },
+    // Deliberately smaller than its content. A full week of ingredients runs
+    // ~900px (17 rows); at that height it would push everything else off
+    // screen, so it keeps 12 rows and scrolls instead.
+    defaultPlacement: { x: 0, y: 14, w: 6, h: 12 },
     mobileOrder: 3,
   },
   "calendar-events": {
@@ -119,7 +127,10 @@ export const WIDGET_REGISTRY: Record<WidgetId, WidgetMeta> = {
     description: "Your own external calendar for this week. Only you see it.",
     minW: 3,
     minH: 5,
-    defaultPlacement: { x: 6, y: 22, w: 6, h: 9 },
+    // The overlay is opt-in and off by default, so the common first-run state
+    // is a one-line notice (~123px). 5 rows = 264px leaves room for a few
+    // events once it is switched on, without reserving 9 rows for a message.
+    defaultPlacement: { x: 6, y: 19, w: 6, h: 5 },
     mobileOrder: 4,
   },
 };

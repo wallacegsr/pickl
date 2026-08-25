@@ -205,6 +205,9 @@ export default function PlanDashboard({
         // No userId. The endpoint takes the owner from the session and
         // ignores anything else, so there is nothing useful to send.
         body: JSON.stringify({ items: next.items, hidden: next.hidden }),
+        // Lets the request outlive the page when this fires from pagehide
+        // (tab closed, browser navigated away) rather than being aborted.
+        keepalive: true,
       });
       setSaveState(res.ok ? "saved" : "error");
     } catch {
@@ -226,12 +229,39 @@ export default function PlanDashboard({
     [flush]
   );
 
-  useEffect(
-    () => () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-    },
-    []
-  );
+  // Keep the latest flush reachable from listeners registered once, without
+  // re-subscribing them on every render.
+  const flushRef = useRef(flush);
+  flushRef.current = flush;
+
+  /**
+   * Never drop a debounced save.
+   *
+   * The debounce means a resize is still pending for up to 700ms after the
+   * user lets go. Simply clearing the timer on unmount — which is what this
+   * used to do — silently discarded that write whenever someone resized a
+   * widget and navigated away before it fired, so the layout reverted on
+   * their next visit.
+   *
+   * On unmount we flush instead. Next.js client-side navigation only unmounts
+   * the component, the document stays alive, so the request completes
+   * normally. `pagehide` covers the harder case of the tab actually closing,
+   * where `keepalive` on the request is what gets it out the door.
+   */
+  useEffect(() => {
+    const flushNow = () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+      }
+      void flushRef.current();
+    };
+    window.addEventListener("pagehide", flushNow);
+    return () => {
+      window.removeEventListener("pagehide", flushNow);
+      flushNow();
+    };
+  }, []);
 
   const applyAndSave = useCallback(
     (next: DashboardLayout) => {

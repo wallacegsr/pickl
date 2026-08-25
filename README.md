@@ -868,6 +868,55 @@ the compose file references the registry image rather than a build context,
 Portainer pulls it — no build tooling needed on the host. Tick **re-pull image**
 when redeploying to pick up a new `:latest`.
 
+### Bind mounts (Synology and other NAS)
+
+The stack ships with a named volume, which Docker manages for you. To keep the
+database somewhere you can see and back up — a Synology shared folder, say —
+swap the volume for a bind mount:
+
+```yaml
+    volumes:
+      - /volume1/docker/pickl:/data
+```
+
+Two things trip people up here, and neither produces an obvious error.
+
+**`DATABASE_PATH` is a path *inside* the container, not on the NAS.** The mount
+already maps the host directory to `/data`, so it stays exactly as it is:
+
+```yaml
+      DATABASE_PATH: "/data/app.db"     # correct
+```
+
+Setting it to the host path (`/volume1/docker/pickl/data/app.db`) points the
+app at a directory that does not exist inside the container. It will try to
+create it at the container root, fail, and never write to your NAS folder at
+all.
+
+**Create the directory first, and give it to uid 1001.** The container runs as
+a non-root user (`nextjs`, uid 1001). The image pre-creates `/data` owned by
+that user, but a bind mount replaces that with the host directory's ownership —
+so if the folder is owned by root, the app cannot create its database. Over SSH
+on the NAS:
+
+```bash
+sudo mkdir -p /volume1/docker/pickl
+sudo chown -R 1001:1001 /volume1/docker/pickl
+```
+
+Skip this and the container starts, fails on the migration step with
+`SQLITE_CANTOPEN` or `EACCES`, and restarts in a loop — Portainer shows a
+restarting container rather than a useful message, so check the container logs.
+
+You will know it worked when `app.db`, `app.db-wal` and `app.db-shm` appear in
+the host directory. If they do not, the app is writing inside the container and
+the data will vanish on the next redeploy.
+
+Also quote your environment values. Compose wants strings, and a bare
+`AUTH_TRUST_HOST: true` (a YAML boolean) or `PORT: 3000` (an integer) can fail
+validation — in Portainer that surfaces only as an opaque
+`request failed with error 500`.
+
 ### Ports and reverse proxies
 
 The published port and the public URL are two different things, and mixing
