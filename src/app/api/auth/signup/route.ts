@@ -46,28 +46,45 @@ export async function POST(req: NextRequest) {
   const isFirstUser = userCount === 0;
   const role = isFirstUser ? "admin" : "member";
 
+  // The first account skips email verification entirely.
+  //
+  // Otherwise the deployment deadlocks: SMTP is configured from /admin, which
+  // requires being logged in, which requires a verification email that an
+  // unconfigured (or misconfigured) SMTP server cannot send. The admin would
+  // have to go digging in container logs for the link.
+  //
+  // It costs nothing in security. Verification proves control of an address,
+  // which matters when an account is joining an existing household — there is
+  // someone to impersonate and an admin to mislead. For the very first account
+  // on an empty deployment there is neither: whoever reaches signup first
+  // becomes the global admin either way, and an attacker who got there first
+  // would simply verify their own address. See SECURITY.md — the real control
+  // is creating this account yourself before exposing the app.
   db.insert(users)
     .values({
       id: randomUUID(),
       name,
       email,
       passwordHash,
-      emailVerified: null,
-      verificationToken: token,
-      verificationTokenExpires: tokenExpiryDate(24),
+      emailVerified: isFirstUser ? new Date() : null,
+      verificationToken: isFirstUser ? null : token,
+      verificationTokenExpires: isFirstUser ? null : tokenExpiryDate(24),
       role,
       isGlobalAdmin: isFirstUser,
     })
     .run();
 
-  try {
-    await sendVerificationEmail(email, token);
-  } catch (err) {
-    console.error("Failed to send verification email:", err);
+  if (!isFirstUser) {
+    try {
+      await sendVerificationEmail(email, token);
+    } catch (err) {
+      console.error("Failed to send verification email:", err);
+    }
   }
 
   return NextResponse.json({
-    message:
-      "Account created. Please check your email for a verification link.",
+    message: isFirstUser
+      ? "Admin account created. You can log in now — no email verification needed for the first account. Set up email under Back of House once you are in."
+      : "Account created. Please check your email for a verification link.",
   });
 }

@@ -747,6 +747,14 @@ automatically on the next startup.
 
 ## First-run / signup flow
 
+> **The first account skips email verification.** It is created already
+> verified and can log in immediately, even with no SMTP configured at all.
+>
+> This exists to avoid a deadlock: SMTP is configured from **Back of House**,
+> which needs a login, which would otherwise need a verification email that an
+> unconfigured SMTP server cannot send. Sign up, log in, configure email, then
+> invite everyone else — and *their* accounts do still require verification.
+
 1. Visit `/signup`, create an account (name, email, password).
 2. The app creates the user with `emailVerified = null`, generates a
    verification token (valid 24h), and emails a verification link to

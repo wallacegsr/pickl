@@ -77,4 +77,10 @@ Being straight about the boundaries matters more than a longer list above.
 - Keep `AUTH_TRUST_HOST=true` only because a reverse proxy sits in front.
 - Back up the `/data` volume. It is the entire application state.
 - The first account to sign up becomes that deployment's permanent global
-  admin. Create it yourself before exposing the app to anyone else.
+  admin, **and is created already email-verified**, so a broken SMTP config
+  cannot lock you out of your own deployment. Verification proves control of
+  an address, which is meaningful when joining an existing household; on an
+  empty deployment there is nobody to impersonate, and an attacker who signed
+  up first would simply verify their own address instead. The real control is
+  to create this account yourself, before the app is reachable by anyone else.
+  Every subsequent account still requires verification.
