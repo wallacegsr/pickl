@@ -266,3 +266,78 @@
   }
 }
 
+
+/* ---------------------------------------------------------------------------
+   Resizable meal-plan columns
+   ------------------------------------------------------------------------- */
+
+/* Only applied once JS has measured widths, so a no-JS or pre-hydration render
+   keeps the browser's normal content-driven column sizing. */
+.pickl-plan-table-fixed {
+  table-layout: fixed;
+}
+
+/* Long recipe names should wrap inside their column rather than forcing it
+   wider, which is what makes a fixed layout usable here. */
+.pickl-plan-table-fixed td,
+.pickl-plan-table-fixed th {
+  overflow-wrap: anywhere;
+}
+
+.pickl-col-head {
+  position: relative;
+}
+
+/* The grabber straddles the column border: half its width sits either side, so
+   the pointer target is bigger than the 1px line it appears to be. */
+.pickl-col-resizer {
+  position: absolute;
+  top: 0;
+  right: -5px;
+  width: 10px;
+  height: 100%;
+  cursor: col-resize;
+  /* Sits above the header cell's own content so a drag near the edge always
+     hits the resizer rather than selecting the label text. */
+  z-index: 2;
+  touch-action: none;
+  user-select: none;
+}
+
+.pickl-col-resizer::after {
+  content: "";
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  width: 2px;
+  height: 70%;
+  transform: translateX(-50%);
+  background: transparent;
+  border-radius: 1px;
+  transition: background-color 0.12s ease-in-out;
+}
+
+.pickl-col-resizer:hover::after,
+.pickl-col-resizer:focus-visible::after {
+  background: rgba(var(--bs-emphasis-color-rgb), 0.45);
+}
+
+.pickl-col-resizer:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: -2px;
+}
+
+/* While a drag is in flight, keep the whole page in the resize cursor and stop
+   text selection fighting the gesture. */
+body.pickl-col-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* Touch dragging a 10px target is fiddly, and the table already scrolls
+   horizontally on small screens, so the handles come off there. */
+@media (max-width: 767.98px) {
+  .pickl-col-resizer {
+    display: none;
+  }
+}

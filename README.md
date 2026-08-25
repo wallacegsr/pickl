@@ -434,7 +434,7 @@ widget and the export buttons go with it.
 
 | Widget | What it is |
 | --- | --- |
-| **Meal plan** | The Sunday–Saturday grid, including the "On your calendar" overlay column. Click a cell to edit that slot. |
+| **Meal plan** | The Sunday–Saturday grid, including the "On your calendar" overlay column. Click a cell to edit that slot. Columns are resizable — see below. |
 | **Shake the jar** | The meal checkboxes plus 🥒 Crunch Time and 🫙 Shake the Jar, with their animations and hover hints. |
 | **Shopping list** | The Today / Full Week ingredient checklist, with download and copy. |
 | **Recipe quick look** | Tonight's dinner and its ingredients, plus a search box over the recipe pool. Deliberately compact — it's a glance, not a second `/recipes`. |
@@ -450,6 +450,25 @@ through `src/components/plan/PlanContext.tsx`. That is why the grid and the
 Calendar events widget never issue two calendar requests, and why the
 shopping list still refreshes the moment a shake lands: the widgets are
 views over the page's data, not independent fetchers.
+
+### Resizing the meal plan's columns
+
+Drag the divider on any column header to change its width. A drag grows the
+column on its left and shrinks the one on its right by the same amount, so the
+table's overall width never moves and the columns further right stay where
+they are. Nothing can be dragged below 72px.
+
+Double-click a divider — or focus one and press Enter — to put every column
+back to its default. The dividers are keyboard operable: Tab to one, then
+Left/Right to nudge, Shift for a bigger step.
+
+Widths are saved in `localStorage`, not the database, which is deliberate.
+The right column width depends on how wide the window is, so a value synced
+from a desktop to a phone would be actively wrong. They are also stored
+separately per column set, since turning the calendar overlay on adds a fifth
+column and widths chosen for four should not be reinterpreted as widths for
+five. Handles are hidden below the mobile breakpoint, where the table scrolls
+horizontally instead.
 
 ### Add, hide, reorder
 

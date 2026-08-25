@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge, Button, Table } from "react-bootstrap";
+import { useResizableColumns, type ColumnSpec } from "@/components/plan/useResizableColumns";
 import type { MealType } from "@/db/schema";
 import { usePlanContext, type ExternalEventView } from "../PlanContext";
 
@@ -45,17 +46,91 @@ export default function PlanGridWidget() {
     collapseOverlayDate,
   } = usePlanContext();
 
+  // Day is deliberately the narrowest: it holds "Wednesday" and a date, and
+  // every pixel it does not need is a pixel a recipe name can use.
+  const columns: ColumnSpec[] = overlayApplies
+    ? [
+        { key: "day", defaultRatio: 0.13 },
+        { key: "breakfast", defaultRatio: 0.2233 },
+        { key: "lunch", defaultRatio: 0.2233 },
+        { key: "dinner", defaultRatio: 0.2234 },
+        { key: "overlay", defaultRatio: 0.2 },
+      ]
+    : [
+        { key: "day", defaultRatio: 0.14 },
+        { key: "breakfast", defaultRatio: 0.2866 },
+        { key: "lunch", defaultRatio: 0.2867 },
+        { key: "dinner", defaultRatio: 0.2867 },
+      ];
+  const { tableRef, widths, startResize, nudge, reset } =
+    useResizableColumns(columns);
+
+  /** The grabber sitting on a column's right-hand edge. */
+  const handleFor = (index: number, label: string) =>
+    index < columns.length - 1 ? (
+      <span
+        role="separator"
+        aria-orientation="vertical"
+        aria-label={`Resize the ${label} column`}
+        tabIndex={0}
+        className="pickl-col-resizer"
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          startResize(index, e.clientX);
+        }}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          reset();
+        }}
+        onKeyDown={(e) => {
+          const step = e.shiftKey ? 40 : 12;
+          if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            nudge(index, -step);
+          } else if (e.key === "ArrowRight") {
+            e.preventDefault();
+            nudge(index, step);
+          } else if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            reset();
+          }
+        }}
+      />
+    ) : null;
+
   return (
     <div className="table-responsive">
-      <Table bordered hover className="align-middle">
+      <Table
+        bordered
+        hover
+        ref={tableRef}
+        // Fixed layout is what makes the <col> widths authoritative; with the
+        // default auto layout the browser re-derives widths from content and
+        // a drag appears to do nothing.
+        className={`align-middle${widths ? " pickl-plan-table-fixed" : ""}`}
+      >
+        {widths && (
+          <colgroup>
+            {columns.map((c) => (
+              <col key={c.key} style={{ width: widths[c.key] }} />
+            ))}
+          </colgroup>
+        )}
         <thead>
           <tr>
-            <th style={{ minWidth: 140 }}>Day</th>
-            {MEAL_TYPES.map((mt) => (
-              <th key={mt}>{MEAL_LABELS[mt]}</th>
+            <th className="pickl-col-head">
+              Day
+              {handleFor(0, "Day")}
+            </th>
+            {MEAL_TYPES.map((mt, i) => (
+              <th key={mt} className="pickl-col-head">
+                {MEAL_LABELS[mt]}
+                {handleFor(i + 1, MEAL_LABELS[mt])}
+              </th>
             ))}
             {overlayApplies && (
-              <th style={{ minWidth: 160 }}>
+              <th className="pickl-col-head">
                 On your calendar
                 <div className="fw-normal small text-body-secondary">
                   Only you see this
