@@ -7,6 +7,7 @@ import ShakeControlsWidget from "./widgets/ShakeControlsWidget";
 import ShoppingListWidget from "./widgets/ShoppingListWidget";
 import RecipeQuickLookWidget from "./widgets/RecipeQuickLookWidget";
 import CalendarEventsWidget from "./widgets/CalendarEventsWidget";
+import PlanExportFooter from "./widgets/PlanExportFooter";
 import { WIDGET_REGISTRY, type WidgetId } from "@/lib/dashboard/widgets";
 
 /**
@@ -23,6 +24,15 @@ export const WIDGET_COMPONENTS: Record<WidgetId, () => JSX.Element> = {
   "shopping-list": ShoppingListWidget,
   "recipe-quick-look": RecipeQuickLookWidget,
   "calendar-events": CalendarEventsWidget,
+};
+
+/**
+ * Optional pinned footers, id → component. A footer renders as a Card.Footer
+ * outside the scrolling body, so it stays visible however long the content is.
+ * Widgets without an entry simply have no footer.
+ */
+export const WIDGET_FOOTERS: Partial<Record<WidgetId, () => JSX.Element>> = {
+  "plan-grid": PlanExportFooter,
 };
 
 export interface WidgetFrameProps {
@@ -66,6 +76,9 @@ export default function WidgetFrame({
 }: WidgetFrameProps) {
   const meta = WIDGET_REGISTRY[id];
   const Component = WIDGET_COMPONENTS[id];
+  // Only rendered when this widget declares one, and only when the frame is
+  // showing its own component — a caller passing children owns the whole body.
+  const Footer = children ? undefined : WIDGET_FOOTERS[id];
 
   return (
     <Card className="pickl-widget" role="region" aria-label={meta.title}>
@@ -121,6 +134,11 @@ export default function WidgetFrame({
       <Card.Body className="pickl-widget-body">
         {children ?? <Component />}
       </Card.Body>
+      {Footer && (
+        <Card.Footer className="pickl-widget-footer">
+          <Footer />
+        </Card.Footer>
+      )}
     </Card>
   );
 }

@@ -391,8 +391,6 @@ export default function PlanView({
     }
   }
 
-  const exportParams = new URLSearchParams({ week, scope });
-  if (scope === "private") exportParams.set("userId", requestedUserId);
 
   return (
     <div>
@@ -452,23 +450,6 @@ export default function PlanView({
           You have view-only access to the household calendar.
         </Alert>
       )}
-
-      <div className="d-flex flex-wrap gap-2 mb-4">
-        <Button
-          variant="outline-secondary"
-          href={`/api/export/json?${exportParams.toString()}`}
-          target="_blank"
-        >
-          Export JSON
-        </Button>
-        <Button
-          variant="outline-secondary"
-          href={`/api/export/ical?${exportParams.toString()}`}
-          target="_blank"
-        >
-          Export iCal
-        </Button>
-      </div>
 
       <PlanContextProvider
         value={{

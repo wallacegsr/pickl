@@ -71,10 +71,18 @@ export interface WidgetMeta {
 }
 
 /**
- * Default arrangement rationale: the grid is the reason the page exists, so
- * it takes the full width up top. The two things you do *to* the week —
- * shaking and glancing at tonight — sit side by side beneath it, and the two
- * lists you read *from* it (shopping, calendar) sit below those.
+ * Default arrangement: a wide left column for the week itself, a narrow right
+ * column for the things you consult while planning it.
+ *
+ *   Shake the jar  (8 wide) | Recipe quick look (4 wide)
+ *   Meal plan      (8 wide) | Shopping list     (4 wide)
+ *   Calendar events        (full width)
+ *
+ * Shaking sits directly above the grid it fills in, so the cause is next to
+ * its effect. Tonight's recipe and the shopping list stack down the right,
+ * both being things you read rather than act on. The calendar overlay spans
+ * the bottom because it is opt-in, and an empty one-line notice for anyone
+ * who has not turned it on.
  */
 export const WIDGET_REGISTRY: Record<WidgetId, WidgetMeta> = {
   "plan-grid": {
@@ -84,7 +92,7 @@ export const WIDGET_REGISTRY: Record<WidgetId, WidgetMeta> = {
     minW: 4,
     minH: 6,
     // 11 rows = 600px, against ~562px of content for a fully planned week.
-    defaultPlacement: { x: 0, y: 0, w: 12, h: 11 },
+    defaultPlacement: { x: 0, y: 3, w: 8, h: 12 },
     mobileOrder: 1,
   },
   "shake-controls": {
@@ -96,7 +104,7 @@ export const WIDGET_REGISTRY: Record<WidgetId, WidgetMeta> = {
     // which forced 208px and was most of the empty space here.
     minH: 3,
     // 3 rows = 152px.
-    defaultPlacement: { x: 0, y: 11, w: 6, h: 3 },
+    defaultPlacement: { x: 0, y: 0, w: 8, h: 3 },
     mobileOrder: 0,
   },
   "recipe-quick-look": {
@@ -106,7 +114,7 @@ export const WIDGET_REGISTRY: Record<WidgetId, WidgetMeta> = {
     minW: 3,
     minH: 5,
     // 8 rows = 432px, against ~381px of content.
-    defaultPlacement: { x: 6, y: 11, w: 6, h: 8 },
+    defaultPlacement: { x: 8, y: 0, w: 4, h: 8 },
     mobileOrder: 2,
   },
   "shopping-list": {
@@ -118,7 +126,7 @@ export const WIDGET_REGISTRY: Record<WidgetId, WidgetMeta> = {
     // Deliberately smaller than its content. A full week of ingredients runs
     // ~900px (17 rows); at that height it would push everything else off
     // screen, so it keeps 12 rows and scrolls instead.
-    defaultPlacement: { x: 0, y: 14, w: 6, h: 12 },
+    defaultPlacement: { x: 8, y: 8, w: 4, h: 7 },
     mobileOrder: 3,
   },
   "calendar-events": {
@@ -130,7 +138,7 @@ export const WIDGET_REGISTRY: Record<WidgetId, WidgetMeta> = {
     // The overlay is opt-in and off by default, so the common first-run state
     // is a one-line notice (~123px). 5 rows = 264px leaves room for a few
     // events once it is switched on, without reserving 9 rows for a message.
-    defaultPlacement: { x: 6, y: 19, w: 6, h: 5 },
+    defaultPlacement: { x: 0, y: 15, w: 12, h: 4 },
     mobileOrder: 4,
   },
 };

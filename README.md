@@ -406,10 +406,29 @@ It is **off by default** and each person turns it on for themselves under
 
 `/plan` is a **configurable dashboard**: a board of draggable, resizable
 widgets whose arrangement is saved per user. The page chrome around it —
-the Household / My Private Plan tabs, the admin's "viewing calendar for"
-picker, and the JSON/iCal export buttons — is *not* a widget, because those
-decide what the whole board is showing and must never be something you can
-accidentally hide.
+the Household / My Private Plan tabs and the admin's "viewing calendar for"
+picker — is *not* a widget, because those decide what the whole board is
+showing and must never be something you can accidentally hide.
+
+The default arrangement is a wide left column for the week itself and a
+narrow right column for what you consult while planning it:
+
+```
+  Shake the jar  (8 wide) │ Recipe quick look (4 wide)
+  Meal plan      (8 wide) │ Shopping list     (4 wide)
+  Calendar events        (full width)
+```
+
+Shaking sits directly above the grid it fills in. Default widget heights are
+measured against real content rather than guessed, so nothing starts with a
+lap of empty space — the shopping list is the deliberate exception, since a
+full week of ingredients would otherwise push everything else off screen, so
+it scrolls instead.
+
+**Export lives in the Meal plan widget**, as a footer pinned below its
+scrolling body. The buttons export whatever week and scope the grid is
+showing, so they belong to it. One consequence worth knowing: hide that
+widget and the export buttons go with it.
 
 ### The widgets
 
