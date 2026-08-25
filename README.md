@@ -13,6 +13,10 @@ and their own private meal calendar that nobody else can see (admins
 excepted — see below). Signup requires email verification before an
 account can log in.
 
+![The Pickl dashboard: a Sunday-to-Saturday meal grid with today highlighted, the Crunch Time and Shake the Jar controls, and a recipe quick-look panel](docs/screenshot-dashboard.png)
+
+*The `/plan` dashboard — drag, resize or hide any widget; the arrangement is saved per user.*
+
 ## Roles & permissions
 
 - The very **first account ever created** automatically becomes an
@@ -922,6 +926,13 @@ src/
 scripts/                    migrate.mjs (migration runner), start.js (container entrypoint), seed.ts
 drizzle/                    Generated SQL migrations (drizzle-kit)
 ```
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for how to report a vulnerability, what the
+app protects (hashed passwords, encrypted third-party credentials,
+server-side authorization, per-user calendar isolation, SSRF validation)
+and — just as importantly — what it does not.
 
 ## License
 

@@ -36,12 +36,15 @@ export default function DashboardGrid({
   layout,
   editing,
   onLayoutChange,
+  onLayoutCommit,
   onRemove,
   onMove,
 }: {
   layout: DashboardLayout;
   editing: boolean;
   onLayoutChange: (next: Layout) => void;
+  /** Fired only when the user finishes a drag or resize — see below. */
+  onLayoutCommit: (next: Layout) => void;
   onRemove: (id: WidgetId) => void;
   onMove: (id: WidgetId, direction: -1 | 1) => void;
 }) {
@@ -73,6 +76,14 @@ export default function DashboardGrid({
         width={width}
         layout={rglLayout}
         onLayoutChange={onLayoutChange}
+        // Persistence hangs off drag/resize *stop*, never off onLayoutChange.
+        // react-grid-layout also fires onLayoutChange when it reflows the
+        // board itself (on mount, and whenever the container width changes),
+        // and saving those would let a layout nobody touched overwrite the
+        // one the user arranged — which also made "Reset to default" appear
+        // not to work, because the reflow re-saved over it immediately.
+        onDragStop={onLayoutCommit}
+        onResizeStop={onLayoutCommit}
         gridConfig={{
           cols: DASHBOARD_COLS,
           rowHeight: DASHBOARD_ROW_HEIGHT,

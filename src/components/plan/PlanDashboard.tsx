@@ -241,9 +241,9 @@ export default function PlanDashboard({
     [queueSave]
   );
 
-  const handleGridLayoutChange = useCallback(
-    (next: Layout) => {
-      const merged = reconcileLayout({
+  const mergeGridLayout = useCallback(
+    (next: Layout): DashboardLayout =>
+      reconcileLayout({
         v: 1,
         items: next.map((item) => ({
           i: item.i,
@@ -253,16 +253,43 @@ export default function PlanDashboard({
           h: item.h,
         })),
         hidden: layout.hidden,
-      });
-      // react-grid-layout fires this once on mount with the layout it was
-      // just given, and again for every frame of a drag. Comparing geometry
-      // drops the no-op mount write, so simply viewing the page never
-      // touches the database.
+      }),
+    [layout.hidden]
+  );
+
+  /**
+   * Live geometry while a drag or resize is in flight, and whenever
+   * react-grid-layout reflows the board on its own. Updates local state only —
+   * deliberately does NOT persist.
+   */
+  const handleGridLayoutChange = useCallback(
+    (next: Layout) => {
+      const merged = mergeGridLayout(next);
+      if (sameGeometry(layout, merged)) return;
+      setLayout(merged);
+    },
+    [layout, mergeGridLayout]
+  );
+
+  /**
+   * The user let go of a widget. This is the only path that writes a grid
+   * arrangement back to the server.
+   *
+   * Persisting from onLayoutChange instead looks equivalent but is not:
+   * react-grid-layout also fires it when it reflows the board itself — on
+   * mount, and on any container width change — so merely opening the page (or
+   * resizing the window) would save a layout the user never chose, on top of
+   * the one they did. It also made "Reset to default" look broken: the reset
+   * landed, then the very next reflow saved over it.
+   */
+  const handleGridLayoutCommit = useCallback(
+    (next: Layout) => {
+      const merged = mergeGridLayout(next);
       if (sameGeometry(layout, merged)) return;
       setLayout(merged);
       queueSave(merged);
     },
-    [layout, queueSave]
+    [layout, mergeGridLayout, queueSave]
   );
 
   const handleRemove = useCallback(
@@ -378,6 +405,7 @@ export default function PlanDashboard({
           layout={layout}
           editing={editing}
           onLayoutChange={handleGridLayoutChange}
+          onLayoutCommit={handleGridLayoutCommit}
           onRemove={handleRemove}
           onMove={handleMove}
         />
