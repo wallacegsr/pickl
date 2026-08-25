@@ -1,0 +1,461 @@
+// ---------------------------------------------------------------------------
+// Pickl — "jar & brine" Bootstrap theme
+//
+// This file REPLACES `bootstrap/dist/css/bootstrap.min.css`. That prebuilt file
+// bakes the stock blue palette into every component's own custom properties
+// (`.btn-primary { --bs-btn-bg: #0d6efd; ... }`), so overriding `--bs-primary`
+// alone changes almost nothing. Recompiling from Bootstrap's Sass source lets a
+// handful of variable assignments regenerate every derived value: hover/active
+// states, subtle/emphasis tints, focus rings, form-check accents, and the whole
+// `[data-bs-theme="dark"]` block.
+//
+// Set variables BEFORE the `@import` — Bootstrap's own defaults are `!default`.
+// ---------------------------------------------------------------------------
+
+// Bootstrap's helper functions (tint-color/shade-color/color-contrast) must be
+// loaded BEFORE the overrides below, since several of them are defined in terms
+// of those helpers. bootstrap.scss re-imports this file itself; Sass dedupes.
+@import "bootstrap/scss/functions";
+
+// --- Neutrals -------------------------------------------------------------
+// Deliberately not pure grey: a neutral with a slight green bias sits calmly
+// next to the greens below, where a true mid-grey reads as unconsidered.
+// Hue ~100deg, saturation kept in the 4–10% range so it never looks "minty".
+$white:    #ffffff;
+$gray-100: #f4f6ee;
+$gray-200: #e7ebdf;
+$gray-300: #d4dac9;
+$gray-400: #b6bfa9;
+$gray-500: #8f9a83;
+$gray-600: #6d7864;
+$gray-700: #4d5646;
+$gray-800: #333a2f;
+$gray-900: #20261e;
+$black:    #000000;
+
+// --- Brand palette --------------------------------------------------------
+$primary:   #3a7d44; // medium jar green — buttons, links, active nav pills
+$secondary: $gray-600;
+$success:   #6fa83c; // leaf green
+$info:      #9baf52; // olive — replaces Bootstrap's cyan
+$warning:   #d9a521; // mustard
+$danger:    #b34a3f; // earthy brick red — errors + destructive only
+$light:     #f4f6ee;
+$dark:      #1e3a24; // very dark green — navbar
+
+// Success/primary separation: both are green, but they differ on two axes at
+// once. $primary is dark enough to carry WHITE label text (5.00:1) while
+// $success is light enough that Bootstrap's color-contrast() flips its label to
+// the dark ink (5.41:1) — so a success alert reads as a pale yellow-green wash
+// and a primary button as a solid deep green. No shade change was needed.
+
+// Bootstrap's automatic light-vs-dark foreground picker. Raising the floor
+// from 4.5 pushes mustard/olive to dark text (the correct call) while leaving
+// primary and danger on white.
+$min-contrast-ratio: 4.5;
+$color-contrast-dark: $gray-900;
+$color-contrast-light: $white;
+
+// --- Surfaces -------------------------------------------------------------
+$body-bg:   #f6f8ef; // pale green-tinted paper
+$body-color: $gray-900;
+$body-secondary-color: rgba($gray-900, 0.72); // AA-safe muted text
+$body-tertiary-bg: $gray-100;
+
+$body-bg-dark:   #141a14; // near-black green
+$body-color-dark: #e6ebe0;
+$body-secondary-color-dark: rgba(#e6ebe0, 0.78);
+$body-tertiary-bg-dark: #1c231c;
+$body-secondary-bg-dark: #1a211a;
+
+$border-color: $gray-300;
+$border-color-dark: #33402f;
+
+// Dark-theme brand tints. Bootstrap derives these itself, but its default
+// tint/shade amounts leave $primary and $success too dark against #141a14,
+// so they are pinned to hand-checked values (all >= 4.5:1 on the dark bg).
+$primary-text-emphasis-dark:   #8fd39c;
+$secondary-text-emphasis-dark: #b6bfa9;
+$success-text-emphasis-dark:   #a5d972;
+$info-text-emphasis-dark:      #c9d99a;
+$warning-text-emphasis-dark:   #ecc766;
+$danger-text-emphasis-dark:    #e8938a;
+
+$link-color: $primary;
+$link-hover-color: shade-color($primary, 20%);
+$link-color-dark: $primary-text-emphasis-dark;
+$link-hover-color-dark: tint-color($primary-text-emphasis-dark, 20%);
+
+// --- Focus ring -----------------------------------------------------------
+// Stock Bootstrap's is blue. Thickened slightly: the green ring has less
+// contrast against a green-tinted page than blue did against white.
+$focus-ring-width: 0.25rem;
+$focus-ring-opacity: 0.45;
+$focus-ring-color: rgba($primary, $focus-ring-opacity);
+$input-btn-focus-color-opacity: 0.3;
+
+// Form controls: `:focus` border/shadow and the `:checked` accent are the two
+// places blue most often survives a retheme.
+$input-focus-border-color: tint-color($primary, 30%);
+$form-check-input-checked-bg-color: $primary;
+$form-check-input-checked-border-color: $primary;
+$form-check-input-indeterminate-bg-color: $primary;
+$form-check-input-indeterminate-border-color: $primary;
+$form-range-thumb-bg: $primary;
+$form-range-thumb-active-bg: tint-color($primary, 40%);
+$form-select-indicator-color: $gray-700;
+
+// Bootstrap's dark-theme validation colours default to a teal-ish green and a
+// pink-red that belong to the stock palette, not this one.
+$form-valid-color-dark: $success-text-emphasis-dark;
+$form-valid-border-color-dark: $success-text-emphasis-dark;
+$form-invalid-color-dark: $danger-text-emphasis-dark;
+$form-invalid-border-color-dark: $danger-text-emphasis-dark;
+
+// `<code>` defaults to $pink. Nothing else in the app is pink.
+$code-color: shade-color($primary, 15%);
+$code-color-dark: $primary-text-emphasis-dark;
+
+// Components that quietly inherit the old blue.
+$component-active-bg: $primary; // nav-pills .active, dropdown .active, pagination
+$nav-pills-link-active-bg: $primary;
+$progress-bar-bg: $primary;
+$table-active-bg: rgba($primary, 0.12);
+$accordion-button-active-bg: rgba($primary, 0.12);
+$accordion-button-active-color: shade-color($primary, 20%);
+$accordion-icon-active-color: shade-color($primary, 20%);
+$list-group-active-bg: $primary;
+$list-group-active-border-color: $primary;
+$pagination-active-bg: $primary;
+$pagination-active-border-color: $primary;
+$carousel-dark-indicator-active-bg: $gray-900;
+
+// Navbar: the dark variant is the app's chrome, so it gets the deep jar green
+// rather than Bootstrap's near-black.
+$navbar-dark-color: rgba($white, 0.78);
+$navbar-dark-hover-color: $white;
+$navbar-dark-active-color: $white;
+
+@import "bootstrap/scss/bootstrap";
+
+// ---------------------------------------------------------------------------
+// Post-import touches that cannot be expressed as variables.
+// ---------------------------------------------------------------------------
+
+// `.navbar` with `bg="dark"` should read as the jar, not as generic black.
+.navbar.bg-dark {
+  background-color: $dark !important;
+}
+
+// The active nav item in the navbar: a subtle brine-green pill so "where am I"
+// survives at a glance without introducing a second accent colour.
+.navbar-dark .navbar-nav .nav-link.active {
+  background-color: rgba($white, 0.14);
+  border-radius: var(--bs-border-radius);
+}
+
+// The today-row highlight. Bootstrap's generated `.table-warning` in dark mode
+// keeps the light-mode mustard fill with a dark foreground, which is fine, but
+// the recipe links inside it inherit `$link-color-dark` (a light green) and
+// vanish. Pin the row's foreground — including links — to the dark ink.
+.table > :not(caption) > * > *.table-warning,
+.table-warning > td,
+.table-warning > th,
+.table-warning {
+  --bs-table-color: #{$gray-900};
+  --bs-table-color-state: #{$gray-900};
+  color: $gray-900;
+}
+
+[data-bs-theme="dark"] .table-warning a,
+[data-bs-theme="dark"] .table-warning .text-body-secondary,
+[data-bs-theme="dark"] .table-warning .text-muted {
+  color: rgba($gray-900, 0.85) !important;
+}
+
+.table-warning a {
+  color: shade-color($primary, 25%);
+}
+
+// ---------------------------------------------------------------------------
+// Calendar read-back overlay: the viewer's own external events, drawn in the
+// plan grid beside the meal slots.
+//
+// These must never be mistaken for a planned meal or for an empty slot, so
+// they get a different *shape* rather than just a different colour: a tinted
+// chip with a leading rule, smaller type, and the time set in the muted
+// foreground. Colours come from $info (olive) — the one brand accent not
+// already spoken for by meals ($primary/$success) or errors ($danger) — via
+// Bootstrap's generated theme variables, so both themes track the palette.
+// ---------------------------------------------------------------------------
+// A wrapper INSIDE the cell, because a `<td>` ignores max-height: a day with
+// nine events must scroll here rather than stretch the whole row.
+.plan-external-cell {
+  max-height: 8.5rem;
+  overflow-y: auto;
+}
+
+.plan-external-event {
+  border-left: 3px solid var(--bs-info-border-subtle);
+  background-color: var(--bs-info-bg-subtle);
+  border-radius: var(--bs-border-radius-sm);
+  padding: 0.15rem 0.4rem;
+  margin-bottom: 0.2rem;
+  font-size: 0.8125rem;
+  line-height: 1.25;
+  // A long title truncates rather than wrapping to four lines; the full
+  // text stays available in the element's title attribute.
+  display: flex;
+  gap: 0.3rem;
+  align-items: baseline;
+}
+
+.plan-external-event-time {
+  color: var(--bs-secondary-color);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.plan-external-event-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+// Inside the mustard "today" row the subtle info tint disappears, and the
+// pinned dark foreground above would otherwise fight the chip. Give it a
+// translucent white wash so it still reads as a separate object.
+.table-warning .plan-external-event {
+  background-color: rgba($white, 0.55);
+  border-left-color: rgba($gray-900, 0.35);
+}
+
+.table-warning .plan-external-event-time {
+  color: rgba($gray-900, 0.7);
+}
+
+// Recipe tag pills use `bg="dark"`, which is now the navbar's deep jar green.
+// That reads well on the pale light-mode paper but all but disappears against
+// the near-black dark background, so the dark theme gets a raised surface
+// instead of the brand dark.
+[data-bs-theme="dark"] .recipe-tag-badge.text-bg-dark {
+  background-color: #2c3a2c !important;
+  color: #dbe3d6 !important;
+}
+
+// ---------------------------------------------------------------------------
+// /plan dashboard — widget board
+//
+// react-grid-layout ships two stylesheets (its own and react-resizable's).
+// Neither is imported: between them they hardcode a red drag placeholder and
+// a black-on-transparent resize grip, which is exactly the sort of thing this
+// file exists to avoid. The handful of rules that are actually structural are
+// reproduced below and coloured from the theme, so the board tracks the
+// palette in both light and dark like everything else.
+// ---------------------------------------------------------------------------
+
+.pickl-widget {
+  // Fills the box react-grid-layout gives it; the body, not the card, is what
+  // scrolls when a widget is sized smaller than its content.
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pickl-widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+}
+
+.pickl-widget-title {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.pickl-widget-actions {
+  display: flex;
+  gap: 0.25rem;
+  flex: none;
+}
+
+.pickl-widget-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+// The title bar is the drag handle. `touch-action: none` is what stops a
+// touch drag from scrolling the page instead of moving the widget — though on
+// a phone the grid isn't rendered at all (see below), so this only matters on
+// a touch-capable desktop.
+.pickl-widget-handle {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.pickl-widget-handle:active {
+  cursor: grabbing;
+}
+
+// Keyboard focus must stay visible on the buttons inside a header that is
+// itself a drag target — `user-select: none` above is the only thing the
+// handle changes, but the outline is worth stating rather than assuming.
+.pickl-widget-handle :focus-visible {
+  outline: 2px solid var(--bs-focus-ring-color, rgba($primary, 0.5));
+  outline-offset: 2px;
+}
+
+// --- react-grid-layout structural rules, themed -----------------------------
+
+.react-grid-layout {
+  position: relative;
+  transition: height 200ms ease;
+}
+
+.react-grid-item {
+  transition: all 200ms ease;
+  transition-property: left, top, width, height;
+}
+
+.react-grid-item.cssTransforms {
+  transition-property: transform, width, height;
+}
+
+.react-grid-item.resizing {
+  transition: none;
+  z-index: 1;
+  will-change: width, height;
+}
+
+.react-grid-item.react-draggable-dragging {
+  transition: none;
+  z-index: 3;
+  will-change: transform;
+}
+
+// Where the dragged widget will land. Stock react-grid-layout paints this
+// literally red; the palette has no blue and no stray red, so it gets the
+// mustard used elsewhere for "this is the spot".
+.react-grid-item.react-grid-placeholder {
+  background-color: var(--bs-warning);
+  border-radius: var(--bs-border-radius);
+  opacity: 0.25;
+  transition-duration: 100ms;
+  z-index: 2;
+  user-select: none;
+}
+
+.react-grid-item.react-grid-placeholder.placeholder-resizing {
+  transition: none;
+}
+
+.react-resizable {
+  position: relative;
+}
+
+// The corner grip, drawn with borders instead of the stock base64 PNG so it
+// takes a theme colour and stays visible on a dark surface.
+.react-grid-item > .react-resizable-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 20px;
+  height: 20px;
+  cursor: se-resize;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  touch-action: none;
+}
+
+.react-grid-item:hover > .react-resizable-handle,
+.react-grid-item:focus-within > .react-resizable-handle {
+  opacity: 1;
+}
+
+.react-grid-item > .react-resizable-handle::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--bs-secondary-color);
+  border-bottom: 2px solid var(--bs-secondary-color);
+}
+
+.react-resizable-hide > .react-resizable-handle {
+  display: none;
+}
+
+// --- Pre-hydration board ----------------------------------------------------
+// The same geometry react-grid-layout will use, in plain CSS, so the first
+// paint is already the user's own arrangement rather than a spinner or a
+// column of unpositioned cards. See staticItemStyle() in PlanDashboard.tsx.
+
+.pickl-dashboard-static {
+  position: relative;
+}
+
+// --- Phone: stop being a grid ----------------------------------------------
+// Below the md breakpoint the board is a stacked list. A 12-column
+// drag-and-drop grid at 375px is a way to bury one widget under another, so
+// the grid is not rendered at all once the viewport is this narrow (the JS
+// side of that switch is DASHBOARD_STACK_BREAKPOINT).
+//
+// `!important` here is deliberate and is the narrow case where it is the
+// right tool: the positions it overrides are inline styles written by the
+// pre-hydration render, and only a media query can undo them without
+// measuring anything.
+
+.pickl-dashboard-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+// A stacked widget is as tall as its contents; a fixed height belongs to the
+// grid, and forcing one here is how a phone ends up with five scroll areas.
+.pickl-dashboard-stack .pickl-widget {
+  height: auto;
+}
+
+.pickl-dashboard-stack .pickl-widget-body {
+  overflow: visible;
+}
+
+@media (max-width: 767.98px) {
+  .pickl-dashboard-static {
+    height: auto !important;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .pickl-dashboard-static-item {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: auto !important;
+    height: auto !important;
+  }
+
+  .pickl-dashboard-static-item .pickl-widget {
+    height: auto;
+  }
+
+  .pickl-dashboard-static-item .pickl-widget-body {
+    overflow: visible;
+  }
+
+  // Nothing is draggable at this width, so the grab cursor would be a lie.
+  .pickl-widget-handle {
+    cursor: default;
+    touch-action: auto;
+  }
+}

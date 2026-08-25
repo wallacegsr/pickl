@@ -1,0 +1,109 @@
+# Pickl - Docker Compose stack
+#
+# Deployment notes (Portainer):
+#   The `environment:` section below lists every variable the app needs, with
+#   placeholder/empty values. When deploying this stack via Portainer, use the
+#   Portainer stack "Environment variables" editor to supply the REAL values
+#   (NEXTAUTH_SECRET, SMTP credentials, etc). Do not commit real secrets into
+#   this file or into a .env file checked into source control.
+#
+# Persistent storage:
+#   The named volume `pickl-data` is mounted at /data, which is
+#   where the SQLite database file lives (DATABASE_PATH=/data/app.db).
+#   This keeps your recipes and plan data safe across container restarts
+#   and image rebuilds/upgrades.
+#
+#   Careful when renaming this volume: Docker Compose does not error on an
+#   unknown volume name, it silently creates a new empty one — so an existing
+#   deployment would come up with a blank database. Migrate the data first
+#   (see "Persistent storage" in the README). DATABASE_PATH and the /data
+#   mount target must not change.
+
+services:
+  pickl:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pickl:latest
+    container_name: pickl
+    restart: unless-stopped
+    ports:
+      # HOST:CONTAINER. Only the host side normally needs changing — set
+      # WEB_PORT to whatever is free on the box / whatever your reverse proxy
+      # points at. Defaults to 3000 if unset.
+      #
+      # APP_PORT changes the port INSIDE the container as well. You rarely need
+      # it; it matters if you attach this container directly to a proxy network
+      # and reference it as pickl:<port>, or run with network_mode: host.
+      - "${WEB_PORT:-3000}:${APP_PORT:-3000}"
+    healthcheck:
+      # Portainer shows this as the container health badge. Uses node rather
+      # than curl/wget, which are not in the slim runtime image.
+      test:
+        - CMD
+        - node
+        - -e
+        - "require(\"http\").get({host:\"127.0.0.1\",port:process.env.PORT||3000,path:\"/login\"},r=>process.exit(r.statusCode<500?0:1)).on(\"error\",()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    volumes:
+      - pickl-data:/data
+    environment:
+      # --- Web server ---
+      # The port the app listens on INSIDE the container. Must match the
+      # container side of the ports mapping above (both default to 3000).
+      PORT: "${APP_PORT:-3000}"
+
+      # --- Auth.js / NextAuth ---
+      # Required. Generate with: npx auth secret  (or: openssl rand -base64 32)
+      NEXTAUTH_SECRET: ""
+      # Required. Public URL this app is served at (used for auth callbacks).
+      NEXTAUTH_URL: "https://pickl.example.com"
+      # Required in production. Auth.js refuses to serve auth requests from a
+      # host it doesn't already recognize as safe (its "UntrustedHost"
+      # safeguard) unless this is set. Since this app is always deployed
+      # behind a single known host/reverse proxy, trust it here.
+      AUTH_TRUST_HOST: "true"
+
+      # Base URL used to build links inside emails (verification links, etc)
+      # AND the Google Calendar OAuth redirect URI. Usually the same as
+      # NEXTAUTH_URL.
+      #
+      # If you use Google Calendar sync, this value determines the redirect
+      # URI the app hands to Google:
+      #
+      #     {APP_BASE_URL}/api/calendar/google/callback
+      #
+      # That exact string must be registered under "Authorized redirect
+      # URIs" on the OAuth client in Google Cloud, or every connection
+      # attempt fails with redirect_uri_mismatch. Change this and you must
+      # add the new redirect URI in Google Cloud too. The admin panel
+      # (Admin -> Calendar Integration) shows the computed value to copy.
+      APP_BASE_URL: "https://pickl.example.com"
+
+      # --- Database ---
+      # Path inside the container where the SQLite file is stored. Matches
+      # the /data volume mount above — leave as-is unless you also change
+      # the volume mount path.
+      DATABASE_PATH: "/data/app.db"
+
+      # --- SMTP (used to send account verification emails) ---
+      # Example for Gmail: host smtp.gmail.com, port 587, an App Password
+      # (not your normal password) for SMTP_PASS. See README for details.
+      SMTP_HOST: ""
+      SMTP_PORT: "587"
+      SMTP_USER: ""
+      SMTP_PASS: ""
+      SMTP_FROM: "Pickl <no-reply@example.com>"
+
+      # --- Google Calendar sync ---
+      # No environment variables needed. The OAuth client ID and secret are
+      # entered once by an admin at Admin -> Calendar Integration and stored
+      # encrypted in the database; each user then connects their own Google
+      # account from Preferences -> Calendars. Only APP_BASE_URL above has
+      # to be right. See the "Calendar sync" section of the README.
+
+volumes:
+  pickl-data:

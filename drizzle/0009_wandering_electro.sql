@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `show_calendar_overlay` integer DEFAULT false NOT NULL;

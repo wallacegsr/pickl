@@ -1,0 +1,268 @@
+/* Body background is no longer set here: $body-bg / $body-bg-dark in
+ * src/styles/pickl-bootstrap.scss own it for both themes, which keeps the page
+ * surface in step with the generated component colours. */
+
+.navbar-brand {
+  font-weight: 700;
+}
+
+.day-card {
+  min-height: 160px;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+/* "Today" marker. Routed through --bs-warning (mustard) rather than the old
+ * hardcoded orange, so it matches the .table-warning today-row on the plan
+ * grid and follows the palette in both themes. */
+.day-card.today {
+  border: 2px solid var(--bs-warning);
+  box-shadow: 0 0 0 3px rgba(var(--bs-warning-rgb), 0.2);
+}
+
+.day-card:hover {
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.08);
+}
+
+.jar-reveal {
+  animation: reveal-fade 0.5s ease;
+}
+
+@keyframes reveal-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.recipe-tag-badge {
+  margin-right: 0.25rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * "Shake the Jar" micro-animation (see src/components/JarShake.tsx)
+ *
+ * All colours are Bootstrap 5.3 theme variables, so the jar reads correctly
+ * under both values of data-bs-theme without a separate dark-mode block.
+ * ------------------------------------------------------------------------ */
+
+.jar-shake {
+  display: inline-flex;
+  align-items: center;
+}
+
+.jar-shake-svg {
+  color: currentColor;
+  animation: jar-rock 0.55s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+
+.jar-lid {
+  fill: currentColor;
+  opacity: 0.75;
+}
+
+.jar-neck {
+  fill: currentColor;
+  opacity: 0.45;
+}
+
+/* Both animations now sit on GREEN buttons (Crunch Time = success, Shake the
+ * Jar = primary), so the old `rgba(var(--bs-success-rgb), …)` fills became
+ * green-on-green and the shapes lost their definition. The fills are keyed to
+ * `currentColor` instead — i.e. the button's own label colour — which keeps a
+ * guaranteed contrast against whatever surface the icon lands on, in either
+ * theme and on any button variant. The brine tint survives as a faint
+ * --bs-success wash layered underneath. */
+.jar-body {
+  fill: currentColor;
+  fill-opacity: 0.22;
+  stroke: currentColor;
+  stroke-width: 2;
+  opacity: 0.95;
+}
+
+.jar-card {
+  /* Rotate each card about its own centre rather than the SVG origin. */
+  transform-box: fill-box;
+  transform-origin: center;
+  /* Solid currentColor: the cards are the one part that must stay crisp
+     against the jar's translucent body, whichever colour the button is. */
+  fill: currentColor;
+  stroke: none;
+}
+
+.jar-card-1 {
+  animation: jar-tumble-a 0.75s ease-in-out infinite;
+}
+
+.jar-card-2 {
+  animation: jar-tumble-b 0.65s ease-in-out infinite;
+}
+
+.jar-card-3 {
+  animation: jar-tumble-c 0.85s ease-in-out infinite;
+}
+
+@keyframes jar-rock {
+  0%,
+  100% {
+    transform: rotate(-7deg);
+  }
+  50% {
+    transform: rotate(7deg);
+  }
+}
+
+@keyframes jar-tumble-a {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(-8deg);
+  }
+  50% {
+    transform: translate(3px, -5px) rotate(12deg);
+  }
+}
+
+@keyframes jar-tumble-b {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(10deg);
+  }
+  50% {
+    transform: translate(-4px, -6px) rotate(-14deg);
+  }
+}
+
+@keyframes jar-tumble-c {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(4deg);
+  }
+  50% {
+    transform: translate(2px, -4px) rotate(-10deg);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * "Crunch Time" micro-animation (see src/components/PickleCrunch.tsx)
+ *
+ * A separate visual from the jar above, for a separate action: bites are
+ * punched out of a single pickle via an SVG mask, with a small recoil on each
+ * crunch. Same theme-variable approach, same reduced-motion handling.
+ * ------------------------------------------------------------------------ */
+
+.pickle-crunch {
+  display: inline-flex;
+  align-items: center;
+}
+
+.crunch-svg {
+  color: currentColor;
+}
+
+.crunch-pickle {
+  animation: crunch-recoil 1.2s ease-in-out infinite;
+  transform-origin: 50% 50%;
+}
+
+/* See the note on .jar-body: the Crunch Time button is now `success` green, so
+ * a --bs-success pickle on it would be invisible. currentColor keeps it read
+ * as a pickle silhouette against its own button. */
+.crunch-body {
+  fill: currentColor;
+  fill-opacity: 0.3;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.crunch-shine {
+  fill: currentColor;
+  opacity: 0.85;
+}
+
+.crunch-bite {
+  /* Grow each bite about its own centre, not the SVG origin. */
+  transform-box: fill-box;
+  transform-origin: center;
+  /* Un-animated (e.g. reduced motion) the pickle should be whole, not
+   * pre-bitten, so bites start collapsed. */
+  transform: scale(0);
+}
+
+.crunch-bite-1 {
+  animation: crunch-bite-a 1.2s ease-out infinite;
+}
+
+.crunch-bite-2 {
+  animation: crunch-bite-b 1.2s ease-out infinite;
+}
+
+.crunch-bite-3 {
+  animation: crunch-bite-c 1.2s ease-out infinite;
+}
+
+@keyframes crunch-bite-a {
+  0%,
+  12% {
+    transform: scale(0);
+  }
+  22%,
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes crunch-bite-b {
+  0%,
+  40% {
+    transform: scale(0);
+  }
+  50%,
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes crunch-bite-c {
+  0%,
+  67% {
+    transform: scale(0);
+  }
+  77%,
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes crunch-recoil {
+  0%,
+  12%,
+  40%,
+  67%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  20%,
+  48%,
+  75% {
+    transform: translate(-1.5px, 1px) rotate(-3deg);
+  }
+}
+
+/* Hard requirement: a reduced-motion user gets a still jar and no reveal
+ * animation. The minimum-shake delay is skipped in JS too (see useJarShake in
+ * PlanView), so the result appears the moment the request resolves. */
+@media (prefers-reduced-motion: reduce) {
+  .jar-shake-svg,
+  .jar-card,
+  .crunch-pickle,
+  .crunch-bite,
+  .jar-reveal {
+    animation: none !important;
+  }
+}
+
