@@ -1,0 +1,9 @@
+Keeps public/ present in a fresh clone.
+
+Next.js serves this directory's contents as static assets at the site root,
+and the Dockerfile's runtime stage copies it. This project has no static
+assets yet (the favicon is a data URI in src/app/layout.tsx), and git does
+not track empty directories — so without a file here, a fresh clone has no
+public/ at all and the image build fails on that COPY.
+
+Delete this file once real static assets live here.
