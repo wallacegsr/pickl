@@ -811,6 +811,55 @@ committed to source control.
 | `SMTP_PASS` | Yes | SMTP password (see Gmail note below). |
 | `SMTP_FROM` | Yes | The "From" address for outgoing mail, e.g. `Pickl <no-reply@yourdomain.com>`. |
 
+### Pulling the prebuilt image
+
+Every push to `main` builds the image and publishes it to GitHub Container
+Registry via `.github/workflows/publish-image.yml`:
+
+```bash
+docker pull ghcr.io/wallacegsr/pickl:latest
+```
+
+Available tags:
+
+| Tag | Tracks |
+| --- | --- |
+| `latest` | the tip of `main` |
+| `1.2.3` / `1.2` / `1` | git tags matching `v*.*.*` |
+| `sha-abc1234` | one exact commit |
+
+`docker-compose.yml` uses `:latest`. Pin a version tag instead if you would
+rather upgrades be a deliberate act than whatever landed on `main`.
+
+Built for `linux/amd64` and `linux/arm64`, so it runs on an x86 server or on
+a Raspberry Pi / ARM NAS. If you only ever deploy on x86 and want faster CI,
+drop `linux/arm64` and the QEMU step from the workflow — the ARM build is
+emulated and is most of the build time.
+
+> **The first publish creates a *private* package.** `docker pull` will fail
+> with `denied` or `unauthorized` until you change that once, by hand:
+>
+> Your profile → **Packages** → `pickl` → **Package settings** →
+> **Danger Zone** → **Change visibility** → **Public**.
+>
+> This catches everyone. A public repository does *not* imply a public
+> package; the two are separate settings. You only need to do it once — later
+> pushes keep whatever visibility the package already has.
+
+While the package is private, or if you keep it private on purpose, pull with
+a [personal access token](https://github.com/settings/tokens) that has the
+`read:packages` scope:
+
+```bash
+echo $GITHUB_TOKEN | docker login ghcr.io -u wallacegsr --password-stdin
+```
+
+**Deploying in Portainer:** point the stack at this repository (or paste the
+compose file), set the environment variables listed above, and deploy. Because
+the compose file references the registry image rather than a build context,
+Portainer pulls it — no build tooling needed on the host. Tick **re-pull image**
+when redeploying to pick up a new `:latest`.
+
 ### Ports and reverse proxies
 
 The published port and the public URL are two different things, and mixing

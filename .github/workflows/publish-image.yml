@@ -1,0 +1,80 @@
+# Builds the Pickl container image and publishes it to GitHub Container
+# Registry, so a deployment can simply:
+#
+#     docker pull ghcr.io/wallacegsr/pickl:latest
+#
+# Runs on every push to main, on version tags, and on demand.
+#
+# NOTE: the very first successful run creates the package as PRIVATE.
+# `docker pull` will fail with "denied" until you make it public once, by
+# hand — see the "Pulling the image" section of the README.
+name: Publish container image
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  # github.repository is "owner/name", which is exactly the ghcr path we want.
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Required for GITHUB_TOKEN to push to GHCR. No personal access token
+      # is needed as long as the package lives under the same account.
+      packages: write
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        # Only needed for the linux/arm64 build below (NAS boxes, Raspberry
+        # Pi). Drop this and the arm64 platform if you only deploy on x86.
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive image tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # :latest only ever tracks main, never a tag build
+            type=raw,value=latest,enable={{is_default_branch}}
+            # v1.2.3 -> :1.2.3, :1.2 and :1
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            # every build is also addressable by commit
+            type=sha,format=short
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          # metadata-action sets org.opencontainers.image.source, which is what
+          # links the package to this repo on GitHub and lets the package
+          # inherit the repo's access settings.
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

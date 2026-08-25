@@ -21,10 +21,18 @@
 
 services:
   pickl:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: pickl:latest
+    # Pull the published image. This is what you want for Portainer.
+    # Pin to a version tag (e.g. :1.2.0) if you would rather upgrades be
+    # deliberate than follow main.
+    image: ghcr.io/wallacegsr/pickl:latest
+    #
+    # To build from source instead, comment out the image line above and
+    # uncomment this block, then `docker compose build`. Note the image is
+    # built for linux/amd64 and linux/arm64 by CI; a local build targets
+    # whatever your machine is.
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     container_name: pickl
     restart: unless-stopped
     ports:
