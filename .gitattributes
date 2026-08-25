@@ -1,0 +1,14 @@
+# Normalise line endings so a Windows checkout doesn't commit CRLF that then
+# confuses Linux/macOS contributors (and vice versa). Text files are stored
+# with LF in the repo; Git converts on checkout per each machine's settings.
+* text=auto eol=lf
+
+# Binary-ish assets: never touch these.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.db binary

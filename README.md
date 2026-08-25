@@ -922,3 +922,9 @@ src/
 scripts/                    migrate.mjs (migration runner), start.js (container entrypoint), seed.ts
 drizzle/                    Generated SQL migrations (drizzle-kit)
 ```
+
+## License
+
+MIT — see [LICENSE](LICENSE). You are free to use, modify, and
+self-host this, commercially or otherwise, provided the copyright notice
+and licence text travel with it.
