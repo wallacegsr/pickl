@@ -30,6 +30,12 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# Next.js projects conventionally have a public/ directory, and the runtime
+# stage copies it. This project has no static assets there (the favicon is a
+# data URI in layout.tsx), and git does not track empty directories, so a
+# fresh clone has no public/ at all and that COPY fails. Creating it here
+# keeps the copy valid whether or not the project ever gains static assets.
+RUN mkdir -p public
 RUN npm run build
 
 #############################################
