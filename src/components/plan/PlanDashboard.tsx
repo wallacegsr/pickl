@@ -141,6 +141,15 @@ type SaveState = "idle" | "saving" | "saved" | "error";
  * persisted to /api/dashboard/layout, which derives the owner from the
  * session. Nothing here sends a user id.
  */
+/**
+ * A save that may still be in flight after the component unmounted.
+ *
+ * Module scope on purpose: navigating away flushes a debounced save, and the
+ * next mount needs to wait for it before asking the server what the layout is,
+ * or it can read the value the flush is in the middle of replacing.
+ */
+let inFlightSave: Promise<unknown> | null = null;
+
 export default function PlanDashboard({
   initialLayout,
 }: {
@@ -193,11 +202,50 @@ export default function PlanDashboard({
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = useRef<DashboardLayout | null>(null);
 
+  /**
+   * Re-read the layout from the API once on mount.
+   *
+   * `initialLayout` comes from the server component, and Next.js can serve a
+   * cached RSC payload when you navigate back to /plan — so a layout you
+   * resized moments ago could come back at its old size even though the write
+   * succeeded. The database is the authority, so ask it directly.
+   *
+   * Awaiting `inFlightSave` first matters: leaving the page flushes a
+   * debounced save, and without waiting this GET can overtake that PUT and
+   * read the value it is replacing — which would then look exactly like the
+   * bug it is meant to fix.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        if (inFlightSave) await inFlightSave;
+        const res = await fetch("/api/dashboard/layout", { cache: "no-store" });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (cancelled || !data?.layout) return;
+        const authoritative = reconcileLayout(data.layout);
+        setLayout((prev) =>
+          sameGeometry(prev, authoritative) ? prev : authoritative
+        );
+      } catch {
+        // Offline or a transient failure: the server-rendered layout stands.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const flush = useCallback(async () => {
     const next = pending.current;
     pending.current = null;
     if (!next) return;
     setSaveState("saving");
+    let settle: () => void = () => {};
+    inFlightSave = new Promise<void>((res) => {
+      settle = res;
+    });
     try {
       const res = await fetch("/api/dashboard/layout", {
         method: "PUT",
@@ -212,6 +260,9 @@ export default function PlanDashboard({
       setSaveState(res.ok ? "saved" : "error");
     } catch {
       setSaveState("error");
+    } finally {
+      settle();
+      inFlightSave = null;
     }
   }, []);
 

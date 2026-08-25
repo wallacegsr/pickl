@@ -96,6 +96,9 @@ export default function ShakeControlsWidget() {
           type="checkbox"
           id="overwrite-week"
           label="Tip out picks I already have"
+          // The playful label does not say what the option actually does, and
+          // this one is destructive - it replaces meals you already planned.
+          title="Overwrites meals you have already planned this week. Leave it off and Shake the Jar only fills the empty slots."
           checked={overwriteWeek}
           onChange={(e) => setOverwriteWeek(e.target.checked)}
         />
