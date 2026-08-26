@@ -4,9 +4,8 @@ import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import Providers from "@/components/Providers";
-import AppNavbar from "@/components/AppNavbar";
+import AppShell from "@/components/nav/AppShell";
 import ThemeSync from "@/components/ThemeSync";
-import { Container } from "react-bootstrap";
 
 export default async function AppLayout({
   children,
@@ -31,8 +30,7 @@ export default async function AppLayout({
   return (
     <Providers>
       <ThemeSync userId={session.user.id} savedPreference={themePreference} />
-      <AppNavbar />
-      <Container className="pb-5">{children}</Container>
+      <AppShell>{children}</AppShell>
     </Providers>
   );
 }

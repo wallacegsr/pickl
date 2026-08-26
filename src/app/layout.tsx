@@ -39,6 +39,26 @@ const themeInitScript = `
 })();
 `;
 
+// Same trick, same reason: stamps the sidebar's collapsed/expanded state on
+// <html> before React runs so the rail never paints at the wrong width. The
+// CSS in globals.css keys --pickl-sidebar-w off this attribute; the React
+// state in src/components/nav/sidebarState.ts only mirrors it for
+// aria-expanded and the toggle's chevron.
+//
+// The key must stay in sync with SIDEBAR_STORAGE_KEY in
+// src/components/nav/sidebarState.ts. Default (nothing stored) is expanded.
+const sidebarInitScript = `
+(function () {
+  try {
+    var collapsed = localStorage.getItem("pickl-sidebar-collapsed-v1") === "1";
+    document.documentElement.setAttribute(
+      "data-pickl-sidebar",
+      collapsed ? "collapsed" : "expanded"
+    );
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: {
@@ -48,6 +68,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script dangerouslySetInnerHTML={{ __html: sidebarInitScript }} />
       </head>
       <body>{children}</body>
     </html>
