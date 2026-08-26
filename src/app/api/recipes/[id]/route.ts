@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { recipes } from "@/db/schema";
 import { recipeSchema } from "@/lib/validators";
 import { canEditRecipe, canEditSharedRecipes } from "@/lib/permissions";
+import { attachTagsToRecipe, parseTagInput, setRecipeTags } from "@/lib/tags";
 import { logAuditEntry } from "@/lib/audit";
 
 interface Params {
@@ -31,7 +32,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json(recipe);
+  return NextResponse.json(attachTagsToRecipe(recipe));
 }
 
 export async function PUT(req: NextRequest, { params }: Params) {
@@ -82,7 +83,6 @@ export async function PUT(req: NextRequest, { params }: Params) {
       prepTimeMinutes: data.prepTimeMinutes ?? null,
       cookTimeMinutes: data.cookTimeMinutes ?? null,
       servings: data.servings ?? null,
-      tags: data.tags ?? "",
       sourceUrl: data.sourceUrl || null,
       notes: data.notes || null,
       visibility: data.visibility,
@@ -91,6 +91,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
     })
     .where(eq(recipes.id, params.id))
     .run();
+
+  setRecipeTags(params.id, parseTagInput(data.tags ?? ""), session.user.id);
 
   logAuditEntry({
     userId: session.user.id,
@@ -104,7 +106,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     .where(eq(recipes.id, params.id))
     .get();
 
-  return NextResponse.json(updated);
+  return NextResponse.json(updated ? attachTagsToRecipe(updated) : null);
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {

@@ -13,7 +13,7 @@ import {
   Spinner,
 } from "react-bootstrap";
 import { useRouter } from "next/navigation";
-import type { Recipe } from "@/db/schema";
+import type { Recipe, RecipeWithTags } from "@/db/schema";
 import RecipeSearchBar from "@/components/RecipeSearchBar";
 import {
   DEFAULT_RECIPE_SEARCH_FIELDS,
@@ -28,7 +28,7 @@ export default function RecipeList({
   currentUserId,
   isAdmin,
 }: {
-  initialRecipes: Recipe[];
+  initialRecipes: RecipeWithTags[];
   currentUserId: string;
   isAdmin: boolean;
 }) {
@@ -165,19 +165,15 @@ export default function RecipeList({
                         {tag}
                       </Badge>
                     ))}
-                    {recipe.tags
-                      .split(",")
-                      .map((t) => t.trim())
-                      .filter(Boolean)
-                      .map((tag) => (
-                        <Badge
-                          key={tag}
-                          bg="secondary"
-                          className="recipe-tag-badge"
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
+                    {recipe.tags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        bg="secondary"
+                        className="recipe-tag-badge"
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
                   </div>
                   <Card.Text
                     className="flex-grow-1"

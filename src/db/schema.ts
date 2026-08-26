@@ -95,7 +95,6 @@ export const recipes = sqliteTable("recipes", {
   prepTimeMinutes: integer("prep_time_minutes"),
   cookTimeMinutes: integer("cook_time_minutes"),
   servings: integer("servings"),
-  tags: text("tags").notNull().default(""),
   sourceUrl: text("source_url"),
   notes: text("notes"),
   // 'shared' (in the household pool, admin-managed) | 'private' (owned by one user)
@@ -112,6 +111,59 @@ export const recipes = sqliteTable("recipes", {
     .notNull()
     .$defaultFn(() => new Date()),
 });
+
+/**
+ * The household's tag vocabulary — one row per distinct tag name.
+ *
+ * Replaces the old comma-separated `recipes.tags` column. A real table is
+ * what lets a tag exist before (or without) any recipe using it, be renamed
+ * in one place, and be counted without scanning every recipe's text.
+ *
+ * `nameKey` is `name` lower-cased and whitespace-collapsed, and it carries
+ * the UNIQUE constraint rather than `name` itself: tag names are compared
+ * case-INSENSITIVELY ("Quick" and "quick" are the same tag) while the
+ * capitalisation the user typed is preserved for display. Doing it with a
+ * stored column rather than a `UNIQUE(lower(name))` expression index keeps
+ * the constraint something drizzle-kit can generate and diff.
+ *
+ * Tags are NOT owned by a user and carry no visibility of their own. What a
+ * user may see or change follows entirely from the recipes a tag is on —
+ * see src/lib/tags.ts.
+ */
+export const tags = sqliteTable("tags", {
+  id: text("id").primaryKey(),
+  // As typed, for display.
+  name: text("name").notNull(),
+  // normalizeTagKey(name) — the case-insensitive identity of the tag.
+  nameKey: text("name_key").notNull().unique(),
+  createdByUserId: text("created_by_user_id").references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+/**
+ * The recipe↔tag join. Cascades both ways: deleting a recipe drops its
+ * associations, and deleting a tag drops them too — a tag deletion never
+ * touches the recipes themselves, only which tags they carry.
+ */
+export const recipeTags = sqliteTable(
+  "recipe_tags",
+  {
+    recipeId: text("recipe_id")
+      .notNull()
+      .references(() => recipes.id, { onDelete: "cascade" }),
+    tagId: text("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    recipeTagPair: unique().on(table.recipeId, table.tagId),
+  })
+);
 
 export const planEntries = sqliteTable(
   "plan_entries",
@@ -452,7 +504,7 @@ export const auditLog = sqliteTable("audit_log", {
   notes: text("notes"),
 });
 
-export const recipesRelations = relations(recipes, ({ one }) => ({
+export const recipesRelations = relations(recipes, ({ one, many }) => ({
   createdBy: one(users, {
     fields: [recipes.createdByUserId],
     references: [users.id],
@@ -460,6 +512,22 @@ export const recipesRelations = relations(recipes, ({ one }) => ({
   owner: one(users, {
     fields: [recipes.ownerUserId],
     references: [users.id],
+  }),
+  recipeTags: many(recipeTags),
+}));
+
+export const tagsRelations = relations(tags, ({ many }) => ({
+  recipeTags: many(recipeTags),
+}));
+
+export const recipeTagsRelations = relations(recipeTags, ({ one }) => ({
+  recipe: one(recipes, {
+    fields: [recipeTags.recipeId],
+    references: [recipes.id],
+  }),
+  tag: one(tags, {
+    fields: [recipeTags.tagId],
+    references: [tags.id],
   }),
 }));
 
@@ -532,6 +600,18 @@ export const calendarEventLinksRelations = relations(
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Recipe = typeof recipes.$inferSelect;
+export type Tag = typeof tags.$inferSelect;
+export type NewTag = typeof tags.$inferInsert;
+export type RecipeTag = typeof recipeTags.$inferSelect;
+export type NewRecipeTag = typeof recipeTags.$inferInsert;
+
+/**
+ * A recipe row plus its tag names, in display order. Every read path that
+ * used to lean on the old `recipes.tags` text column now takes one of
+ * these — see getTagsForRecipes/attachTags in src/lib/tags.ts, which fills
+ * them in for a whole list in one query rather than per recipe.
+ */
+export type RecipeWithTags = Recipe & { tags: string[] };
 export type NewRecipe = typeof recipes.$inferInsert;
 export type PlanEntry = typeof planEntries.$inferSelect;
 export type NewPlanEntry = typeof planEntries.$inferInsert;

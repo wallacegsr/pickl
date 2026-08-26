@@ -11,6 +11,13 @@ export type AuditAction =
   | "recipe_update"
   | "recipe_delete"
   | "permission_change"
+  // Tag vocabulary changes made from /tags. A tag edit only ever touches
+  // recipes the actor may already edit, so `notes` records how many recipes
+  // actually changed and how many were left alone by the permission rule.
+  | "tag_create"
+  | "tag_rename"
+  | "tag_merge"
+  | "tag_delete"
   // Per-user calendar connection lifecycle. `userId` and `targetUserId`
   // are always the same person — these are self-service actions, and no
   // admin has any path to another user's calendar connection. `notes`

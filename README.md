@@ -402,6 +402,53 @@ It is **off by default** and each person turns it on for themselves under
   recipes. Shaking into a **private** calendar draws from shared recipes
   *plus* that user's own private recipes.
 
+## Tags
+
+Recipe tags are a real table, not a text column: `tags` (one row per
+distinct name) plus a `recipe_tags` join, cascading both ways. Typing tags
+into a recipe is unchanged — a comma-separated box that creates whatever is
+new — but the values now live in one place, so a tag can be renamed once,
+counted, or created before anything uses it.
+
+**Names are matched case-insensitively.** `tags.name` keeps the
+capitalisation you typed, for display; `tags.name_key` holds the
+lower-cased, whitespace-collapsed form and carries the UNIQUE constraint.
+Typing `quick` on a recipe that a `Quick` tag already exists for reuses that
+tag rather than making a second one.
+
+### The Tags page
+
+**Tags** in the sidebar lists every tag you can see — used by the shared
+pool or by your own private recipes, plus any tag nothing uses yet — with
+how many recipes carry each. From there you can:
+
+- **Create** a standalone tag, attached to nothing yet.
+- **Rename** a tag.
+- **Merge**: renaming onto a name that already exists *merges* the two
+  rather than being rejected. The page says so before you commit, and the
+  merge button stays disabled until you tick the confirmation; the API
+  refuses the same request without an explicit `confirmMerge`.
+- **Delete** a tag. This removes the tag from recipes and *never* deletes a
+  recipe.
+
+### Tag edits obey the recipe permissions you already have
+
+A tag has no owner. The same word can sit on a shared household recipe and
+on your own private one, so an edit is applied only to the recipes you
+could already edit — your own private recipes, plus shared ones if you are
+an admin. A member's rename or delete **never** modifies a shared recipe,
+and nobody (admin included) can touch another user's private recipes.
+
+Where that makes an edit partial — a tag on both shared and private
+recipes, edited by a member — the page says so *before* you act ("This tag
+is on 3 recipes, but only 1 of them is yours to edit… the other 2 keep
+`Quick`") and reports what actually changed afterwards. The rule is
+enforced server-side in `src/lib/tags.ts`; the warning is a courtesy on top
+of it, not the mechanism.
+
+Tag create/rename/merge/delete are written to `audit_log`, with the number
+of recipes changed and the number left alone by the permission rule.
+
 ## The /plan dashboard
 
 `/plan` is a **configurable dashboard**: a board of draggable, resizable
@@ -783,6 +830,13 @@ To change the schema: edit `src/db/schema.ts`, run `npm run db:generate`,
 commit the new file(s) under `./drizzle`, and redeploy — migrations apply
 automatically on the next startup.
 
+A generated migration is DDL only. When a change needs **data** carried
+across, the backfill is hand-appended to the generated `.sql` so it runs in
+the same automatic path as everything else — see `0002_*.sql` (the
+`is_global_admin` backfill) and `0011_*.sql`, which splits the old
+comma-separated `recipes.tags` column into the `tags` / `recipe_tags`
+tables before `0012_*.sql` drops the column.
+
 ## First-run / signup flow
 
 > **The first account skips email verification.** It is created already
@@ -1064,7 +1118,9 @@ src/
                               crypto.ts (AES-256-GCM encrypt/decrypt for the stored SMTP
                               password), date helpers (Sunday-start week math), plan/shake logic,
                               shoppingList.ts (ingredient aggregation + on-hand status),
-                              permissions.ts (role/scope checks), planContext.ts (per-request
+                              permissions.ts (role/scope checks), tags.ts + tagNames.ts (tag
+                              vocabulary, lookups and the permission-scoped tag edits),
+                              planContext.ts (per-request
                               scope+userId resolution), audit.ts (audit_log writer), reports.ts
   types/                     Ambient type augmentation (NextAuth session)
 scripts/                    migrate.mjs (migration runner), start.js (container entrypoint), seed.ts

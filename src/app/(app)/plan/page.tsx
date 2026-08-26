@@ -8,6 +8,7 @@ import { users, type MealType, type Scope } from "@/db/schema";
 import PlanView, { type RecipeOption } from "@/components/PlanView";
 import { isOverlayEnabledForUser } from "@/lib/calendar/read";
 import { getDashboardLayout } from "@/lib/dashboard/store";
+import { getTagsForRecipes } from "@/lib/tags";
 import { redirect } from "next/navigation";
 
 export default async function PlanPage({
@@ -32,13 +33,21 @@ export default async function PlanPage({
 
   // Recipe pool for the manual editor: union across all meal types eligible
   // for this calendar; PlanView filters further by the specific slot's meal.
+  const poolsByMeal = MEAL_TYPE_LIST.map(
+    (mt) =>
+      [mt, getRecipePool(scope, scope === "private" ? requestedUserId : "", mt)] as const
+  );
+  // One tag lookup for the union of all three pools — never one per recipe.
+  const poolTags = getTagsForRecipes([
+    ...new Set(poolsByMeal.flatMap(([, pool]) => pool.map((r) => r.id))),
+  ]);
   const poolByMeal = Object.fromEntries(
-    MEAL_TYPE_LIST.map((mt) => [
+    poolsByMeal.map(([mt, pool]) => [
       mt,
-      getRecipePool(scope, scope === "private" ? requestedUserId : "", mt).map((r) => ({
+      pool.map((r) => ({
         id: r.id,
         name: r.name,
-        tags: r.tags,
+        tags: poolTags.get(r.id) ?? [],
         ingredients: r.ingredients,
       })),
     ])

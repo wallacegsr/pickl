@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { getWeekPlan, MEAL_TYPE_LIST } from "@/lib/plan";
 import { todayDateString } from "@/lib/dates";
 import { resolvePlanContext } from "@/lib/planContext";
+import { getTagsForRecipes } from "@/lib/tags";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -21,6 +22,18 @@ export async function GET(req: NextRequest) {
 
   const plan = getWeekPlan(week, resolved.context.scope, resolved.context.userId);
 
+  // Tags for every recipe in the week, in one query rather than per slot.
+  const plannedRecipeIds = [
+    ...new Set(
+      plan.flatMap((day) =>
+        MEAL_TYPE_LIST.map((mealType) => day.meals[mealType].recipe?.id).filter(
+          (id): id is string => Boolean(id)
+        )
+      )
+    ),
+  ];
+  const tagsByRecipe = getTagsForRecipes(plannedRecipeIds);
+
   const payload = plan.map((day) => ({
     date: day.date,
     dayOfWeek: day.dayOfWeek,
@@ -38,7 +51,9 @@ export async function GET(req: NextRequest) {
                 prepTimeMinutes: slot.recipe.prepTimeMinutes,
                 cookTimeMinutes: slot.recipe.cookTimeMinutes,
                 servings: slot.recipe.servings,
-                tags: slot.recipe.tags,
+                // An array of tag names now, rather than the old
+                // comma-separated string.
+                tags: tagsByRecipe.get(slot.recipe.id) ?? [],
               }
             : null,
         ];

@@ -77,6 +77,16 @@ export function JarIcon(props: IconProps) {
   );
 }
 
+/** Tags — a luggage-style tag with its punched hole. */
+export function TagIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M11.6 3.5H19a1.5 1.5 0 0 1 1.5 1.5v7.4a2 2 0 0 1-.6 1.4l-6.6 6.6a2 2 0 0 1-2.8 0l-6-6a2 2 0 0 1 0-2.8l6.6-6.6a2 2 0 0 1 1.5-.5Z" />
+      <path d="M16.5 7.5h.01" />
+    </Svg>
+  );
+}
+
 /** Preferences / User Settings — a gear. */
 export function GearIcon(props: IconProps) {
   return (

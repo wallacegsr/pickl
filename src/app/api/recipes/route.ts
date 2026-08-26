@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { recipes } from "@/db/schema";
 import { recipeSchema } from "@/lib/validators";
 import { canEditSharedRecipes } from "@/lib/permissions";
+import { attachTags, attachTagsToRecipe, parseTagInput, setRecipeTags } from "@/lib/tags";
 import { logAuditEntry } from "@/lib/audit";
 
 export async function GET(req: NextRequest) {
@@ -24,7 +25,8 @@ export async function GET(req: NextRequest) {
     .orderBy(desc(recipes.createdAt))
     .all();
 
-  return NextResponse.json(allRecipes);
+  // One extra query for the whole page of recipes, never one per recipe.
+  return NextResponse.json(attachTags(allRecipes));
 }
 
 export async function POST(req: NextRequest) {
@@ -62,7 +64,6 @@ export async function POST(req: NextRequest) {
       prepTimeMinutes: data.prepTimeMinutes ?? null,
       cookTimeMinutes: data.cookTimeMinutes ?? null,
       servings: data.servings ?? null,
-      tags: data.tags ?? "",
       sourceUrl: data.sourceUrl || null,
       notes: data.notes || null,
       visibility: data.visibility,
@@ -72,6 +73,8 @@ export async function POST(req: NextRequest) {
     })
     .run();
 
+  setRecipeTags(id, parseTagInput(data.tags ?? ""), session.user.id);
+
   logAuditEntry({
     userId: session.user.id,
     action: "recipe_create",
@@ -80,5 +83,7 @@ export async function POST(req: NextRequest) {
 
   const created = db.select().from(recipes).where(eq(recipes.id, id)).get();
 
-  return NextResponse.json(created, { status: 201 });
+  return NextResponse.json(created ? attachTagsToRecipe(created) : null, {
+    status: 201,
+  });
 }

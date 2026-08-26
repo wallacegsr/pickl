@@ -4,6 +4,7 @@ import { recipes } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
 import RecipeList from "@/components/RecipeList";
+import { attachTags } from "@/lib/tags";
 
 export default async function RecipesPage() {
   const session = await auth();
@@ -20,7 +21,7 @@ export default async function RecipesPage() {
     <div>
       <h2 className="mb-4">The Recipe Jar</h2>
       <RecipeList
-        initialRecipes={allRecipes}
+        initialRecipes={attachTags(allRecipes)}
         currentUserId={userId}
         isAdmin={isAdmin(session?.user)}
       />

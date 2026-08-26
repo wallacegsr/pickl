@@ -5,6 +5,7 @@ import { recipes } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { canEditRecipe, isAdmin } from "@/lib/permissions";
 import RecipeForm from "@/components/RecipeForm";
+import { attachTagsToRecipe } from "@/lib/tags";
 
 export default async function EditRecipePage({
   params,
@@ -29,7 +30,7 @@ export default async function EditRecipePage({
   return (
     <div>
       <h2 className="mb-4">Edit Recipe</h2>
-      <RecipeForm recipe={recipe} recipeId={params.id} isAdmin={isAdmin(session?.user)} />
+      <RecipeForm recipe={attachTagsToRecipe(recipe)} recipeId={params.id} isAdmin={isAdmin(session?.user)} />
     </div>
   );
 }

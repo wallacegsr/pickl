@@ -12,7 +12,8 @@ export const DEFAULT_RECIPE_SEARCH_FIELDS: RecipeSearchFields = {
 
 export interface SearchableRecipe {
   name: string;
-  tags: string;
+  /** Tag names, as attached by src/lib/tags.ts. */
+  tags: string[];
   ingredients: string;
 }
 
@@ -31,7 +32,11 @@ export function matchesRecipeSearch(
   if (!fields.name && !fields.tags && !fields.ingredients) return true;
 
   if (fields.name && recipe.name.toLowerCase().includes(q)) return true;
-  if (fields.tags && recipe.tags.toLowerCase().includes(q)) return true;
+  if (
+    fields.tags &&
+    recipe.tags.some((tag) => tag.toLowerCase().includes(q))
+  )
+    return true;
   if (fields.ingredients && recipe.ingredients.toLowerCase().includes(q)) return true;
   return false;
 }

@@ -83,21 +83,17 @@ export default function RecipeQuickLookWidget() {
         {tonightName ? (
           <>
             <div className="fw-semibold">{tonightName}</div>
-            {tonight && tonight.tags.trim() && (
+            {tonight && tonight.tags.length > 0 && (
               <div className="mt-1">
-                {tonight.tags
-                  .split(",")
-                  .map((t) => t.trim())
-                  .filter(Boolean)
-                  .map((tag) => (
-                    <Badge
-                      key={tag}
-                      bg="dark"
-                      className="recipe-tag-badge text-bg-dark"
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
+                {tonight.tags.map((tag) => (
+                  <Badge
+                    key={tag}
+                    bg="dark"
+                    className="recipe-tag-badge text-bg-dark"
+                  >
+                    {tag}
+                  </Badge>
+                ))}
               </div>
             )}
             {tonight ? (
@@ -148,8 +144,11 @@ export default function RecipeQuickLookWidget() {
                   {results.map((recipe) => (
                     <ListGroup.Item key={recipe.id} className="px-0 py-1">
                       <span className="fw-semibold">{recipe.name}</span>
-                      {recipe.tags.trim() && (
-                        <span className="text-body-secondary"> · {recipe.tags}</span>
+                      {recipe.tags.length > 0 && (
+                        <span className="text-body-secondary">
+                          {" "}
+                          · {recipe.tags.join(", ")}
+                        </span>
                       )}
                     </ListGroup.Item>
                   ))}

@@ -42,7 +42,8 @@ export interface PlanDayData {
 export interface RecipeOption {
   id: string;
   name: string;
-  tags: string;
+  /** Tag names, attached server-side by src/lib/tags.ts. */
+  tags: string[];
   ingredients: string;
 }
 

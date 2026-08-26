@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Button, Col, Form, Row, Spinner } from "react-bootstrap";
-import type { Recipe } from "@/db/schema";
+import type { RecipeWithTags } from "@/db/schema";
+import { formatTagInput } from "@/lib/tagNames";
 
 const MEAL_TYPE_OPTIONS = [
   { value: "breakfast", label: "Breakfast" },
@@ -26,7 +27,7 @@ export interface RecipeFormValues {
   mealType: string[];
 }
 
-function recipeToFormValues(recipe?: Recipe | null, isAdmin?: boolean): RecipeFormValues {
+function recipeToFormValues(recipe?: RecipeWithTags | null, isAdmin?: boolean): RecipeFormValues {
   return {
     name: recipe?.name ?? "",
     ingredients: recipe?.ingredients ?? "",
@@ -34,7 +35,7 @@ function recipeToFormValues(recipe?: Recipe | null, isAdmin?: boolean): RecipeFo
     prepTimeMinutes: recipe?.prepTimeMinutes?.toString() ?? "",
     cookTimeMinutes: recipe?.cookTimeMinutes?.toString() ?? "",
     servings: recipe?.servings?.toString() ?? "",
-    tags: recipe?.tags ?? "",
+    tags: recipe ? formatTagInput(recipe.tags) : "",
     sourceUrl: recipe?.sourceUrl ?? "",
     notes: recipe?.notes ?? "",
     visibility:
@@ -51,7 +52,7 @@ export default function RecipeForm({
   recipeId,
   isAdmin = false,
 }: {
-  recipe?: Recipe | null;
+  recipe?: RecipeWithTags | null;
   recipeId?: string;
   isAdmin?: boolean;
 }) {
@@ -224,6 +225,11 @@ export default function RecipeForm({
           placeholder="e.g. vegetarian, quick, pasta"
           onChange={(e) => update("tags", e.target.value)}
         />
+        <Form.Text muted>
+          Type them however you like — anything new becomes a tag, and an
+          existing tag is matched however you capitalise it. Manage the whole
+          list from Tags in the sidebar.
+        </Form.Text>
       </Form.Group>
 
       <Form.Group className="mb-3">

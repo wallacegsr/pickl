@@ -101,7 +101,14 @@ export const recipeSchema = z.object({
   prepTimeMinutes: z.coerce.number().int().min(0).nullable().optional(),
   cookTimeMinutes: z.coerce.number().int().min(0).nullable().optional(),
   servings: z.coerce.number().int().min(0).nullable().optional(),
-  tags: z.string().trim().optional().default(""),
+  // Still typed as one comma-separated string: the recipe form is
+  // deliberately unchanged, and parseTagInput (src/lib/tags.ts) splits it
+  // into rows. An array is accepted too, for API clients.
+  tags: z
+    .union([z.string(), z.array(z.string())])
+    .optional()
+    .default("")
+    .transform((v) => (Array.isArray(v) ? v.join(",") : v)),
   sourceUrl: z
     .union([z.string().trim().url(), z.literal("")])
     .nullable()
@@ -117,6 +124,29 @@ export const recipeSchema = z.object({
     // form, so an API client cannot store ["any","dinner"] and leave the UI
     // showing a state it will not let you create.
     .transform((v) => (v.includes("any") ? ["any"] : v)),
+});
+
+// ---------------------------------------------------------------------------
+// Tag management (/api/tags). A tag has no owner and no visibility of its
+// own — which recipes an edit reaches is decided server-side from the
+// session user's existing recipe permissions (see src/lib/tags.ts), so none
+// of these schemas carries a user id or a scope.
+// ---------------------------------------------------------------------------
+
+export const tagNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Enter a tag name")
+  .max(60, "Tag names are limited to 60 characters");
+
+export const createTagSchema = z.object({ name: tagNameSchema });
+
+export const updateTagSchema = z.object({
+  name: tagNameSchema,
+  // Renaming onto a name that already exists MERGES the two tags. The
+  // client must have shown that and had it confirmed; without this flag the
+  // route refuses with 409 rather than merging on a guess.
+  confirmMerge: z.boolean().default(false),
 });
 
 export const scopeSchema = z.enum(["shared", "private"]);

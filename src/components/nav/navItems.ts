@@ -1,5 +1,5 @@
 import type React from "react";
-import { BookIcon, CalendarIcon, JarIcon, type IconProps } from "./icons";
+import { BookIcon, CalendarIcon, JarIcon, TagIcon, type IconProps } from "./icons";
 
 /**
  * The primary destinations in the left sidebar.
@@ -34,6 +34,14 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
     label: "Recipes",
     Icon: BookIcon,
     description: "Everything in the jar — shared and private recipes.",
+    matchPrefix: true,
+  },
+  {
+    href: "/tags",
+    label: "Tags",
+    Icon: TagIcon,
+    description:
+      "Rename, merge, delete or add the words you file recipes under.",
     matchPrefix: true,
   },
   {
