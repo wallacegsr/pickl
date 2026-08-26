@@ -91,8 +91,13 @@ export function TagIcon(props: IconProps) {
 export function GearIcon(props: IconProps) {
   return (
     <Svg {...props}>
+      {/* Hub, rim, then teeth crossing the rim. The rim is what stops this
+          reading as a sun: detached rays around a bare circle is exactly what
+          SunIcon draws, and the previous version of this icon was
+          indistinguishable from it in the menu. */}
       <circle cx="12" cy="12" r="3" />
-      <path d="M12 2.5v2.2M12 19.3v2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6" />
+      <circle cx="12" cy="12" r="6.5" />
+      <path d="M18.5 12H21M5.5 12H3M12 18.5V21M12 5.5V3M16.6 16.6l1.8 1.8M7.4 7.4L5.6 5.6M16.6 7.4l1.8-1.8M7.4 16.6l-1.8 1.8" />
     </Svg>
   );
 }

@@ -73,7 +73,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               ) : (
                 <ChevronsLeftIcon size={18} />
               )}
-              <span className="pickl-sidebar-label">Collapse</span>
             </button>
           </div>
         </nav>
