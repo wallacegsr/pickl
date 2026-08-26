@@ -74,7 +74,7 @@ export interface WidgetMeta {
  * Default arrangement: a wide left column for the week itself, a narrow right
  * column for the things you consult while planning it.
  *
- *   Shake the jar  (8 wide) | Recipe quick look (4 wide)
+ *   Shake things up (8 wide) | Recipe quick look (4 wide)
  *   Meal plan      (8 wide) | Shopping list     (4 wide)
  *   Calendar events        (full width)
  *
@@ -97,8 +97,8 @@ export const WIDGET_REGISTRY: Record<WidgetId, WidgetMeta> = {
   },
   "shake-controls": {
     id: "shake-controls",
-    title: "Shake the jar",
-    description: "Pick meals, then Crunch Time or Shake the Jar.",
+    title: "Shake things up",
+    description: "Pick meals, then Crunch Time or Weekly Picks.",
     minW: 3,
     // The controls are a checkbox row and two buttons: ~150px. minH was 4,
     // which forced 208px and was most of the empty space here.

@@ -61,7 +61,6 @@ export default async function PlanPage({
 
   return (
     <div>
-      <h2 className="mb-4">Get out of a Pickle</h2>
       <PlanView
         week={week}
         scope={scope}

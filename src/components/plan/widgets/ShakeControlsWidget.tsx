@@ -90,7 +90,7 @@ export default function ShakeControlsWidget() {
           onClick={onShakeWeek}
           disabled={crunchingToday || shakingWeek}
         >
-          {shakingWeek ? <JarShake label="Shaking..." /> : "🫙 Shake the Jar"}
+          {shakingWeek ? <JarShake label="Shaking..." /> : "🫙 Weekly Picks"}
         </Button>
         <Form.Check
           type="checkbox"
@@ -98,7 +98,7 @@ export default function ShakeControlsWidget() {
           label="Tip out picks I already have"
           // The playful label does not say what the option actually does, and
           // this one is destructive - it replaces meals you already planned.
-          title="Overwrites meals you have already planned this week. Leave it off and Shake the Jar only fills the empty slots."
+          title="Overwrites meals you have already planned this week. Leave it off and Weekly Picks only fills the empty slots."
           checked={overwriteWeek}
           onChange={(e) => setOverwriteWeek(e.target.checked)}
         />
