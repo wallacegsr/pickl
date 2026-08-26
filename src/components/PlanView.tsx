@@ -2,7 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Alert, Button, Form, Modal, Nav, Spinner } from "react-bootstrap";
+import {
+  Alert,
+  Badge,
+  Button,
+  Form,
+  ListGroup,
+  Modal,
+  Nav,
+  Spinner,
+} from "react-bootstrap";
 import { todayDateString } from "@/lib/dates";
 import type { MealType, Scope } from "@/db/schema";
 import RecipeSearchBar from "@/components/RecipeSearchBar";
@@ -367,8 +376,15 @@ export default function PlanView({
     });
   }
 
-  async function saveSlot() {
+  /**
+   * Saves the slot. Takes an optional recipe id so double-clicking a result
+   * can pick and save in one gesture: setEditingSlot is async, so reading it
+   * back here would save whatever was selected before the double-click.
+   */
+  async function saveSlot(recipeIdOverride?: string) {
     if (!editingSlot) return;
+    const recipeId =
+      recipeIdOverride !== undefined ? recipeIdOverride : editingSlot.recipeId;
     setSavingSlot(true);
     const res = await fetch("/api/plan", {
       method: "PUT",
@@ -376,7 +392,7 @@ export default function PlanView({
       body: JSON.stringify({
         date: editingSlot.date,
         mealType: editingSlot.mealType,
-        recipeId: editingSlot.recipeId || null,
+        recipeId: recipeId || null,
         scope,
         userId: scope === "private" ? requestedUserId : undefined,
       }),
@@ -533,54 +549,99 @@ export default function PlanView({
               size="sm"
             />
           </Form.Group>
-          <Form.Group controlId="slot-recipe-select">
-            <Form.Label>Assigned Recipe</Form.Label>
-            <Form.Select
-              value={editingSlot?.recipeId ?? ""}
-              onChange={(e) =>
-                setEditingSlot((prev) =>
-                  prev ? { ...prev, recipeId: e.target.value } : prev
-                )
-              }
-            >
-              <option value="">-- No recipe / clear --</option>
-              {editingSlot &&
-                (() => {
-                  const pool = recipePoolByMeal[editingSlot.mealType] ?? [];
-                  const matched = pool.filter((r) =>
-                    matchesRecipeSearch(r, slotSearch, slotSearchFields)
-                  );
-                  // Keep the currently-assigned recipe selectable/visible even if it
-                  // no longer matches the search, so the dropdown doesn't silently
-                  // lose track of the current selection while filtering.
-                  const current = pool.find((r) => r.id === editingSlot.recipeId);
-                  const options =
-                    current && !matched.some((r) => r.id === current.id)
-                      ? [current, ...matched]
-                      : matched;
-                  return options.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ));
-                })()}
-            </Form.Select>
-            {editingSlot &&
-              slotSearch.trim() &&
-              !(recipePoolByMeal[editingSlot.mealType] ?? []).some((r) =>
+          {/* A live result list rather than a <select>.
+              Filtering the options of a collapsed <select> changed nothing the
+              user could see until they opened it, so typing in the search box
+              looked like it did nothing at all. */}
+          {editingSlot &&
+            (() => {
+              const pool = recipePoolByMeal[editingSlot.mealType] ?? [];
+              const matched = pool.filter((r) =>
                 matchesRecipeSearch(r, slotSearch, slotSearchFields)
-              ) && (
-                <Form.Text className="text-muted">
-                  No recipes match this search for {MEAL_LABELS[editingSlot.mealType]}.
-                </Form.Text>
-              )}
-          </Form.Group>
+              );
+              const searching = slotSearch.trim().length > 0;
+              const selectedId = editingSlot.recipeId;
+              // The assigned recipe stays reachable even when it does not match
+              // the current search, so filtering can never strand the current
+              // choice somewhere the user cannot see or clear it.
+              const current = pool.find((r) => r.id === selectedId);
+              const rows =
+                current && !matched.some((r) => r.id === current.id)
+                  ? [current, ...matched]
+                  : matched;
+
+              const pick = (id: string) =>
+                setEditingSlot((prev) => (prev ? { ...prev, recipeId: id } : prev));
+
+              return (
+                <Form.Group>
+                  <div className="d-flex justify-content-between align-items-baseline">
+                    <Form.Label className="mb-1">Assigned recipe</Form.Label>
+                    <span className="small text-body-secondary">
+                      {searching
+                        ? `${matched.length} of ${pool.length} match`
+                        : `${pool.length} available`}
+                    </span>
+                  </div>
+
+                  <ListGroup
+                    role="listbox"
+                    aria-label="Recipes for this meal"
+                    className="pickl-slot-picker"
+                  >
+                    <ListGroup.Item
+                      as="button"
+                      type="button"
+                      role="option"
+                      aria-selected={selectedId === ""}
+                      active={selectedId === ""}
+                      onClick={() => pick("")}
+                    >
+                      <span className="fst-italic">Empty jar — no recipe</span>
+                    </ListGroup.Item>
+
+                    {rows.map((r) => (
+                      <ListGroup.Item
+                        key={r.id}
+                        as="button"
+                        type="button"
+                        role="option"
+                        aria-selected={selectedId === r.id}
+                        active={selectedId === r.id}
+                        onClick={() => pick(r.id)}
+                        onDoubleClick={() => {
+                          pick(r.id);
+                          void saveSlot(r.id);
+                        }}
+                      >
+                        <div className="d-flex flex-wrap align-items-center gap-2">
+                          <span>{r.name}</span>
+                          {r.tags.slice(0, 3).map((t) => (
+                            <Badge key={t} bg="info" className="recipe-tag-badge">
+                              {t}
+                            </Badge>
+                          ))}
+                        </div>
+                      </ListGroup.Item>
+                    ))}
+                  </ListGroup>
+
+                  {searching && matched.length === 0 && (
+                    <Form.Text className="text-body-secondary">
+                      Nothing in the jar matches that search for{" "}
+                      {MEAL_LABELS[editingSlot.mealType]}. Clear the search to see
+                      all {pool.length}.
+                    </Form.Text>
+                  )}
+                </Form.Group>
+              );
+            })()}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setEditingSlot(null)}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={saveSlot} disabled={savingSlot}>
+          <Button variant="primary" onClick={() => saveSlot()} disabled={savingSlot}>
             {savingSlot ? <Spinner animation="border" size="sm" /> : "Save"}
           </Button>
         </Modal.Footer>

@@ -584,3 +584,15 @@ html[data-pickl-sidebar="collapsed"] .pickl-sidebar-toggle {
   padding-left: 0.625rem !important;
   padding-right: 0.625rem !important;
 }
+
+/* Slot picker: the meal-plan modal's live recipe results list. Capped so a
+   large jar scrolls inside the modal instead of pushing the footer off. */
+.pickl-slot-picker {
+  max-height: 15rem;
+  overflow-y: auto;
+}
+
+.pickl-slot-picker .list-group-item {
+  text-align: left;
+  cursor: pointer;
+}
