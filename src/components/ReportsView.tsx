@@ -307,7 +307,7 @@ export default function ReportsView({
             <tbody>
               {auditRows.map((r) => (
                 <tr key={r.id}>
-                  <td>{new Date(r.timestamp).toLocaleString()}</td>
+                  <td suppressHydrationWarning>{new Date(r.timestamp).toLocaleString()}</td>
                   <td>{r.userName}</td>
                   <td>{r.action}</td>
                   <td>{r.scope ?? "-"}</td>

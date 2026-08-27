@@ -65,7 +65,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      // The two inline scripts below stamp data-bs-theme and
+      // data-pickl-sidebar onto this element before React hydrates, so the
+      // server HTML necessarily lacks them. Without this, React treats that
+      // as a hydration mismatch and re-renders the entire root client-side -
+      // which discards the very attributes the scripts set, so the page falls
+      // back to the light theme even though localStorage says dark.
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <script dangerouslySetInnerHTML={{ __html: sidebarInitScript }} />

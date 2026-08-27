@@ -50,8 +50,19 @@ export default function ThemeSync({
     // The saved preference wins on load: it is the account's choice, whereas
     // the local value may belong to a different account that used this
     // browser, or be older than a change made on another device.
+    //
+    // Assert it onto the DOM unconditionally rather than only when it differs
+    // from the local copy. The attribute is set before hydration by an inline
+    // script, and anything that re-creates <html> afterwards — a hydration
+    // recovery, a stray extension — drops it. When that happened the old
+    // guard did nothing, because localStorage and the database agreed
+    // perfectly: the page just sat there in the wrong theme while storage
+    // insisted it was dark. Re-applying is idempotent and costs one attribute
+    // write per load.
+    applyResolvedTheme(resolveTheme(saved));
+
+    // Storage and listeners only need touching when something actually moved.
     if (localOwner !== userId || local !== saved) {
-      applyResolvedTheme(resolveTheme(saved));
       writeStoredPreference(saved, userId);
       window.dispatchEvent(
         new CustomEvent<ThemePreference>(THEME_CHANGE_EVENT, { detail: saved })

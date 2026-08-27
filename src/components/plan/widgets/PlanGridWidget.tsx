@@ -201,7 +201,7 @@ export default function PlanGridWidget() {
                                   className="plan-external-event"
                                   title={event.summary}
                                 >
-                                  <span className="plan-external-event-time">
+                                  <span className="plan-external-event-time" suppressHydrationWarning>
                                     {event.allDay
                                       ? event.multiDay
                                         ? "Multi-day"
