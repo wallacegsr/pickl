@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A pickle spear, drawn inside the 108dp adaptive-icon canvas. The safe
+     zone is the middle 72dp, so the shape stays well inside that. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Body -->
+    <path
+        android:fillColor="#4C7A3F"
+        android:pathData="M38,70 C28,60 30,44 42,36 C52,29 63,31 69,37 C76,44 76,58 68,67 C60,76 47,79 38,70 Z" />
+    <!-- Lighter highlight along the top-left, so the shape reads at 48dp -->
+    <path
+        android:fillColor="#8FBF6A"
+        android:pathData="M42,36 C52,29 63,31 69,37 C63,36 54,38 48,44 C43,49 41,57 42,64 C36,56 35,42 42,36 Z" />
+    <!-- Seed dots -->
+    <path
+        android:fillColor="#E8F0DC"
+        android:pathData="M52,50 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0 Z" />
+    <path
+        android:fillColor="#E8F0DC"
+        android:pathData="M60,60 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0 Z" />
+    <path
+        android:fillColor="#E8F0DC"
+        android:pathData="M50,64 m-2.5,0 a2.5,2.5 0 1,0 5,0 a2.5,2.5 0 1,0 -5,0 Z" />
+</vector>

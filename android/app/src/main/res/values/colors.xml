@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches the web app's jar-green palette. -->
+    <color name="pickl_green_dark">#2F4F2A</color>
+    <color name="pickl_green">#4C7A3F</color>
+    <color name="pickl_green_light">#8FBF6A</color>
+    <color name="pickl_yellow">#E8C33B</color>
+    <color name="white">#FFFFFF</color>
+    <color name="error">#B3261E</color>
+</resources>

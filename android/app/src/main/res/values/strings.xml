@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Pickl</string>
+    <string name="pickle_glyph">🥒</string>
+
+    <string name="connect_title">Connect to Pickl</string>
+    <string name="connect_subtitle">Out of the dinner pickle, onto the table.</string>
+    <string name="server_hint">Server address</string>
+    <string name="server_help">For example: pickl.example.com — your own Pickl server. It must be reachable over https.</string>
+    <string name="connect">Connect</string>
+
+    <string name="retry">Try again</string>
+    <string name="error_unreachable">Could not reach %1$s.\n\nCheck your connection, or that the server is running.</string>
+
+    <string name="reload">Reload</string>
+    <string name="change_server">Change server</string>
+    <string name="change_server_message">You will be signed out and asked for a server address again.</string>
+    <string name="change_server_confirm">Change</string>
+
+    <string name="download_from_pickl">Downloaded from Pickl</string>
+    <string name="download_started">Downloading %1$s…</string>
+    <string name="download_failed">Could not start that download.</string>
+    <string name="no_app_to_open_link">No app can open that link.</string>
+</resources>

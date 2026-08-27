@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Pickl"
+        android:usesCleartextTraffic="false">
+
+        <!--
+          allowBackup is off deliberately. The only thing worth backing up is
+          the session cookie and the server address; letting those ride along
+          into a cloud backup or an adb restore is a worse trade than making
+          the user log in again on a new device.
+
+          usesCleartextTraffic is off (also the platform default since API 28)
+          and stated here so it survives a manifest merge from any library.
+          The session cookie must never cross an untrusted network in the
+          clear. See ServerStore for the matching https-only check.
+        -->
+
+        <activity
+            android:name=".ConnectActivity"
+            android:exported="true"
+            android:label="@string/connect_title"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout|uiMode"
+            android:windowSoftInputMode="adjustResize" />
+    </application>
+
+</manifest>

@@ -33,3 +33,13 @@ next-env.d.ts
 
 # local editor/tooling config (machine-specific paths)
 .claude/
+
+# --- Android shell ---
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+*.jks
+*.keystore
+keystore.properties
