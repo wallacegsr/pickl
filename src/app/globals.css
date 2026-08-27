@@ -540,6 +540,14 @@ html[data-pickl-sidebar="collapsed"] {
   border-top: 1px solid var(--bs-border-color);
 }
 
+/* The arrows hug the edge they point at. The button keeps its full width so
+   the hit target and hover highlight still span the rail; only the glyph
+   moves. The collapsed rule below re-centres it once there is no width to
+   align against. */
+.pickl-sidebar-toggle {
+  justify-content: flex-end;
+}
+
 /* Collapsed rail: labels go, icons stay, rows centre themselves. The label
    text remains in the DOM so each link keeps its accessible name; `title`
    on the link supplies the sighted tooltip. */

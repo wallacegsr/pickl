@@ -51,7 +51,7 @@ export function getRecipePool(
   mealType: MealType
 ): Recipe[] {
   const all = db.select().from(recipes).all();
-  return all.filter((r) => {
+  const pool = all.filter((r) => {
     const visibleInScope =
       r.visibility === "shared" ||
       (scope === "private" && r.visibility === "private" && r.ownerUserId === userId);
@@ -62,6 +62,12 @@ export function getRecipePool(
       .filter(Boolean);
     return tags.includes(mealType) || tags.includes("any");
   });
+  // Alphabetical by name, so anything listing the pool is browsable. `numeric`
+  // keeps "Chili 2" ahead of "Chili 10"; `base` sensitivity stops capitalised
+  // names from sorting into their own block ahead of the lower-case ones.
+  return pool.sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" })
+  );
 }
 
 function emptyMeals(): Record<MealType, PlanMealSlot> {
