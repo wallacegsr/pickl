@@ -12,11 +12,11 @@ import {
 } from "react-bootstrap";
 import { todayDateString } from "@/lib/dates";
 import type { MealType, Scope } from "@/db/schema";
+// Download now goes through /api/shopping-list/export; only the clipboard
+// path still formats in the browser.
 import {
-  buildShoppingListCsv,
   buildShoppingListHtml,
   buildShoppingListText,
-  shoppingListFilename,
 } from "@/lib/shoppingListExport";
 
 const MEAL_LABELS: Record<MealType, string> = {
@@ -157,20 +157,16 @@ export default function ShoppingListPanel({
   }
 
   function handleDownload() {
-    const content =
-      exportFormat === "csv"
-        ? buildShoppingListCsv(visibleDays)
-        : buildShoppingListText(visibleDays);
-    const mime = exportFormat === "csv" ? "text/csv" : "text/plain";
-    const blob = new Blob([content], { type: `${mime};charset=utf-8` });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = shoppingListFilename(week, mode, exportFormat);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    // Navigating to a route that answers with Content-Disposition, rather than
+    // building a Blob here. A `blob:` URL never reaches an Android WebView's
+    // DownloadListener, so the in-browser version of this button silently did
+    // nothing inside the mobile shell. The server route shares the same
+    // builders, so the file is byte-identical either way.
+    const params = new URLSearchParams({ week, mode, format: exportFormat, scope });
+    if (scope === "private" && requestedUserId) {
+      params.set("userId", requestedUserId);
+    }
+    window.location.href = `/api/shopping-list/export?${params.toString()}`;
   }
 
   async function handleCopy() {

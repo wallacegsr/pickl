@@ -334,11 +334,90 @@ body.pickl-col-resizing {
   user-select: none;
 }
 
-/* Touch dragging a 10px target is fiddly, and the table already scrolls
-   horizontally on small screens, so the handles come off there. */
+/* Touch dragging a 10px target is fiddly, so the handles come off there.
+   Below this width the table is not a table any more (see below), so there
+   are no columns left to resize either. */
 @media (max-width: 767.98px) {
   .pickl-col-resizer {
     display: none;
+  }
+}
+
+/* --- Phones: the meal plan becomes one card per day ------------------------
+ *
+ * Four columns across seven rows does not fit a 375px screen; the previous
+ * behaviour was a horizontally scrolling table, which meant swiping sideways
+ * to answer "what's for dinner". Here each row becomes a card and each cell
+ * becomes a labelled line, so a day reads top to bottom with no scrolling.
+ *
+ * Done in CSS against the existing markup rather than as a second component:
+ * these cells carry the today badge, the editable-slot handler and the
+ * calendar overlay's expand/collapse, and a parallel mobile renderer would
+ * have to reimplement all of it and then be kept in step forever. The only
+ * markup this needs is the `data-label` on each cell.
+ */
+@media (max-width: 767.98px) {
+  .pickl-plan-table,
+  .pickl-plan-table tbody,
+  .pickl-plan-table tr,
+  .pickl-plan-table td {
+    display: block;
+    width: 100%;
+  }
+
+  /* The header row supplied the column names; `data-label` does that job
+     per-cell now. */
+  .pickl-plan-table thead,
+  .pickl-plan-table colgroup {
+    display: none;
+  }
+
+  /* `table-layout: fixed` and the stored <col> widths are meaningless once
+     the cells are blocks, and the wrapper has nothing left to scroll. */
+  .pickl-plan-table.pickl-plan-table-fixed {
+    table-layout: auto;
+  }
+
+  .table-responsive:has(.pickl-plan-table) {
+    overflow-x: visible;
+  }
+
+  .pickl-plan-table tr {
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    overflow: hidden;
+  }
+
+  /* The date leads the card, so it reads as a heading rather than a cell. */
+  .pickl-plan-table .pickl-plan-daycell {
+    background-color: var(--bs-tertiary-bg);
+    border-bottom: 1px solid var(--bs-border-color);
+    padding: 0.5rem 0.75rem;
+  }
+
+  .pickl-plan-table .pickl-plan-slotcell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    /* Comfortably past the 44px touch-target floor, since tapping one of
+       these is how a meal gets set. */
+    min-height: 48px;
+    padding: 0.5rem 0.75rem;
+    border: 0;
+    border-top: 1px solid var(--bs-border-color);
+  }
+
+  .pickl-plan-table .pickl-plan-slotcell:first-of-type {
+    border-top: 0;
+  }
+
+  .pickl-plan-table .pickl-plan-slotcell::before {
+    content: attr(data-label);
+    flex: 0 0 6.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--bs-secondary-color);
   }
 }
 

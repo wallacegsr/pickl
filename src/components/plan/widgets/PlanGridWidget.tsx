@@ -108,7 +108,7 @@ export default function PlanGridWidget() {
         // Fixed layout is what makes the <col> widths authoritative; with the
         // default auto layout the browser re-derives widths from content and
         // a drag appears to do nothing.
-        className={`align-middle${widths ? " pickl-plan-table-fixed" : ""}`}
+        className={`align-middle pickl-plan-table${widths ? " pickl-plan-table-fixed" : ""}`}
       >
         {widths && (
           <colgroup>
@@ -144,7 +144,7 @@ export default function PlanGridWidget() {
             const isToday = day.date === today;
             return (
               <tr key={day.date} className={isToday ? "table-warning" : undefined}>
-                <td>
+                <td className="pickl-plan-daycell">
                   <div className="fw-semibold">
                     {day.dayOfWeek}
                     {isToday && (
@@ -160,6 +160,10 @@ export default function PlanGridWidget() {
                   return (
                     <td
                       key={mt}
+                      // Supplies the row label once the header row is hidden
+                      // and each cell becomes its own line on a phone.
+                      data-label={MEAL_LABELS[mt]}
+                      className="pickl-plan-slotcell"
                       role={isEditable ? "button" : undefined}
                       onClick={() => openSlotEditor(day, mt)}
                       style={{ cursor: isEditable ? "pointer" : "default" }}
@@ -173,7 +177,7 @@ export default function PlanGridWidget() {
                   );
                 })}
                 {overlayApplies && (
-                  <td>
+                  <td data-label="On your calendar" className="pickl-plan-slotcell">
                     {/* The scroll container is this div, not the <td>:
                         table cells ignore max-height, so a busy day put
                         on the cell itself would silently grow the row. */}
