@@ -5,11 +5,10 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary" />
+    <!-- No native toolbar. The web app draws its own header with the account
+         menu, and stacking a second bar above it wasted a chunk of a phone
+         screen to duplicate what was already there. Reload and Change server
+         moved into that menu via the PicklShell bridge. -->
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -51,6 +50,18 @@
                 android:layout_marginTop="20dp"
                 android:minHeight="48dp"
                 android:text="@string/retry" />
+
+            <!-- The escape hatch. When the page will not load, the account menu
+                 that normally offers this cannot render, so a wrong or moved
+                 server address would otherwise be unrecoverable. -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/changeServerButton"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:minHeight="48dp"
+                android:text="@string/change_server" />
         </LinearLayout>
     </FrameLayout>
 </LinearLayout>

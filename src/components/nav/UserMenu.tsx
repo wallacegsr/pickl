@@ -11,7 +11,16 @@ import {
   THEME_CHANGE_EVENT,
   type ResolvedTheme,
 } from "@/lib/theme";
-import { GearIcon, MoonIcon, ShieldIcon, SignOutIcon, SunIcon } from "./icons";
+import { getPicklShell, type PicklShellBridge } from "@/lib/shell";
+import {
+  GearIcon,
+  MoonIcon,
+  RefreshIcon,
+  ServerIcon,
+  ShieldIcon,
+  SignOutIcon,
+  SunIcon,
+} from "./icons";
 
 /** First letter of the display name, falling back to the email, then "?". */
 function initialFor(name?: string | null, email?: string | null) {
@@ -40,6 +49,15 @@ export default function UserMenu() {
   // icon and label differ between the two states, and both settle on the
   // first commit. See src/lib/theme.ts.
   const [theme, setTheme] = useState<ResolvedTheme>("light");
+
+  // Null in a browser, non-null inside the Android shell. Resolved after mount
+  // rather than during render: the server cannot know which client will run
+  // the markup, so branching on it while rendering would be a hydration
+  // mismatch — the same trap that reset the theme once already.
+  const [shell, setShell] = useState<PicklShellBridge | null>(null);
+  useEffect(() => {
+    setShell(getPicklShell());
+  }, []);
 
   useEffect(() => {
     const read = () => {
@@ -111,6 +129,29 @@ export default function UserMenu() {
           {theme === "dark" ? "Light mode" : "Dark mode"}
         </Dropdown.Item>
 
+        {/* Only inside the Android shell. These were the native toolbar's
+            overflow menu; folding them in here means the app has one menu
+            rather than two stacked bars competing for the top of a phone
+            screen. */}
+        {shell && (
+          <>
+            <Dropdown.Divider />
+            <Dropdown.Item as="button" type="button" onClick={() => shell.reload()}>
+              <RefreshIcon className="pickl-menu-icon" />
+              Reload
+            </Dropdown.Item>
+            <Dropdown.Item
+              as="button"
+              type="button"
+              onClick={() => shell.changeServer()}
+              title="Sign out and connect this app to a different Pickl server."
+            >
+              <ServerIcon className="pickl-menu-icon" />
+              Change server
+            </Dropdown.Item>
+          </>
+        )}
+
         <Dropdown.Divider />
 
         <Dropdown.Item
@@ -125,3 +166,4 @@ export default function UserMenu() {
     </Dropdown>
   );
 }
+

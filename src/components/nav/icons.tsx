@@ -163,3 +163,24 @@ export function ChevronsRightIcon(props: IconProps) {
     </Svg>
   );
 }
+
+/** Circular arrow — "Reload", in the Android shell's menu. */
+export function RefreshIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+      <path d="M20 4v4.5h-4.5" />
+    </Svg>
+  );
+}
+
+/** Stacked racks — "Change server", in the Android shell's menu. */
+export function ServerIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="3.5" y="4.5" width="17" height="6" rx="1.5" />
+      <rect x="3.5" y="13.5" width="17" height="6" rx="1.5" />
+      <path d="M7.5 7.5h.01M7.5 16.5h.01" />
+    </Svg>
+  );
+}

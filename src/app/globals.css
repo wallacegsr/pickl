@@ -641,35 +641,96 @@ html[data-pickl-sidebar="collapsed"] .pickl-sidebar-toggle {
   padding-right: 0.25rem;
 }
 
-/* --- Mobile: the column becomes a drawer ---------------------------------- */
+/* --- Mobile: the column becomes a bottom bar ------------------------------
+ *
+ * Replaced an off-canvas drawer. Both the drawer and its hamburger are gone;
+ * the bar below carries the same destinations from the same array.
+ */
+
+/* On :root, not on .pickl-bottomnav: the padding that clears the bar is set on
+   .pickl-main, which is a *sibling* of the bar. Custom properties inherit down
+   the tree and not across siblings, so declaring them on the bar left the
+   calc() referencing an undefined variable — which invalidates the whole
+   declaration and silently drops the padding to 0, putting the end of a long
+   page back underneath the bar. */
+:root {
+  --pickl-bottomnav-row: 56px;
+  --pickl-bottomnav-border: 1px;
+}
+
+.pickl-bottomnav {
+  display: none;
+}
 
 @media (max-width: 767.98px) {
   .pickl-sidebar {
     display: none;
   }
-}
 
-@media (min-width: 768px) {
-  /* The drawer trigger only exists while the drawer does. */
-  .pickl-drawer-btn {
-    display: none;
+  .pickl-bottomnav {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 1030;
+    display: flex;
+    align-items: stretch;
+    background-color: var(--bs-body-bg);
+    border-top: var(--pickl-bottomnav-border) solid var(--bs-border-color);
+    /* Keeps the row clear of the gesture handle / navigation bar. Resolves to
+       0px on devices without one, so it costs nothing there. */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-}
 
-.pickl-drawer {
-  --bs-offcanvas-width: 15rem;
-}
+  .pickl-bottomnav-item {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.125rem;
+    /* Four items share the width, so each is ~93px on a 375px screen: wider
+       than the 44px touch-target floor in both directions. */
+    min-height: var(--pickl-bottomnav-row);
+    padding: 0.375rem 0.25rem;
+    color: var(--bs-secondary-color);
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
 
-/* Labels are never hidden inside the drawer, whatever the desktop rail's
-   stored collapse state is. */
-.pickl-drawer-nav .pickl-sidebar-label {
-  display: inline !important;
-}
+  .pickl-bottomnav-item.active {
+    color: var(--bs-primary);
+    font-weight: 600;
+  }
 
-.pickl-drawer-nav .pickl-sidebar-link {
-  justify-content: flex-start !important;
-  padding-left: 0.625rem !important;
-  padding-right: 0.625rem !important;
+  /* Colour alone would not survive a colour-vision difference or a glance;
+     the active item also gets a bar along the top edge. */
+  .pickl-bottomnav-item.active::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    width: 2.5rem;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background-color: var(--bs-primary);
+  }
+
+  .pickl-bottomnav-item {
+    position: relative;
+  }
+
+  .pickl-bottomnav-label {
+    font-size: 0.6875rem;
+    line-height: 1.1;
+    text-align: center;
+  }
+
+  /* Reserve the bar's height so the last of a long page is not stranded
+     behind it. */
+  .pickl-main {
+    padding-bottom: calc(
+      var(--pickl-bottomnav-row) + var(--pickl-bottomnav-border) +
+        env(safe-area-inset-bottom, 0px)
+    );
+  }
 }
 
 /* Slot picker: the meal-plan modal's live recipe results list. Capped so a

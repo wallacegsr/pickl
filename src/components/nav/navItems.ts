@@ -15,6 +15,12 @@ import { BookIcon, CalendarIcon, JarIcon, TagIcon, type IconProps } from "./icon
 export interface SidebarItem {
   href: string;
   label: string;
+  /**
+   * Used by the phone bottom bar, where each item gets a quarter of the
+   * screen. Only set it where `label` would not survive that — the bar falls
+   * back to `label`, so most items need nothing here.
+   */
+  shortLabel?: string;
   Icon: (props: IconProps) => React.ReactElement;
   /** Extra context, shown as the tooltip — the only label when collapsed. */
   description?: string;
@@ -47,6 +53,9 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
   {
     href: "/reports",
     label: "Past Preserves",
+    // Two words do not fit a quarter of a phone screen; this keeps the
+    // preserves joke rather than falling back to "Reports".
+    shortLabel: "Preserves",
     Icon: JarIcon,
     description:
       "Meal history, how often each recipe gets planned, and the full change log.",

@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { Container, Offcanvas } from "react-bootstrap";
+import { Container } from "react-bootstrap";
+import BottomNav from "./BottomNav";
 import SidebarNav from "./SidebarNav";
 import UserMenu from "./UserMenu";
 import { useSidebarCollapsed } from "./sidebarState";
-import { ChevronsLeftIcon, ChevronsRightIcon, MenuIcon } from "./icons";
+import { ChevronsLeftIcon, ChevronsRightIcon } from "./icons";
 
 /**
  * The two-surface app chrome: a slim top bar (wordmark + avatar menu) and a
@@ -19,30 +19,22 @@ import { ChevronsLeftIcon, ChevronsRightIcon, MenuIcon } from "./icons";
  *
  * Below 768px (the same breakpoint at which the /plan dashboard stops being a
  * grid, DASHBOARD_STACK_BREAKPOINT) the column would leave too little room for
- * content, so the sidebar leaves the flow entirely and becomes an off-canvas
- * drawer opened from a button in the top bar. A drawer rather than a permanent
- * rail because the rail's icons alone are a poor way to navigate on a phone,
- * and the drawer gets focus trapping and Escape-to-close from Offcanvas.
+ * content, so the sidebar leaves the flow entirely and the same destinations
+ * appear in a fixed bottom bar instead (BottomNav).
+ *
+ * That bar replaced an off-canvas drawer. The drawer cost two taps to reach
+ * anywhere and hid the current location behind a hamburger; a bottom bar keeps
+ * all four destinations and the active one permanently visible, within thumb
+ * reach rather than in the top corner. It is also what the platform's own apps
+ * do, so it needs no explaining.
  */
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { collapsed, toggle } = useSidebarCollapsed();
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
     <div className="pickl-shell">
       <header className="pickl-topbar">
         <div className="pickl-topbar-inner">
-          <button
-            type="button"
-            className="pickl-icon-btn pickl-drawer-btn"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Open navigation menu"
-            aria-expanded={drawerOpen}
-            aria-controls="pickl-nav-drawer"
-          >
-            <MenuIcon size={20} />
-          </button>
-
           <Link href="/plan" className="pickl-brand">
             🥒 Pickl
           </Link>
@@ -84,25 +76,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      <Offcanvas
-        id="pickl-nav-drawer"
-        show={drawerOpen}
-        onHide={() => setDrawerOpen(false)}
-        placement="start"
-        className="pickl-drawer"
-        aria-label="Primary navigation"
-      >
-        <Offcanvas.Header closeButton>
-          <Offcanvas.Title>🥒 Pickl</Offcanvas.Title>
-        </Offcanvas.Header>
-        <Offcanvas.Body className="px-2">
-          {/* Always full-width labels in the drawer, whatever the desktop
-              rail's collapsed state happens to be. */}
-          <div className="pickl-drawer-nav">
-            <SidebarNav onNavigate={() => setDrawerOpen(false)} />
-          </div>
-        </Offcanvas.Body>
-      </Offcanvas>
+      {/* Hidden above md, where the sidebar is doing this job. */}
+      <BottomNav />
     </div>
   );
 }
