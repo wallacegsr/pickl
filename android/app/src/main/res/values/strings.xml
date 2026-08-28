@@ -21,4 +21,6 @@
     <string name="download_started">Downloading %1$s…</string>
     <string name="download_failed">Could not start that download.</string>
     <string name="no_app_to_open_link">No app can open that link.</string>
+
+    <string name="version_stamp">Version %1$s</string>
 </resources>

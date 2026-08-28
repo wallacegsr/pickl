@@ -3,6 +3,29 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+/**
+ * Short commit the APK was built from, appended to the version name so
+ * "which build is this?" is answerable from Android's app info instead of by
+ * inference. Sideloaded builds have no store listing and no update channel, so
+ * without it a stale install and a current one look identical.
+ *
+ * Falls back through: an explicit -PbuildSha, CI's GITHUB_SHA, the local git
+ * checkout, then "local" when none of those exist (a source drop with no .git,
+ * for instance) -- a missing SHA must never fail the build.
+ */
+val buildSha: String =
+    (project.findProperty("buildSha") as String?)?.take(7)
+        ?: System.getenv("GITHUB_SHA")?.take(7)
+        ?: runCatching {
+            val process = ProcessBuilder("git", "rev-parse", "--short=7", "HEAD")
+                .directory(rootProject.projectDir)
+                .redirectErrorStream(true)
+                .start()
+            val text = process.inputStream.bufferedReader().use { it.readText() }.trim()
+            if (process.waitFor() == 0 && text.isNotEmpty()) text else null
+        }.getOrNull()
+        ?: "local"
+
 android {
     namespace = "com.wallacegsr.pickl"
     compileSdk = 34
@@ -46,10 +69,11 @@ android {
             if (System.getenv("PICKL_KEYSTORE_PATH") != null) {
                 signingConfig = signingConfigs.getByName("release")
             }
+            versionNameSuffix = "-$buildSha"
         }
         debug {
             applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
+            versionNameSuffix = "-debug-$buildSha"
         }
     }
 
@@ -64,6 +88,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 }
 

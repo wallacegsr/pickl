@@ -85,5 +85,17 @@
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="16dp"
             android:visibility="gone" />
+
+        <!-- Build stamp. This screen is where you land when something is wrong
+             or after Change server, which is exactly when "is this the build I
+             think it is?" matters. -->
+        <TextView
+            android:id="@+id/versionText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:textAlignment="center"
+            android:textSize="12sp"
+            android:textColor="?android:attr/textColorSecondary" />
     </LinearLayout>
 </ScrollView>

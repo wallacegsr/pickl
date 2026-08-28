@@ -74,6 +74,35 @@ Sideload the APK: transfer it to the phone and open it, allowing installs from
 your file manager when prompted. Play Store distribution is possible but not
 required, and sideloading is the normal route for self-hosted software.
 
+### Updating a debug build requires uninstalling first
+
+Gradle creates a debug keystore on whatever machine performs the build, so
+every CI run signs with a **different** debug key. Android refuses to install
+over an app signed by another key, and reports it only as "App not installed"
+or a signature mismatch. Uninstall the old copy first; you lose the stored
+server address and your session, nothing else.
+
+Set up release signing (above) to make this go away — release builds use one
+stable key, so they update in place like any normal app.
+
+## Which build am I running?
+
+The version name carries the commit it was built from:
+
+```
+1.0.0-debug-4700ea7    debug build of commit 4700ea7
+1.0.0-4700ea7          signed release of the same commit
+```
+
+Visible in Android's Settings → Apps → Pickl, and on the connect screen — which
+is where you land after "Change server" or when a server cannot be reached, so
+it is readable exactly when it matters. Without it a stale sideloaded install
+and a current one are indistinguishable, since there is no store listing or
+update channel to compare against.
+
+The SHA resolves from `-PbuildSha`, then CI's `GITHUB_SHA`, then the local git
+checkout, and finally `local` — a missing SHA never fails the build.
+
 ## What the shell handles
 
 A bare WebView gets several things wrong; these are covered explicitly:

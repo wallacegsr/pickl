@@ -40,6 +40,8 @@ class ConnectActivity : AppCompatActivity() {
             binding.serverInput.setText(existing)
         }
 
+        binding.versionText.text = getString(R.string.version_stamp, BuildConfig.VERSION_NAME)
+
         binding.connectButton.setOnClickListener { attemptConnect() }
         binding.serverInput.setOnEditorActionListener { _, _, _ ->
             attemptConnect()
