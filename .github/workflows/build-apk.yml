@@ -1,11 +1,16 @@
 name: Build Android APK
 
 on:
+  # No `paths` filter on the push event, deliberately. A path filter applies to
+  # branch and tag pushes alike, so filtering to android/** would skip a release
+  # tag whose commit happens not to touch that directory -- exactly the build
+  # that matters most. An Android build is a couple of minutes; a release tag
+  # that silently produces no APK is worse.
   push:
+    branches:
+      - main
     tags:
       - "v*"
-    paths-ignore:
-      - "**.md"
   pull_request:
     paths:
       - "android/**"
