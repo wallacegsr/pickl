@@ -59,6 +59,24 @@ const sidebarInitScript = `
 })();
 `;
 
+// Third of the same kind: the colour palette, which is a separate axis from
+// light/dark above. Must run before first paint for the same reason — a page
+// that paints deep green and then swaps to cream is worse than either.
+//
+// The key must stay in sync with PALETTE_STORAGE_KEY in src/lib/palette.ts.
+// Default (nothing stored) is the original jar-and-brine green.
+const paletteInitScript = `
+(function () {
+  try {
+    var palette = localStorage.getItem("pickl-palette-v1");
+    document.documentElement.setAttribute(
+      "data-pickl-palette",
+      palette === "bright" ? "bright" : "default"
+    );
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: {
@@ -67,8 +85,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      // The two inline scripts below stamp data-bs-theme and
-      // data-pickl-sidebar onto this element before React hydrates, so the
+      // The three inline scripts below stamp data-bs-theme,
+      // data-pickl-sidebar and data-pickl-palette onto this element before
+      // React hydrates, so the
       // server HTML necessarily lacks them. Without this, React treats that
       // as a hydration mismatch and re-renders the entire root client-side -
       // which discards the very attributes the scripts set, so the page falls
@@ -78,6 +97,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <script dangerouslySetInnerHTML={{ __html: sidebarInitScript }} />
+        <script dangerouslySetInnerHTML={{ __html: paletteInitScript }} />
       </head>
       <body>{children}</body>
     </html>

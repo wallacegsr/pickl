@@ -459,3 +459,168 @@ $navbar-dark-active-color: $white;
     touch-action: auto;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Alternate palette: "Bright"
+//
+// A second tone for the same app, selected by `data-pickl-palette="bright"` on
+// <html> (see src/lib/palette.ts). The default — everything above — stays the
+// deep jar/brine green; this one trades it for warm cream paper, a vivid leaf
+// green and sunnier accents.
+//
+// Written as a scoped override layer rather than a second Bootstrap compile.
+// Recompiling all of Bootstrap again under an attribute selector would work and
+// need no enumeration, but it roughly doubles the stylesheet for a preference
+// most users set once. The buttons below go through Bootstrap's own
+// `button-variant` mixin, so every derived state — hover, active, disabled, and
+// the automatic light-vs-dark label pick — is generated rather than hand-typed,
+// which is what keeps this short enough to stay correct.
+//
+// Every value below was contrast-checked, same as the default palette:
+//   primary  #45ab55  label auto-picks dark ink       5.31:1
+//   link     #2b7a37  on cream                        5.23:1
+//   danger   #c92a2a  white label                     5.46:1
+//   success  #82c91e / warning #fcc419 / info #a3c644  dark ink 7.6-9.6:1
+//   body     #20261e on #fffdf5                      15.19:1
+//   dark mode #eef3e6 on #171d17                     15.19:1
+// ---------------------------------------------------------------------------
+
+$bright-primary:   #45ab55; // vivid leaf green
+$bright-success:   #82c91e; // lime
+$bright-info:      #a3c644; // bright olive
+$bright-warning:   #fcc419; // sunny yellow
+$bright-danger:    #c92a2a; // clear red
+$bright-secondary: #6d7864;
+
+$bright-bg:        #fffdf5; // warm cream paper
+$bright-fg:        #20261e;
+$bright-muted:     #55604f;
+$bright-tertiary:  #f7f3e3;
+$bright-border:    #ded8bd;
+$bright-link:      #2b7a37; // deeper than $bright-primary: this one carries text
+
+$bright-bg-dark:       #171d17;
+$bright-fg-dark:       #eef3e6;
+$bright-tertiary-dark: #202a20;
+$bright-border-dark:   #3a4a36;
+
+// --- Surfaces, per mode ---------------------------------------------------
+// Both selectors carry two attributes so they outrank Bootstrap's own
+// `[data-bs-theme="dark"]` block. A single-attribute selector would tie on
+// specificity and win only on source order, which would then wrongly apply
+// these light values in dark mode too.
+[data-pickl-palette="bright"][data-bs-theme="light"] {
+  --bs-body-bg: #{$bright-bg};
+  --bs-body-bg-rgb: #{to-rgb($bright-bg)};
+  --bs-body-color: #{$bright-fg};
+  --bs-body-color-rgb: #{to-rgb($bright-fg)};
+  --bs-secondary-color: #{$bright-muted};
+  --bs-secondary-bg: #{$bright-tertiary};
+  --bs-tertiary-bg: #{$bright-tertiary};
+  --bs-border-color: #{$bright-border};
+  --bs-link-color: #{$bright-link};
+  --bs-link-color-rgb: #{to-rgb($bright-link)};
+  --bs-link-hover-color: #{shade-color($bright-link, 20%)};
+  --bs-emphasis-color: #{$bright-fg};
+  --bs-heading-color: #{$bright-fg};
+}
+
+[data-pickl-palette="bright"][data-bs-theme="dark"] {
+  --bs-body-bg: #{$bright-bg-dark};
+  --bs-body-bg-rgb: #{to-rgb($bright-bg-dark)};
+  --bs-body-color: #{$bright-fg-dark};
+  --bs-body-color-rgb: #{to-rgb($bright-fg-dark)};
+  --bs-secondary-color: #{rgba($bright-fg-dark, 0.78)};
+  --bs-secondary-bg: #{$bright-tertiary-dark};
+  --bs-tertiary-bg: #{$bright-tertiary-dark};
+  --bs-border-color: #{$bright-border-dark};
+  --bs-link-color: #a9e6b5;
+  --bs-link-color-rgb: #{to-rgb(#a9e6b5)};
+  --bs-link-hover-color: #c6f0ce;
+  --bs-emphasis-color: #ffffff;
+  --bs-heading-color: #{$bright-fg-dark};
+  --bs-primary-text-emphasis: #a9e6b5;
+  --bs-success-text-emphasis: #b6e87a;
+  --bs-warning-text-emphasis: #f2cf6a;
+  --bs-danger-text-emphasis: #f0a29a;
+}
+
+// --- Brand hues, both modes -----------------------------------------------
+[data-pickl-palette="bright"] {
+  --bs-primary: #{$bright-primary};
+  --bs-primary-rgb: #{to-rgb($bright-primary)};
+  --bs-success: #{$bright-success};
+  --bs-success-rgb: #{to-rgb($bright-success)};
+  --bs-info: #{$bright-info};
+  --bs-info-rgb: #{to-rgb($bright-info)};
+  --bs-warning: #{$bright-warning};
+  --bs-warning-rgb: #{to-rgb($bright-warning)};
+  --bs-danger: #{$bright-danger};
+  --bs-danger-rgb: #{to-rgb($bright-danger)};
+  --bs-focus-ring-color: #{rgba($bright-primary, $focus-ring-opacity)};
+
+  // Buttons. Regenerated through Bootstrap's mixin so hover/active/disabled
+  // and the label colour are derived, not guessed.
+  .btn-primary { @include button-variant($bright-primary, $bright-primary); }
+  .btn-secondary { @include button-variant($bright-secondary, $bright-secondary); }
+  .btn-success { @include button-variant($bright-success, $bright-success); }
+  .btn-info { @include button-variant($bright-info, $bright-info); }
+  .btn-warning { @include button-variant($bright-warning, $bright-warning); }
+  .btn-danger { @include button-variant($bright-danger, $bright-danger); }
+
+  .btn-outline-primary { @include button-outline-variant($bright-primary); }
+  .btn-outline-secondary { @include button-outline-variant($bright-secondary); }
+  .btn-outline-danger { @include button-outline-variant($bright-danger); }
+
+  .btn-link {
+    --bs-btn-color: #{$bright-link};
+    --bs-btn-hover-color: #{shade-color($bright-link, 20%)};
+  }
+
+  // Checked state is compiled into a literal, so the variable overrides above
+  // do not reach it.
+  .form-check-input:checked {
+    background-color: $bright-primary;
+    border-color: $bright-primary;
+  }
+
+  .form-check-input:focus,
+  .form-control:focus,
+  .form-select:focus {
+    border-color: tint-color($bright-primary, 30%);
+  }
+
+  // Same story for the active states of the navigation the app actually uses.
+  .nav-pills .nav-link.active,
+  .nav-pills .show > .nav-link,
+  .list-group-item.active {
+    background-color: $bright-primary;
+    border-color: $bright-primary;
+    color: color-contrast($bright-primary);
+  }
+
+  .nav-tabs .nav-link.active {
+    color: $bright-link;
+  }
+
+  .progress-bar {
+    background-color: $bright-primary;
+  }
+
+  // The "today" row on the meal plan.
+  .table-warning {
+    --bs-table-bg: #{rgba($bright-warning, 0.28)};
+    --bs-table-border-color: #{rgba($bright-warning, 0.45)};
+  }
+}
+
+[data-pickl-palette="bright"][data-bs-theme="dark"] {
+  .table-warning {
+    --bs-table-bg: #{rgba($bright-warning, 0.18)};
+    --bs-table-color: #{$bright-fg-dark};
+  }
+
+  .nav-tabs .nav-link.active {
+    color: #a9e6b5;
+  }
+}

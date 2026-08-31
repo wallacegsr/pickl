@@ -9,6 +9,13 @@ import {
   THEME_CHANGE_EVENT,
   type ThemePreference,
 } from "@/lib/theme";
+import {
+  PALETTE_CHANGE_EVENT,
+  PALETTES,
+  readAppliedPalette,
+  setPalette,
+  type Palette,
+} from "@/lib/palette";
 
 const OPTIONS: { value: ThemePreference; label: string; hint: string }[] = [
   { value: "light", label: "Light", hint: "Always use the light theme." },
@@ -41,6 +48,23 @@ export default function AppearanceSettingsPanel({
     return () => window.removeEventListener(THEME_CHANGE_EVENT, read);
   }, []);
 
+  // Starts at the default so server and first client render agree; the effect
+  // corrects it from the attribute the pre-hydration script already stamped.
+  // Same reasoning as the theme radios above, and as the sidebar's chevron.
+  const [palette, setPaletteState] = useState<Palette>("default");
+
+  useEffect(() => {
+    const read = () => setPaletteState(readAppliedPalette());
+    read();
+    window.addEventListener(PALETTE_CHANGE_EVENT, read);
+    return () => window.removeEventListener(PALETTE_CHANGE_EVENT, read);
+  }, []);
+
+  function choosePalette(next: Palette) {
+    setPaletteState(next);
+    setPalette(next);
+  }
+
   function choose(next: ThemePreference) {
     setPreference(next);
     // Applies to the DOM, localStorage (for the next no-flash paint) and the
@@ -53,9 +77,13 @@ export default function AppearanceSettingsPanel({
       <Card.Body>
         <Card.Title>Appearance</Card.Title>
         <Card.Text className="text-muted small">
-          Saved to your account, so it follows you to other devices. Applies
-          straight away — there&apos;s nothing to submit.
+          Applies straight away — there&apos;s nothing to submit.
         </Card.Text>
+
+        <h3 className="h6 mb-1">Light or dark</h3>
+        <p className="text-muted small mb-2">
+          Saved to your account, so it follows you to other devices.
+        </p>
 
         <Form>
           {OPTIONS.map((option) => (
@@ -71,6 +99,36 @@ export default function AppearanceSettingsPanel({
                 <>
                   {option.label}
                   <span className="d-block text-muted small">{option.hint}</span>
+                </>
+              }
+            />
+          ))}
+        </Form>
+
+        <hr className="my-4" />
+
+        <h3 className="h6 mb-1">Colour scheme</h3>
+        <p className="text-muted small mb-2">
+          Works with either light or dark. Stored on this device only, so it
+          won&apos;t follow you to another one.
+        </p>
+
+        <Form>
+          {PALETTES.map((option) => (
+            <Form.Check
+              key={option.value}
+              type="radio"
+              name="palettePreference"
+              id={`palette-${option.value}`}
+              className="mb-2"
+              checked={palette === option.value}
+              onChange={() => choosePalette(option.value)}
+              label={
+                <>
+                  {option.label}
+                  <span className="d-block text-muted small">
+                    {option.description}
+                  </span>
                 </>
               }
             />
