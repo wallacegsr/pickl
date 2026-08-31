@@ -25,10 +25,17 @@
           clear. See ServerStore for the matching https-only check.
         -->
 
+        <!--
+          Deliberately no android:label. This is the launcher activity, and an
+          activity label overrides the application label everywhere the app is
+          named to the user: the home screen, the app drawer and the recents
+          switcher. Labelling it "Connect to Pickl" named the whole app after
+          its first-run screen. Neither activity sets one now, so both inherit
+          @string/app_name.
+        -->
         <activity
             android:name=".ConnectActivity"
             android:exported="true"
-            android:label="@string/connect_title"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
