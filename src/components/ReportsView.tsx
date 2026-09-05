@@ -1,7 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { Alert, Button, Col, Form, Nav, Row, Spinner, Table } from "react-bootstrap";
+
+// Client-only, like the dashboard grid: Chart.js measures and paints a canvas,
+// so there is nothing for the server to render and no point shipping it into
+// the server bundle. Charts are display-only — the CSV export below is built
+// from the same rows and is unaffected by any of this.
+const MealTypeChart = dynamic(
+  () => import("./reports/ReportCharts").then((m) => m.MealTypeChart),
+  { ssr: false }
+);
+const RecipeFrequencyChart = dynamic(
+  () => import("./reports/ReportCharts").then((m) => m.RecipeFrequencyChart),
+  { ssr: false }
+);
 
 type Tab = "history" | "frequency" | "audit";
 
@@ -221,6 +235,10 @@ export default function ReportsView({
         </Col>
       </Row>
 
+      {tab === "history" && historyRows && historyRows.length > 0 && (
+        <MealTypeChart rows={historyRows} />
+      )}
+
       {tab === "history" && historyRows && (
         <div className="table-responsive">
           <Table bordered hover size="sm">
@@ -255,6 +273,10 @@ export default function ReportsView({
             </tbody>
           </Table>
         </div>
+      )}
+
+      {tab === "frequency" && frequencyRows && frequencyRows.length > 0 && (
+        <RecipeFrequencyChart rows={frequencyRows} />
       )}
 
       {tab === "frequency" && frequencyRows && (

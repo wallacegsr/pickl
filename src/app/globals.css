@@ -744,3 +744,66 @@ html[data-pickl-sidebar="collapsed"] .pickl-sidebar-toggle {
   text-align: left;
   cursor: pointer;
 }
+
+/* ---------------------------------------------------------------------------
+   Report charts (see src/components/reports/ReportCharts.tsx)
+
+   The canvas draws its own colours — Chart.js cannot read CSS variables — so
+   these rules only cover the frame around it. Colours live in chartTheme.ts.
+   ------------------------------------------------------------------------- */
+
+.pickl-chart {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background-color: var(--bs-body-bg);
+}
+
+.pickl-chart-caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: var(--bs-body-color);
+}
+
+/* The chart's own subtitle: what is being counted and over how much data. A
+   single-series chart carries no legend, so the caption is what names it. */
+.pickl-chart-sub {
+  font-weight: 400;
+  font-size: 0.875rem;
+  color: var(--bs-secondary-color);
+}
+
+/* Chart.js needs a sized block to fill; `responsive` alone gives it nothing to
+   measure against. The bar chart overrides this inline, growing with its
+   number of rows so labels cannot collide. */
+.pickl-chart-canvas {
+  position: relative;
+  height: 260px;
+}
+
+/* The doughnut is a fixed-aspect mark with its legend beside it. Left to fill
+   a wide container, Chart.js centres the arc and pins the legend to the far
+   right, stranding the two at opposite ends of the card. Capping the width
+   keeps them read as one figure. The bar chart deliberately does not get this
+   — its bars should use every pixel of length available. */
+.pickl-chart-canvas--compact {
+  max-width: 34rem;
+  margin-inline: auto;
+}
+
+@media (max-width: 767.98px) {
+  .pickl-chart {
+    padding: 0.75rem;
+  }
+
+  /* Taller on a phone: the doughnut's legend moves under it at this width, so
+     the square needs room for both. */
+  .pickl-chart-canvas {
+    height: 300px;
+  }
+}
