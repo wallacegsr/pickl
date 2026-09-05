@@ -613,6 +613,21 @@ html[data-pickl-sidebar="collapsed"] {
   flex: 0 0 auto;
 }
 
+/* Build identity, at the foot of the rail. Small and recessive: it is there
+   to answer "which version is this?" when something looks wrong, not to be
+   read on every visit. */
+.pickl-sidebar-version {
+  padding: 0 0.625rem 0.375rem;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--bs-secondary-color);
+}
+
+/* The collapsed rail is ~60px; a version string does not fit and would wrap
+   into the toggle. */
+html[data-pickl-sidebar="collapsed"] .pickl-sidebar-version {
+  display: none;
+}
 .pickl-sidebar-foot {
   margin-top: auto;
   padding-top: 0.5rem;

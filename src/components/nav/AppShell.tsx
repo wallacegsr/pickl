@@ -6,6 +6,7 @@ import BottomNav from "./BottomNav";
 import SidebarNav from "./SidebarNav";
 import UserMenu from "./UserMenu";
 import { useSidebarCollapsed } from "./sidebarState";
+import { APP_VERSION } from "@/lib/version";
 import { ChevronsLeftIcon, ChevronsRightIcon } from "./icons";
 
 /**
@@ -50,6 +51,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="pickl-sidebar" id="pickl-sidebar-nav" aria-label="Primary">
           <SidebarNav />
           <div className="pickl-sidebar-foot">
+            {/* Which build is actually running. Hidden on the collapsed rail,
+                where there is no width for it — the CSS keys off the same
+                attribute the labels do. */}
+            <div className="pickl-sidebar-version">v{APP_VERSION}</div>
+
             <button
               type="button"
               className="pickl-icon-btn pickl-sidebar-toggle"
