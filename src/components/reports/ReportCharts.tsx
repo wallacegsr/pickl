@@ -8,10 +8,13 @@ import {
   Chart as ChartJS,
   Legend,
   LinearScale,
+  LineElement,
+  PointElement,
   Tooltip,
   type ChartOptions,
 } from "chart.js";
-import { Bar, Doughnut } from "react-chartjs-2";
+import { Bar, Doughnut, Line } from "react-chartjs-2";
+import { getSundayOfWeek, toDateString } from "@/lib/dates";
 import { useChartTheme, usePrefersReducedMotion } from "./chartTheme";
 
 /**
@@ -25,6 +28,69 @@ export interface MealTypeDatum {
   mealType: string;
 }
 
+export interface MealOverTimeDatum {
+  date: string;
+  mealType: string;
+}
+
+/** Beyond this many days the daily line is noise, and it buckets by week. */
+const DAILY_SPAN_LIMIT = 31;
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+/**
+ * Buckets rows into a continuous run of dates, one entry per meal type.
+ *
+ * "Continuous" is the important part. Bucketing only the dates that appear in
+ * the data would draw a straight line from one planned day to the next, over a
+ * gap that actually contained no meals at all — an unplanned week would read
+ * as a steady one. Every bucket between the first and last date is emitted,
+ * with zeros where nothing was planned.
+ */
+function bucketByTime(rows: MealOverTimeDatum[]) {
+  const dates = rows.map((row) => row.date).filter(Boolean).sort();
+  if (dates.length === 0) return { buckets: [], weekly: false };
+
+  const first = dates[0]!;
+  const last = dates[dates.length - 1]!;
+  const spanDays =
+    Math.round(
+      (new Date(last).getTime() - new Date(first).getTime()) / 86_400_000
+    ) + 1;
+  const weekly = spanDays > DAILY_SPAN_LIMIT;
+
+  // Which bucket a given date belongs to. Weeks start Sunday, matching the
+  // meal plan itself rather than inventing a second week convention.
+  const keyFor = (date: string) =>
+    weekly ? toDateString(getSundayOfWeek(date)) : date;
+
+  const tally = new Map<string, Record<string, number>>();
+  const emptyRow = () => ({ breakfast: 0, lunch: 0, dinner: 0 }) as Record<string, number>;
+
+  let cursor = weekly ? getSundayOfWeek(first) : new Date(first + "T00:00:00");
+  const end = weekly ? getSundayOfWeek(last) : new Date(last + "T00:00:00");
+  while (cursor <= end) {
+    tally.set(toDateString(cursor), emptyRow());
+    cursor = addDays(cursor, weekly ? 7 : 1);
+  }
+
+  for (const row of rows) {
+    if (!row.date) continue;
+    const bucket = tally.get(keyFor(row.date));
+    // A row outside the generated range can only mean an unparseable date.
+    if (bucket && row.mealType in bucket) bucket[row.mealType]! += 1;
+  }
+
+  return {
+    buckets: [...tally.entries()].map(([key, counts]) => ({ key, counts })),
+    weekly,
+  };
+}
+
 export interface FrequencyDatum {
   recipeName: string;
   count: number;
@@ -33,7 +99,16 @@ export interface FrequencyDatum {
 // Only the pieces these two charts use. Chart.js ships a `chart.js/auto` entry
 // that registers everything; naming them keeps the scales, controllers and
 // plugins we do not draw out of the bundle.
-ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
+ChartJS.register(
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Tooltip,
+  Legend
+);
 
 const MEAL_ORDER = ["breakfast", "lunch", "dinner"] as const;
 const MEAL_LABELS: Record<string, string> = {
@@ -129,6 +204,113 @@ export function MealTypeChart({ rows }: { rows: MealTypeDatum[] }) {
       </figcaption>
       <div className="pickl-chart-canvas pickl-chart-canvas--compact">
         <Doughnut data={data} options={options} />
+      </div>
+    </figure>
+  );
+}
+
+/**
+ * Meals planned over time, one line per meal type.
+ *
+ * The doughnut above says what the mix is; this says whether it is changing.
+ * Lines rather than stacked areas: three translucent areas over each other
+ * turn into a mud of overlaps, and the question here is each meal's own trend,
+ * not the running total.
+ */
+export function MealsOverTimeChart({ rows }: { rows: MealOverTimeDatum[] }) {
+  const theme = useChartTheme();
+  const reducedMotion = usePrefersReducedMotion();
+
+  const { buckets, weekly } = useMemo(() => bucketByTime(rows), [rows]);
+
+  // One bucket is a dot, not a trend; the doughnut already covers that case.
+  if (buckets.length < 2) return null;
+
+  const labels = buckets.map(({ key }) =>
+    new Date(key + "T00:00:00").toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    })
+  );
+
+  const data = {
+    labels,
+    datasets: MEAL_ORDER.map((meal, index) => ({
+      label: MEAL_LABELS[meal] ?? meal,
+      data: buckets.map(({ counts }) => counts[meal] ?? 0),
+      borderColor: theme.categorical[index],
+      backgroundColor: theme.categorical[index],
+      borderWidth: 2,
+      // Dots are worth drawing only while they are far enough apart to read.
+      // Past that they become a dotted rule along the line, and hover does the
+      // job instead.
+      pointRadius: buckets.length <= 12 ? 4 : 0,
+      pointHoverRadius: 5,
+      // Keeps the whole column grabbable even where no dot is drawn.
+      pointHitRadius: 12,
+      // A meal count is a measurement on a day, not a continuous quantity;
+      // a spline would invent values between the points.
+      tension: 0,
+    })),
+  };
+
+  const options: ChartOptions<"line"> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: reducedMotion ? false : { duration: 400 },
+    // The crosshair behaviour: hovering anywhere in a column reports all three
+    // meals for that date, rather than only the line under the pointer.
+    interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: {
+        position: "top",
+        align: "end",
+        labels: {
+          color: theme.ink,
+          usePointStyle: true,
+          pointStyle: "circle",
+          boxWidth: 8,
+          padding: 14,
+        },
+      },
+      tooltip: {
+        callbacks: {
+          title: (items) =>
+            (weekly ? "Week of " : "") + (items[0]?.label ?? ""),
+        },
+      },
+    },
+    scales: {
+      x: {
+        border: { display: false },
+        grid: { display: false },
+        ticks: {
+          color: theme.muted,
+          maxRotation: 0,
+          autoSkipPadding: 16,
+        },
+      },
+      y: {
+        beginAtZero: true,
+        border: { display: false },
+        grid: { color: theme.grid },
+        ticks: { color: theme.muted, precision: 0 },
+      },
+    },
+  };
+
+  return (
+    <figure className="pickl-chart mb-0">
+      <figcaption className="pickl-chart-caption">
+        Meals over time
+        <span className="pickl-chart-sub">
+          {weekly
+            ? `By week, ${buckets.length} weeks`
+            : `By day, ${buckets.length} days`}
+        </span>
+      </figcaption>
+      <div className="pickl-chart-canvas">
+        <Line data={data} options={options} />
       </div>
     </figure>
   );

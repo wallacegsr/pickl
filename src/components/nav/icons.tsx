@@ -1,18 +1,38 @@
 /**
- * Inline SVG icons for the app shell.
+ * Icons for the app shell, from Lucide.
  *
- * Deliberately hand-rolled rather than pulling in an icon package: this app
- * needs about eight glyphs, and every option (bootstrap-icons, react-icons,
- * lucide) costs either a webfont request or a dependency several megabytes
- * wide to deliver them. Emoji were the other candidate and are used for the
- * 🥒 wordmark, but emoji render at the mercy of the platform font — colour,
- * weight and baseline all vary — so they cannot sit in a tight icon rail next
- * to each other and look deliberate.
+ * These were hand-rolled SVGs, on the reasoning that eight glyphs did not
+ * justify a dependency. That held until it did not: the set grew past a dozen,
+ * and hand-drawing them produced a real bug — the "User Settings" gear was a
+ * sun, identical to the light-mode toggle two rows below it in the same menu.
+ * A drawn-by-hand icon set has no such thing as a wrong-but-obvious glyph;
+ * a named import does.
  *
- * Every icon is a 24×24 stroke drawing painted in `currentColor`, so it picks
- * up the surrounding link colour (and therefore the active/hover/focus states
- * and both themes) with no colour of its own.
+ * lucide-react is tree-shaken per icon, so the bundle carries only the ~13
+ * glyphs named below rather than the whole library.
+ *
+ * This module stays the single import site rather than letting components
+ * reach for Lucide directly. That keeps the app's names for things (the
+ * reports tab is "Past Preserves", and its icon is a jar, not an amphora), and
+ * keeps size and stroke weight defined once instead of at every call site.
  */
+
+import {
+  Amphora,
+  BookOpen,
+  CalendarDays,
+  ChevronsLeft,
+  ChevronsRight,
+  LogOut,
+  Moon,
+  RefreshCw,
+  Server,
+  Settings,
+  Shield,
+  Sun,
+  Tag,
+  type LucideIcon,
+} from "lucide-react";
 
 export interface IconProps {
   /** Rendered pixel size; icons are square. */
@@ -20,167 +40,59 @@ export interface IconProps {
   className?: string;
 }
 
-function Svg({
-  size = 18,
-  className,
-  children,
-}: IconProps & { children: React.ReactNode }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      // Decorative in every current use: each icon is paired with a text
-      // label, or with an aria-label on the button that contains it.
-      aria-hidden="true"
-      focusable="false"
-      className={className}
-    >
-      {children}
-    </svg>
-  );
+/**
+ * Wraps a Lucide glyph with this app's defaults.
+ *
+ * Lucide draws at strokeWidth 2 and size 24; 1.75 at 18 is what the previous
+ * hand-drawn set used, and what the sidebar's text weight is balanced against.
+ * Every icon here sits beside a text label or inside a button carrying its own
+ * aria-label, so all of them are decorative and hidden from assistive tech.
+ */
+function icon(Glyph: LucideIcon, name: string) {
+  function Wrapped({ size = 18, className }: IconProps) {
+    return (
+      <Glyph
+        size={size}
+        className={className}
+        strokeWidth={1.75}
+        aria-hidden="true"
+        focusable="false"
+      />
+    );
+  }
+  Wrapped.displayName = name;
+  return Wrapped;
 }
 
-/** Plan — a week calendar. */
-export function CalendarIcon(props: IconProps) {
-  return (
-    <Svg {...props}>
-      <rect x="3" y="5" width="18" height="16" rx="2" />
-      <path d="M3 10h18M8 3v4M16 3v4" />
-    </Svg>
-  );
-}
+// --- Sidebar destinations -------------------------------------------------
+/** Plan. */
+export const CalendarIcon = icon(CalendarDays, "CalendarIcon");
+/** Recipes. */
+export const BookIcon = icon(BookOpen, "BookIcon");
+/** Tags. */
+export const TagIcon = icon(Tag, "TagIcon");
+/**
+ * Past Preserves. An amphora is the closest thing Lucide has to a preserving
+ * jar, and reads as one at 18px.
+ */
+export const JarIcon = icon(Amphora, "JarIcon");
 
-/** Recipes — an open book. */
-export function BookIcon(props: IconProps) {
-  return (
-    <Svg {...props}>
-      <path d="M12 6.5S10 4.5 6 4.5H3v14h3c4 0 6 2 6 2s2-2 6-2h3v-14h-3c-4 0-6 2-6 2Z" />
-      <path d="M12 6.5v14" />
-    </Svg>
-  );
-}
+// --- Account menu ---------------------------------------------------------
+/** User Settings. */
+export const GearIcon = icon(Settings, "GearIcon");
+/** Back of House (admin). */
+export const ShieldIcon = icon(Shield, "ShieldIcon");
+/** Switch to light. */
+export const SunIcon = icon(Sun, "SunIcon");
+/** Switch to dark. */
+export const MoonIcon = icon(Moon, "MoonIcon");
+/** Reload, in the Android shell. */
+export const RefreshIcon = icon(RefreshCw, "RefreshIcon");
+/** Change server, in the Android shell. */
+export const ServerIcon = icon(Server, "ServerIcon");
+/** Sign out. */
+export const SignOutIcon = icon(LogOut, "SignOutIcon");
 
-/** Past Preserves — a jar on a shelf. */
-export function JarIcon(props: IconProps) {
-  return (
-    <Svg {...props}>
-      <path d="M8 3h8v2.5l1.2 1.6a4 4 0 0 1 .8 2.4V19a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9.5a4 4 0 0 1 .8-2.4L8 5.5Z" />
-      <path d="M6 13h12" />
-    </Svg>
-  );
-}
-
-/** Tags — a luggage-style tag with its punched hole. */
-export function TagIcon(props: IconProps) {
-  return (
-    <Svg {...props}>
-      <path d="M11.6 3.5H19a1.5 1.5 0 0 1 1.5 1.5v7.4a2 2 0 0 1-.6 1.4l-6.6 6.6a2 2 0 0 1-2.8 0l-6-6a2 2 0 0 1 0-2.8l6.6-6.6a2 2 0 0 1 1.5-.5Z" />
-      <path d="M16.5 7.5h.01" />
-    </Svg>
-  );
-}
-
-/** Preferences / User Settings — a gear. */
-export function GearIcon(props: IconProps) {
-  return (
-    <Svg {...props}>
-      {/* Hub, rim, then teeth crossing the rim. The rim is what stops this
-          reading as a sun: detached rays around a bare circle is exactly what
-          SunIcon draws, and the previous version of this icon was
-          indistinguishable from it in the menu. */}
-      <circle cx="12" cy="12" r="3" />
-      <circle cx="12" cy="12" r="6.5" />
-      <path d="M18.5 12H21M5.5 12H3M12 18.5V21M12 5.5V3M16.6 16.6l1.8 1.8M7.4 7.4L5.6 5.6M16.6 7.4l1.8-1.8M7.4 16.6l-1.8 1.8" />
-    </Svg>
-  );
-}
-
-/** Back of House — a keyed shield. */
-export function ShieldIcon(props: IconProps) {
-  return (
-    <Svg {...props}>
-      <path d="M12 2.5 4.5 5.5v6c0 4.6 3.1 8.6 7.5 10 4.4-1.4 7.5-5.4 7.5-10v-6Z" />
-      <path d="M12 9.5v3M12 15.2h.01" />
-    </Svg>
-  );
-}
-
-export function SunIcon(props: IconProps) {
-  return (
-    <Svg {...props}>
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" />
-    </Svg>
-  );
-}
-
-export function MoonIcon(props: IconProps) {
-  return (
-    <Svg {...props}>
-      <path d="M20 14.5A8.2 8.2 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z" />
-    </Svg>
-  );
-}
-
-export function SignOutIcon(props: IconProps) {
-  return (
-    <Svg {...props}>
-      <path d="M14.5 4.5H6a1.5 1.5 0 0 0-1.5 1.5v12A1.5 1.5 0 0 0 6 19.5h8.5" />
-      <path d="M16 8.5 19.5 12 16 15.5M19 12H9.5" />
-    </Svg>
-  );
-}
-
-/** Hamburger — opens the sidebar drawer on small screens. */
-export function MenuIcon(props: IconProps) {
-  return (
-    <Svg {...props}>
-      <path d="M4 6.5h16M4 12h16M4 17.5h16" />
-    </Svg>
-  );
-}
-
-/** Collapse/expand chevron for the sidebar rail. */
-export function ChevronsLeftIcon(props: IconProps) {
-  return (
-    <Svg {...props}>
-      <path d="M11 6.5 5.5 12 11 17.5M18.5 6.5 13 12l5.5 5.5" />
-    </Svg>
-  );
-}
-
-export function ChevronsRightIcon(props: IconProps) {
-  return (
-    <Svg {...props}>
-      <path d="M13 6.5 18.5 12 13 17.5M5.5 6.5 11 12l-5.5 5.5" />
-    </Svg>
-  );
-}
-
-/** Circular arrow — "Reload", in the Android shell's menu. */
-export function RefreshIcon(props: IconProps) {
-  return (
-    <Svg {...props}>
-      <path d="M20 12a8 8 0 1 1-2.34-5.66" />
-      <path d="M20 4v4.5h-4.5" />
-    </Svg>
-  );
-}
-
-/** Stacked racks — "Change server", in the Android shell's menu. */
-export function ServerIcon(props: IconProps) {
-  return (
-    <Svg {...props}>
-      <rect x="3.5" y="4.5" width="17" height="6" rx="1.5" />
-      <rect x="3.5" y="13.5" width="17" height="6" rx="1.5" />
-      <path d="M7.5 7.5h.01M7.5 16.5h.01" />
-    </Svg>
-  );
-}
+// --- Sidebar rail ---------------------------------------------------------
+export const ChevronsLeftIcon = icon(ChevronsLeft, "ChevronsLeftIcon");
+export const ChevronsRightIcon = icon(ChevronsRight, "ChevronsRightIcon");

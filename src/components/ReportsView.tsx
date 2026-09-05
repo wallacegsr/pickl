@@ -12,6 +12,10 @@ const MealTypeChart = dynamic(
   () => import("./reports/ReportCharts").then((m) => m.MealTypeChart),
   { ssr: false }
 );
+const MealsOverTimeChart = dynamic(
+  () => import("./reports/ReportCharts").then((m) => m.MealsOverTimeChart),
+  { ssr: false }
+);
 const RecipeFrequencyChart = dynamic(
   () => import("./reports/ReportCharts").then((m) => m.RecipeFrequencyChart),
   { ssr: false }
@@ -236,7 +240,11 @@ export default function ReportsView({
       </Row>
 
       {tab === "history" && historyRows && historyRows.length > 0 && (
-        <MealTypeChart rows={historyRows} />
+        <>
+          {/* What the mix is, then whether it is changing. */}
+          <MealTypeChart rows={historyRows} />
+          <MealsOverTimeChart rows={historyRows} />
+        </>
       )}
 
       {tab === "history" && historyRows && (
