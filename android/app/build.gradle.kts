@@ -58,6 +58,13 @@ android {
                 storePassword = System.getenv("PICKL_KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("PICKL_KEY_ALIAS")
                 keyPassword = System.getenv("PICKL_KEY_PASSWORD")
+                // Stated rather than inferred. Left unset, Gradle falls back to
+                // the JDK's default store type, which is PKCS12 on 17 and JKS
+                // on older ones -- so the same keystore could work on one
+                // machine and fail on another. A .p12 exported from PowerShell
+                // and a .jks from keytool are both fine; they just have to say
+                // which they are.
+                System.getenv("PICKL_KEYSTORE_TYPE")?.let { storeType = it }
             }
         }
     }

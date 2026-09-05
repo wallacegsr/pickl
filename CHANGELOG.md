@@ -15,6 +15,9 @@ changes with it — the two must never disagree about what is running.
 
 - CI now verifies the Android signing keystore opens before starting a release
   build, so a wrong secret fails immediately and names the likely culprit.
+- The Android keystore type is stated explicitly via the ANDROID_KEYSTORE_TYPE
+  repository variable rather than inferred from the JDK default, so a PKCS#12
+  keystore works as well as a JKS one.
 
 ## [1.1.0] - 2026-09-05
 

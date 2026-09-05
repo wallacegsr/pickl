@@ -76,11 +76,18 @@ jobs:
           KS: ${{ steps.keystore.outputs.path }}
           KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KS_TYPE: ${{ vars.ANDROID_KEYSTORE_TYPE }}
         run: |
-          if ! keytool -list -keystore "$KS" -storepass "$KS_PASS" -alias "$KS_ALIAS" > /dev/null 2>&1; then
+          TYPE_ARG=""
+          [ -n "$KS_TYPE" ] && TYPE_ARG="-storetype $KS_TYPE"
+          if ! keytool -list -keystore "$KS" -storepass "$KS_PASS" -alias "$KS_ALIAS" $TYPE_ARG > /dev/null 2>&1; then
             echo "::error::Could not open the keystore with the supplied secrets."
             echo "Check ANDROID_KEYSTORE_BASE64 (must be raw base64, no PEM header lines),"
             echo "ANDROID_KEYSTORE_PASSWORD and ANDROID_KEY_ALIAS."
+            echo "For a PKCS#12 keystore (a .p12/.pfx exported from PowerShell): set the"
+            echo "repository variable ANDROID_KEYSTORE_TYPE to PKCS12, make sure the alias"
+            echo "matches the certificate's FriendlyName, and note that PKCS#12 requires"
+            echo "ANDROID_KEY_PASSWORD to be identical to ANDROID_KEYSTORE_PASSWORD."
             exit 1
           fi
           echo "Keystore opened and alias found."
@@ -93,6 +100,7 @@ jobs:
           PICKL_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           PICKL_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           PICKL_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          PICKL_KEYSTORE_TYPE: ${{ vars.ANDROID_KEYSTORE_TYPE }}
         run: gradle --no-daemon assembleRelease "-PbuildSha=${GITHUB_SHA::7}"
 
       - name: Attach release APK to the GitHub release
