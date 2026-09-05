@@ -39,8 +39,14 @@ android {
         // effectively every device still receiving updates.
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        // versionCode is the number Android actually compares when deciding
+        // whether an APK is an upgrade; versionName is only ever shown to
+        // people. It must increase on every build that ships, so it is bumped
+        // alongside the name rather than tracking it — the two are different
+        // kinds of number and only one of them gates installation.
+        versionCode = 2
+        // Kept in lockstep with package.json and the CHANGELOG.md heading.
+        versionName = "1.1.0"
     }
 
     signingConfigs {

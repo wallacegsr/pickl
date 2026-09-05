@@ -90,8 +90,8 @@ stable key, so they update in place like any normal app.
 The version name carries the commit it was built from:
 
 ```
-1.0.0-debug-4700ea7    debug build of commit 4700ea7
-1.0.0-4700ea7          signed release of the same commit
+1.1.0-debug-4700ea7    debug build of commit 4700ea7
+1.1.0-4700ea7          signed release of the same commit
 ```
 
 Visible in Android's Settings → Apps → Pickl, and on the connect screen — which

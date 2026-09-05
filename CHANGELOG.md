@@ -11,6 +11,12 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-05
+
+A minor release rather than a patch: everything below is new,
+backwards-compatible functionality, which is what MINOR means under Semantic
+Versioning. Nothing here requires action on an existing deployment.
+
 ### Added
 
 - Android app: a thin WebView shell that connects to a server address you
@@ -83,5 +89,6 @@ Initial public release: the container image published to
 - Light and dark themes.
 - Docker deployment, with the image published to GHCR.
 
-[Unreleased]: https://github.com/wallacegsr/pickl/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/wallacegsr/pickl/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/wallacegsr/pickl/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/wallacegsr/pickl/releases/tag/v1.0.0
