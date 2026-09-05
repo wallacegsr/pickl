@@ -64,6 +64,19 @@ To create a keystore:
 keytool -genkey -v -keystore pickl.jks -keyalg RSA -keysize 2048 -validity 10000 -alias pickl
 ```
 
+Then encode it for `ANDROID_KEYSTORE_BASE64`. On Windows use PowerShell, not
+`certutil -encode` — that wraps its output in PEM header lines, which the
+runner's `base64 -d` cannot decode:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("pickl.jks")) | Set-Clipboard
+```
+
+CI checks the keystore actually opens with the supplied alias and password
+before it starts building, so a wrong secret fails in seconds naming the likely
+culprit, rather than several minutes into R8 with a signing error that does not
+say which of the four is at fault.
+
 Keep that file and its passwords safe and out of the repository (`*.jks` is
 gitignored). Losing it means you cannot ship an update that upgrades an
 installed copy — Android requires the same signing key.
@@ -84,6 +97,13 @@ server address and your session, nothing else.
 
 Set up release signing (above) to make this go away — release builds use one
 stable key, so they update in place like any normal app.
+
+### The first signed release installs alongside the debug build
+
+Debug builds carry `applicationIdSuffix = ".debug"`, so `com.wallacegsr.pickl`
+and `com.wallacegsr.pickl.debug` are two different apps to Android and both
+appear in the launcher. Uninstall the debug copy once the signed one is
+working; only the signed one updates cleanly from then on.
 
 ## Which build am I running?
 

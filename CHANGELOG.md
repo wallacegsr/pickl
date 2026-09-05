@@ -11,6 +11,11 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+### Changed
+
+- CI now verifies the Android signing keystore opens before starting a release
+  build, so a wrong secret fails immediately and names the likely culprit.
+
 ## [1.1.0] - 2026-09-05
 
 A minor release rather than a patch: everything below is new,

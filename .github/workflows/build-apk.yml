@@ -66,6 +66,25 @@ jobs:
           echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/pickl.jks"
           echo "path=$RUNNER_TEMP/pickl.jks" >> "$GITHUB_OUTPUT"
 
+      # Fails in seconds with a clear message when a secret is wrong, rather
+      # than several minutes into R8 with a signing error that does not say
+      # which of the four secrets is at fault. Output is discarded because the
+      # listing is noise, not because it is sensitive.
+      - name: Verify the keystore opens
+        if: steps.keystore.outputs.path != ''
+        env:
+          KS: ${{ steps.keystore.outputs.path }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if ! keytool -list -keystore "$KS" -storepass "$KS_PASS" -alias "$KS_ALIAS" > /dev/null 2>&1; then
+            echo "::error::Could not open the keystore with the supplied secrets."
+            echo "Check ANDROID_KEYSTORE_BASE64 (must be raw base64, no PEM header lines),"
+            echo "ANDROID_KEYSTORE_PASSWORD and ANDROID_KEY_ALIAS."
+            exit 1
+          fi
+          echo "Keystore opened and alias found."
+
       - name: Build signed release APK
         if: steps.keystore.outputs.path != ''
         working-directory: android
