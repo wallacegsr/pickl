@@ -176,6 +176,11 @@ export const planEntrySchema = z.object({
 
 export const spinTodaySchema = z.object({
   mealTypes: z.array(mealTypeSchema).min(1, "Pick at least one meal"),
+  /**
+   * Also pick a dessert. Separate from `mealTypes` because a dessert is not a
+   * slot of its own — it joins whichever ticked meal it follows.
+   */
+  includeDessert: z.boolean().default(false),
   scope: scopeSchema.default("shared"),
   userId: z.string().nullable().optional(),
   force: z.boolean().default(false),
@@ -279,6 +284,11 @@ export const calendarSyncNowSchema = z.object({
 
 export const spinWeekSchema = z.object({
   mealTypes: z.array(mealTypeSchema).min(1, "Pick at least one meal"),
+  /**
+   * Also pick a dessert. Separate from `mealTypes` because a dessert is not a
+   * slot of its own — it joins whichever ticked meal it follows.
+   */
+  includeDessert: z.boolean().default(false),
   scope: scopeSchema.default("shared"),
   userId: z.string().nullable().optional(),
   overwriteExisting: z.boolean().default(false),

@@ -1,7 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { planEntries, recipes, type Recipe, type MealType, type Scope } from "@/db/schema";
+import {
+  isDessertRecipe,
+  parseRecipeMealTypes,
+  planEntries,
+  recipes,
+  type Recipe,
+  type MealType,
+  type Scope,
+} from "@/db/schema";
 import { getWeekDays } from "@/lib/dates";
 import { logAuditEntry, type AuditAction } from "@/lib/audit";
 
@@ -17,6 +25,12 @@ export interface PlannedRecipe {
   entryId: string;
   recipe: Recipe;
   position: number;
+  /**
+   * Computed here rather than in the browser so the grid does not have to
+   * re-parse the comma-separated meal types on every render, and so the rule
+   * for what counts as a dessert lives in one place.
+   */
+  isDessert: boolean;
 }
 
 export interface PlanMealSlot {
@@ -49,6 +63,25 @@ export function shuffle<T>(items: T[]): T[] {
   return arr;
 }
 
+/**
+ * Which slot a shaken dessert joins.
+ *
+ * A dessert is not a slot, so ticking "Dessert" has to mean something in terms
+ * of the meals that ARE ticked. It follows the last meal of the day among
+ * them — dinner if dinner was ticked, otherwise lunch, otherwise breakfast —
+ * because that is what a dessert follows in practice.
+ *
+ * The alternative, adding one to every ticked meal, is defensible but produces
+ * three desserts for a whole-day shake, which is not what anyone means by
+ * ticking the box once.
+ */
+export function dessertSlotFor(mealTypes: MealType[]): MealType | null {
+  for (const candidate of ["dinner", "lunch", "breakfast"] as const) {
+    if (mealTypes.includes(candidate)) return candidate;
+  }
+  return null;
+}
+
 /** All recipes, unfiltered (used for admin management views). */
 export function getAllRecipes(): Recipe[] {
   return db.select().from(recipes).all();
@@ -59,11 +92,17 @@ export function getAllRecipes(): Recipe[] {
  *  - shared calendar => shared recipes only
  *  - private calendar => shared recipes + that user's own private recipes
  * A recipe tagged "any" is eligible for every meal.
+ *
+ * Desserts are included by default, because a dessert is planned into an
+ * ordinary slot alongside the main and the slot editor has to offer it. The
+ * spin routes pass `course` to narrow that: "main" so shaking for dinner never
+ * proposes cake, "dessert" so shaking for dessert proposes nothing else.
  */
 export function getRecipePool(
   scope: Scope,
   userId: string,
-  mealType: MealType
+  mealType: MealType,
+  course: "any" | "main" | "dessert" = "any"
 ): Recipe[] {
   const all = db.select().from(recipes).all();
   const pool = all.filter((r) => {
@@ -71,10 +110,16 @@ export function getRecipePool(
       r.visibility === "shared" ||
       (scope === "private" && r.visibility === "private" && r.ownerUserId === userId);
     if (!visibleInScope) return false;
-    const tags = r.mealType
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
+
+    const isDessert = isDessertRecipe(r);
+    if (course === "dessert") {
+      // A dessert is eligible for whatever slot it is being planned into, so
+      // the meal tags are not consulted here — only that it is a dessert.
+      return isDessert;
+    }
+    if (course === "main" && isDessert) return false;
+
+    const tags = parseRecipeMealTypes(r.mealType);
     return tags.includes(mealType) || tags.includes("any");
   });
   // Alphabetical by name, so anything listing the pool is browsable. `numeric`
@@ -150,6 +195,7 @@ export function getWeekPlan(
         entryId: e.id,
         recipe,
         position: e.position,
+        isDessert: isDessertRecipe(recipe),
       });
     }
     // Stable order within each slot. SQLite makes no promise about row order

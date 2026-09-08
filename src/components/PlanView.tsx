@@ -40,6 +40,8 @@ export interface PlannedRecipeData {
   entryId: string;
   recipe: { id: string; name: string };
   position: number;
+  /** Drives the chip colour: desserts are told apart by category, not order. */
+  isDessert: boolean;
 }
 
 export interface PlanMealSlotData {
@@ -206,6 +208,8 @@ export default function PlanView({
   }
 
   const [selectedMeals, setSelectedMeals] = useState<MealType[]>(["dinner"]);
+  // Off by default: a shake should not start proposing cake unless asked.
+  const [includeDessert, setIncludeDessert] = useState(false);
   const [overwriteWeek, setOverwriteWeek] = useState(false);
 
   const [crunchingToday, setCrunchingToday] = useState(false);
@@ -274,6 +278,7 @@ export default function PlanView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mealTypes: selectedMeals,
+          includeDessert,
           scope,
           userId: scope === "private" ? requestedUserId : undefined,
           force,
@@ -338,6 +343,7 @@ export default function PlanView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mealTypes: selectedMeals,
+          includeDessert,
           scope,
           userId: scope === "private" ? requestedUserId : undefined,
           overwriteExisting: overwriteWeek,
@@ -486,6 +492,8 @@ export default function PlanView({
           openSlotEditor,
           selectedMeals,
           toggleMeal,
+        includeDessert,
+        setIncludeDessert,
           overwriteWeek,
           setOverwriteWeek,
           crunchingToday,

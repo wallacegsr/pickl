@@ -890,3 +890,35 @@ html[data-pickl-sidebar="collapsed"] .pickl-sidebar-toggle {
   border-left-color: #c95a48;
   background-color: rgba(201, 90, 72, 0.18);
 }
+
+/* Dessert: coloured by category rather than by position, so a dessert reads
+   the same wherever it sits in the slot. The hue is deliberately outside the
+   main sequence — a warm pink that no main-course chip uses — and it is paired
+   with a cake glyph so the category never depends on colour alone. */
+.pickl-slot-chip-dessert {
+  border-left-color: #a63d6d;
+  background-color: rgba(166, 61, 109, 0.12);
+}
+
+:root[data-bs-theme="dark"] .pickl-slot-chip-dessert {
+  border-left-color: #d4749d;
+  background-color: rgba(212, 116, 157, 0.18);
+}
+
+.pickl-slot-chip-icon {
+  margin-right: 0.2rem;
+  vertical-align: -0.14em;
+}
+
+/* A lone dessert still gets its tint: unlike the position colours, the
+   category is worth showing even when it is the only thing in the slot. */
+.pickl-slot-chips:has(> :only-child) .pickl-slot-chip-dessert {
+  padding-left: 0.4rem;
+  border-left-color: #a63d6d;
+  background-color: rgba(166, 61, 109, 0.12);
+}
+
+:root[data-bs-theme="dark"] .pickl-slot-chips:has(> :only-child) .pickl-slot-chip-dessert {
+  border-left-color: #d4749d;
+  background-color: rgba(212, 116, 157, 0.18);
+}

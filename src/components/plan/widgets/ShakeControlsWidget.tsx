@@ -38,6 +38,8 @@ export default function ShakeControlsWidget() {
     isEditable,
     selectedMeals,
     toggleMeal,
+    includeDessert,
+    setIncludeDessert,
     overwriteWeek,
     setOverwriteWeek,
     crunchingToday,
@@ -72,6 +74,17 @@ export default function ShakeControlsWidget() {
             inline
           />
         ))}
+        <Form.Check
+          type="checkbox"
+          id="spin-dessert"
+          label="Dessert"
+          checked={includeDessert}
+          onChange={() => setIncludeDessert(!includeDessert)}
+          // Says where it lands, because "Dessert" alone does not: it is not a
+          // slot of its own, it joins the last meal ticked above.
+          title="Also pick a dessert, added to the last meal ticked above"
+          inline
+        />
       </div>
       <div className="d-flex flex-wrap gap-2 align-items-center">
         {/* Two different actions, two different animations: today's pick

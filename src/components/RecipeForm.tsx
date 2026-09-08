@@ -11,6 +11,9 @@ const MEAL_TYPE_OPTIONS = [
   { value: "lunch", label: "Lunch" },
   { value: "dinner", label: "Dinner" },
   { value: "any", label: "Any meal" },
+  // A category, not a slot: a dessert is planned alongside a meal rather than
+  // into a column of its own, so it sits outside the "any" override below.
+  { value: "dessert", label: "Dessert" },
 ] as const;
 
 export interface RecipeFormValues {
@@ -84,16 +87,39 @@ export default function RecipeForm({
     setValues((prev) => {
       const has = prev.mealType.includes(value);
 
+      // "dessert" is a category, not a slot, so it sits outside the "any"
+      // override entirely: a trifle can be both "any" and "dessert", and
+      // ticking one must not clear the other.
+      if (value === "dessert") {
+        const next = has
+          ? prev.mealType.filter((v) => v !== "dessert")
+          : [...prev.mealType, "dessert"];
+        // Dessert alone says what a recipe *is* but not when it may be
+        // planned, so it keeps a slot alongside it.
+        return {
+          ...prev,
+          mealType: next.some((v) => v !== "dessert") ? next : ["any", "dessert"],
+        };
+      }
+
+      const dessert = prev.mealType.filter((v) => v === "dessert");
+
       if (value === "any") {
         // Turning it off leaves nothing selected, so fall back to dinner
         // rather than an invalid empty state.
-        return { ...prev, mealType: has ? ["dinner"] : ["any"] };
+        return {
+          ...prev,
+          mealType: has ? ["dinner", ...dessert] : ["any", ...dessert],
+        };
       }
 
       // Picking a specific meal supersedes "any".
-      const base = prev.mealType.filter((v) => v !== "any");
+      const base = prev.mealType.filter((v) => v !== "any" && v !== "dessert");
       const next = has ? base.filter((v) => v !== value) : [...base, value];
-      return { ...prev, mealType: next.length > 0 ? next : ["any"] };
+      return {
+        ...prev,
+        mealType: next.length > 0 ? [...next, ...dessert] : ["any", ...dessert],
+      };
     });
   }
 
@@ -242,7 +268,13 @@ export default function RecipeForm({
               id={`recipe-meal-${opt.value}`}
               label={opt.label}
               checked={values.mealType.includes(opt.value)}
-              disabled={opt.value !== "any" && values.mealType.includes("any")}
+              // Dessert stays available under "Any meal": it says what the
+              // recipe is, not which slot it belongs to.
+              disabled={
+                opt.value !== "any" &&
+                opt.value !== "dessert" &&
+                values.mealType.includes("any")
+              }
               onChange={() => toggleMealType(opt.value)}
             />
           ))}

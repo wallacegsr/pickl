@@ -60,6 +60,8 @@ export interface PlanContextValue {
   // --- Shake controls ---
   selectedMeals: MealType[];
   toggleMeal: (mealType: MealType) => void;
+  includeDessert: boolean;
+  setIncludeDessert: (value: boolean) => void;
   overwriteWeek: boolean;
   setOverwriteWeek: (value: boolean) => void;
   crunchingToday: boolean;

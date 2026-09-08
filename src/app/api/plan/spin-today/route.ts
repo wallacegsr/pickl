@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { todayDateString } from "@/lib/dates";
-import { getSlotEntries, getRecipePool, getWeekPlan, setPlanEntry, shuffle } from "@/lib/plan";
+import { dessertSlotFor, getSlotEntries, getRecipePool, getWeekPlan, setPlanEntry, shuffle } from "@/lib/plan";
 import { spinTodaySchema } from "@/lib/validators";
 import { resolvePlanContext } from "@/lib/planContext";
 import { db } from "@/db";
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-  const { mealTypes, scope, userId, force } = parsed.data;
+  const { mealTypes, includeDessert, scope, userId, force } = parsed.data;
 
   const resolved = resolvePlanContext(session.user, scope, userId, "write");
   if (!resolved.ok) {
@@ -63,8 +63,12 @@ export async function POST(req: NextRequest) {
   const results: { mealType: MealType; recipe: { id: string; name: string } | null }[] = [];
   const errors: string[] = [];
 
+  // Where a dessert goes, if one was asked for.
+  const dessertSlot = includeDessert ? dessertSlotFor(mealTypes) : null;
+
   for (const mealType of mealTypes) {
-    const pool = getRecipePool(ctxScope, ctxUserId, mealType);
+    // "main" so shaking for dinner never proposes cake.
+    const pool = getRecipePool(ctxScope, ctxUserId, mealType, "main");
     if (pool.length === 0) {
       errors.push(`No eligible recipes for ${mealType}.`);
       results.push({ mealType, recipe: null });
@@ -80,12 +84,25 @@ export async function POST(req: NextRequest) {
     const drawPool = unused.length > 0 ? unused : pool;
     const picked = shuffle(drawPool)[0];
 
+    const recipeIds = [picked.id];
+
+    if (mealType === dessertSlot) {
+      const dessertPool = getRecipePool(ctxScope, ctxUserId, mealType, "dessert");
+      if (dessertPool.length === 0) {
+        errors.push("No recipes are tagged as desserts yet.");
+      } else {
+        // Second in the slot, so the main keeps position 0 and the dessert
+        // reads as following it.
+        recipeIds.push(shuffle(dessertPool)[0].id);
+      }
+    }
+
     setPlanEntry({
       date: today,
       scope: ctxScope,
       userId: ctxUserId,
       mealType,
-      recipeIds: [picked.id],
+      recipeIds,
       actingUserId: session.user.id,
       action: "spin_today",
     });

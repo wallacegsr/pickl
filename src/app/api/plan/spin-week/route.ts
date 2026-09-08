@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getRemainingDaysInWeek, todayDateString } from "@/lib/dates";
-import { getSlotEntries, getRecipePool, setPlanEntry, shuffle } from "@/lib/plan";
+import { dessertSlotFor, getSlotEntries, getRecipePool, setPlanEntry, shuffle } from "@/lib/plan";
 import { spinWeekSchema } from "@/lib/validators";
 import { resolvePlanContext } from "@/lib/planContext";
 import type { MealType } from "@/db/schema";
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-  const { mealTypes, scope, userId, overwriteExisting } = parsed.data;
+  const { mealTypes, includeDessert, scope, userId, overwriteExisting } = parsed.data;
 
   const resolved = resolvePlanContext(session.user, scope, userId, "write");
   if (!resolved.ok) {
@@ -35,6 +35,8 @@ export async function POST(req: NextRequest) {
   let unfilledCount = 0;
   const notes: string[] = [];
 
+  const dessertSlot = includeDessert ? dessertSlotFor(mealTypes) : null;
+
   for (const mealType of mealTypes) {
     const daysToFill = remainingDays.filter((day) => {
       if (overwriteExisting) return true;
@@ -44,7 +46,15 @@ export async function POST(req: NextRequest) {
       return getSlotEntries(day.date, ctxScope, ctxUserId, mealType).length === 0;
     });
 
-    const pool = shuffle(getRecipePool(ctxScope, ctxUserId, mealType));
+    const pool = shuffle(getRecipePool(ctxScope, ctxUserId, mealType, "main"));
+    // Reshuffled per day below, so a week of desserts is not one repeated pick.
+    const dessertPool =
+      mealType === dessertSlot
+        ? getRecipePool(ctxScope, ctxUserId, mealType, "dessert")
+        : [];
+    if (mealType === dessertSlot && dessertPool.length === 0) {
+      notes.push("No recipes are tagged as desserts yet.");
+    }
     if (pool.length === 0 && daysToFill.length > 0) {
       notes.push(`No eligible recipes for ${mealType}.`);
       unfilledCount += daysToFill.length;
@@ -63,7 +73,10 @@ export async function POST(req: NextRequest) {
         scope: ctxScope,
         userId: ctxUserId,
         mealType,
-        recipeIds: [recipe.id],
+        recipeIds:
+          dessertPool.length > 0
+            ? [recipe.id, shuffle(dessertPool)[0].id]
+            : [recipe.id],
         actingUserId: session.user.id,
         action: "spin_week",
       });

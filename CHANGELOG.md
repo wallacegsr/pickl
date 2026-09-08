@@ -17,11 +17,18 @@ changes with it — the two must never disagree about what is running.
   a household cooking around an intolerance. Recipes in the same slot are
   colour-coded so they read apart at a glance; a slot holding one recipe looks
   exactly as it did before.
+- Desserts. A recipe can be tagged **Dessert**, which is a category rather than
+  a fourth meal slot — a dessert is planned alongside a meal and told apart
+  there by its own colour and a cake marker. Shaking never proposes a dessert
+  as a main, and "Dessert" in the shaker adds one to the last meal ticked.
 
 ### Changed
 
-- **Breaking:** the JSON export now gives each meal an ARRAY of recipes rather
-  than one recipe or null. An empty array is the unplanned case.
+- The JSON export gives each meal an **array** of recipes rather than one
+  recipe or null; an empty array is the unplanned case. Anything consuming that
+  export needs updating. Classed as a minor change rather than a major one:
+  the export is a convenience for moving data out, not a published API with
+  callers to keep faith with.
 - The Past Preserves icon is a chart rather than an amphora, so it says what
   the page does while keeping the name.
 

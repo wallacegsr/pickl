@@ -10,9 +10,42 @@ export type Scope = (typeof SCOPES)[number];
 export const MEAL_TYPES = ["breakfast", "lunch", "dinner"] as const;
 export type MealType = (typeof MEAL_TYPES)[number];
 
-// Recipes can additionally be tagged "any" (eligible for every meal slot).
-export const RECIPE_MEAL_TYPES = ["breakfast", "lunch", "dinner", "any"] as const;
+/**
+ * What a recipe is eligible for. "any" means every meal slot.
+ *
+ * "dessert" is a CATEGORY, not a fourth slot. A dessert is planned into an
+ * ordinary breakfast/lunch/dinner slot alongside the main — which is why
+ * MEAL_TYPES above still has three entries — and is told apart there by
+ * colour rather than by living in a column of its own. A column would have
+ * stood empty on most days and cost the plan grid a quarter of its width.
+ */
+export const RECIPE_MEAL_TYPES = [
+  "breakfast",
+  "lunch",
+  "dinner",
+  "any",
+  "dessert",
+] as const;
 export type RecipeMealType = (typeof RECIPE_MEAL_TYPES)[number];
+
+/** Comma-separated meal types, as stored on `recipes.mealType`. */
+export function parseRecipeMealTypes(value: string): string[] {
+  return value
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Whether a recipe is a dessert.
+ *
+ * Deliberately "is tagged dessert" rather than "is ONLY tagged dessert": a
+ * trifle marked both `dessert` and `any` is still a dessert, and should read
+ * as one wherever it is planned.
+ */
+export function isDessertRecipe(recipe: { mealType: string }): boolean {
+  return parseRecipeMealTypes(recipe.mealType).includes("dessert");
+}
 
 export const VISIBILITIES = ["shared", "private"] as const;
 export type Visibility = (typeof VISIBILITIES)[number];

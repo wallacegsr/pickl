@@ -3,6 +3,7 @@
 import { Badge, Button, Table } from "react-bootstrap";
 import { useResizableColumns, type ColumnSpec } from "@/components/plan/useResizableColumns";
 import type { MealType } from "@/db/schema";
+import { CakeIcon } from "@/components/nav/icons";
 import { usePlanContext, type ExternalEventView } from "../PlanContext";
 
 const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner"];
@@ -177,20 +178,40 @@ export default function PlanGridWidget() {
                     >
                       {slot.recipes.length > 0 ? (
                         <div className="pickl-slot-chips">
-                          {slot.recipes.map((planned, index) => (
-                            <span
-                              key={planned.entryId}
-                              // Position drives the colour, so the second
-                              // recipe in a dinner reads as distinct from the
-                              // first at a glance. Capped so a long list wraps
-                              // back round rather than running out of styles.
-                              className={`pickl-slot-chip pickl-slot-chip-${
-                                (index % SLOT_CHIP_VARIANTS) + 1
-                              }`}
-                            >
-                              {planned.recipe.name}
-                            </span>
-                          ))}
+                          {(() => {
+                            // Desserts are coloured by what they are; mains by
+                            // their order in the slot. Counting mains
+                            // separately keeps the first main colour 1 whether
+                            // or not a dessert sits in front of it.
+                            let mainIndex = 0;
+                            return slot.recipes.map((planned) => {
+                              const variant = planned.isDessert
+                                ? "dessert"
+                                : (mainIndex++ % SLOT_CHIP_VARIANTS) + 1;
+                              return (
+                                <span
+                                  key={planned.entryId}
+                                  className={`pickl-slot-chip pickl-slot-chip-${variant}`}
+                                  title={
+                                    planned.isDessert
+                                      ? `${planned.recipe.name} (dessert)`
+                                      : undefined
+                                  }
+                                >
+                                  {planned.isDessert && (
+                                    // Colour is never the only signal: the
+                                    // glyph says "dessert" to a reader who
+                                    // cannot tell these hues apart.
+                                    <CakeIcon
+                                      size={13}
+                                      className="pickl-slot-chip-icon"
+                                    />
+                                  )}
+                                  {planned.recipe.name}
+                                </span>
+                              );
+                            });
+                          })()}
                         </div>
                       ) : (
                         <span className="text-muted fst-italic">Empty jar</span>

@@ -20,6 +20,7 @@
 
 import {
   BookOpen,
+  CakeSlice,
   CalendarDays,
   ChartColumn,
   ChevronsLeft,
@@ -78,6 +79,12 @@ export const TagIcon = icon(Tag, "TagIcon");
  * gave no clue that this one is reports.
  */
 export const JarIcon = icon(ChartColumn, "JarIcon");
+
+/**
+ * Marks a dessert on the meal plan. Paired with the dessert chip colour so
+ * the category is never carried by colour alone.
+ */
+export const CakeIcon = icon(CakeSlice, "CakeIcon");
 
 // --- Account menu ---------------------------------------------------------
 /** User Settings. */
