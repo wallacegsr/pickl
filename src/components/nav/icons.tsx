@@ -12,15 +12,16 @@
  * glyphs named below rather than the whole library.
  *
  * This module stays the single import site rather than letting components
- * reach for Lucide directly. That keeps the app's names for things (the
- * reports tab is "Past Preserves", and its icon is a jar, not an amphora), and
- * keeps size and stroke weight defined once instead of at every call site.
+ * reach for Lucide directly. That keeps the app's names for things — the
+ * reports tab is "Past Preserves" and its icon is still exported as JarIcon,
+ * whatever glyph is behind it — and keeps size and stroke weight defined once
+ * instead of at every call site.
  */
 
 import {
-  Amphora,
   BookOpen,
   CalendarDays,
+  ChartColumn,
   ChevronsLeft,
   ChevronsRight,
   LogOut,
@@ -72,10 +73,11 @@ export const BookIcon = icon(BookOpen, "BookIcon");
 /** Tags. */
 export const TagIcon = icon(Tag, "TagIcon");
 /**
- * Past Preserves. An amphora is the closest thing Lucide has to a preserving
- * jar, and reads as one at 18px.
+ * Past Preserves. A chart rather than a jar: the name is the joke, but the
+ * icon has to say what the page does, and an amphora beside Plan/Recipes/Tags
+ * gave no clue that this one is reports.
  */
-export const JarIcon = icon(Amphora, "JarIcon");
+export const JarIcon = icon(ChartColumn, "JarIcon");
 
 // --- Account menu ---------------------------------------------------------
 /** User Settings. */

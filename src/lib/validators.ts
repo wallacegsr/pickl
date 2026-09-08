@@ -154,11 +154,25 @@ export const mealTypeSchema = z.enum(["breakfast", "lunch", "dinner"]);
 
 export const planEntrySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date"),
-  recipeId: z.string().nullable(),
+  /**
+   * The recipes the slot should contain afterwards, in order. An empty array
+   * clears it.
+   *
+   * `recipeId` (a single nullable id) is still accepted so a client that has
+   * not been reloaded since the deploy keeps working rather than failing
+   * validation mid-edit; it is normalised into `recipeIds` below.
+   */
+  recipeIds: z.array(z.string()).optional(),
+  recipeId: z.string().nullable().optional(),
   scope: scopeSchema.default("shared"),
   mealType: mealTypeSchema,
   userId: z.string().nullable().optional(),
-});
+})
+  .transform((value) => ({
+    ...value,
+    recipeIds:
+      value.recipeIds ?? (value.recipeId ? [value.recipeId] : []),
+  }));
 
 export const spinTodaySchema = z.object({
   mealTypes: z.array(mealTypeSchema).min(1, "Pick at least one meal"),
@@ -170,6 +184,9 @@ export const spinTodaySchema = z.object({
 export const shoppingListStatusSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date"),
   mealType: mealTypeSchema,
+  // Which recipe in the slot this line belongs to. Required: without it, two
+  // recipes in one slot that share an ingredient tick each other off.
+  recipeId: z.string().min(1, "Recipe is required"),
   ingredientText: z.string().trim().min(1, "Ingredient text is required"),
   onHand: z.boolean(),
   scope: scopeSchema.default("shared"),

@@ -26,8 +26,8 @@ export async function GET(req: NextRequest) {
   const plannedRecipeIds = [
     ...new Set(
       plan.flatMap((day) =>
-        MEAL_TYPE_LIST.map((mealType) => day.meals[mealType].recipe?.id).filter(
-          (id): id is string => Boolean(id)
+        MEAL_TYPE_LIST.flatMap((mealType) =>
+          day.meals[mealType].recipes.map((planned) => planned.recipe.id)
         )
       )
     ),
@@ -38,24 +38,25 @@ export async function GET(req: NextRequest) {
     date: day.date,
     dayOfWeek: day.dayOfWeek,
     meals: Object.fromEntries(
+      // Each meal is now an ARRAY of recipes rather than one recipe or null,
+      // because a slot can hold a main and a dessert, or two mains. An empty
+      // array is the unplanned case that `null` used to represent.
       MEAL_TYPE_LIST.map((mealType) => {
         const slot = day.meals[mealType];
         return [
           mealType,
-          slot.recipe
-            ? {
-                id: slot.recipe.id,
-                name: slot.recipe.name,
-                ingredients: slot.recipe.ingredients,
-                instructions: slot.recipe.instructions,
-                prepTimeMinutes: slot.recipe.prepTimeMinutes,
-                cookTimeMinutes: slot.recipe.cookTimeMinutes,
-                servings: slot.recipe.servings,
-                // An array of tag names now, rather than the old
-                // comma-separated string.
-                tags: tagsByRecipe.get(slot.recipe.id) ?? [],
-              }
-            : null,
+          slot.recipes.map(({ recipe }) => ({
+            id: recipe.id,
+            name: recipe.name,
+            ingredients: recipe.ingredients,
+            instructions: recipe.instructions,
+            prepTimeMinutes: recipe.prepTimeMinutes,
+            cookTimeMinutes: recipe.cookTimeMinutes,
+            servings: recipe.servings,
+            // An array of tag names now, rather than the old
+            // comma-separated string.
+            tags: tagsByRecipe.get(recipe.id) ?? [],
+          })),
         ];
       })
     ),

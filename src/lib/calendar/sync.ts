@@ -133,7 +133,26 @@ export function buildEventDescription(
   return parts.length > 0 ? parts.join("\n\n") : null;
 }
 
-function getLink(targetId: string, date: string, mealType: MealType) {
+function getLinkForEntry(targetId: string, planEntryId: string) {
+  return db
+    .select()
+    .from(calendarEventLinks)
+    .where(
+      and(
+        eq(calendarEventLinks.targetId, targetId),
+        eq(calendarEventLinks.planEntryId, planEntryId)
+      )
+    )
+    .get();
+}
+
+/**
+ * Every link this target holds for one slot, however many recipes are in it.
+ *
+ * The slot, not the recipe, is the unit here because deciding what to delete
+ * needs the links whose plan entry has already gone.
+ */
+function getLinksForSlot(targetId: string, date: string, mealType: MealType) {
   return db
     .select()
     .from(calendarEventLinks)
@@ -144,17 +163,18 @@ function getLink(targetId: string, date: string, mealType: MealType) {
         eq(calendarEventLinks.mealType, mealType)
       )
     )
-    .get();
+    .all();
 }
 
 function saveLink(
   targetId: string,
+  planEntryId: string,
   date: string,
   mealType: MealType,
   externalEventId: string,
   etag: string | null = null
 ) {
-  const existing = getLink(targetId, date, mealType);
+  const existing = getLinkForEntry(targetId, planEntryId);
   if (existing) {
     db.update(calendarEventLinks)
       .set({ externalEventId, etag, lastPushedAt: new Date() })
@@ -166,6 +186,7 @@ function saveLink(
     .values({
       id: randomUUID(),
       targetId,
+      planEntryId,
       date,
       mealType,
       externalEventId,
@@ -175,16 +196,8 @@ function saveLink(
     .run();
 }
 
-function deleteLink(targetId: string, date: string, mealType: MealType) {
-  db.delete(calendarEventLinks)
-    .where(
-      and(
-        eq(calendarEventLinks.targetId, targetId),
-        eq(calendarEventLinks.date, date),
-        eq(calendarEventLinks.mealType, mealType)
-      )
-    )
-    .run();
+function deleteLinkById(id: string) {
+  db.delete(calendarEventLinks).where(eq(calendarEventLinks.id, id)).run();
 }
 
 function getRecipe(recipeId: string | null | undefined): Recipe | undefined {
@@ -198,32 +211,79 @@ function getRecipe(recipeId: string | null | undefined): Recipe | undefined {
  * (recipe cleared). Throws on provider failure — callers decide how to
  * record that.
  */
+/**
+ * Reconciles one slot's external events against what is planned in it.
+ *
+ * A slot holds several recipes now, so this is add/update/delete over a set
+ * rather than a single upsert-or-delete: each planned recipe gets its own
+ * event, and any event whose recipe has left the slot is removed.
+ */
 export async function syncSlot(
   target: CalendarTarget,
   provider: CalendarProvider,
   date: string,
   mealType: MealType,
-  recipe: Recipe | null
+  planned: { entryId: string; recipe: Recipe }[]
 ): Promise<void> {
-  const link = getLink(target.id, date, mealType);
+  const links = getLinksForSlot(target.id, date, mealType);
 
-  if (!recipe) {
-    if (!link) return; // Nothing there, nothing to remove.
+  // Links written before this table knew about plan entries have no entry id.
+  // Adopting the first onto the first planned recipe re-keys the existing
+  // event in place; without this its event would be deleted and an identical
+  // one created, which for a user means the meal briefly vanishing from their
+  // calendar and any reminder they set on it being lost.
+  const legacy = links.filter((l) => !l.planEntryId);
+  const byEntry = new Map(
+    links.filter((l) => l.planEntryId).map((l) => [l.planEntryId as string, l])
+  );
+  const adopted = new Set<string>();
+  legacy.forEach((link, index) => {
+    const owner = planned[index];
+    if (!owner) return;
+    db.update(calendarEventLinks)
+      .set({ planEntryId: owner.entryId })
+      .where(eq(calendarEventLinks.id, link.id))
+      .run();
+    byEntry.set(owner.entryId, { ...link, planEntryId: owner.entryId });
+    adopted.add(link.id);
+  });
+
+  // Anything still unclaimed belonged to a recipe that has left the slot.
+  const stale = links.filter(
+    (l) =>
+      !adopted.has(l.id) &&
+      (!l.planEntryId || !planned.some((p) => p.entryId === l.planEntryId))
+  );
+  for (const link of stale) {
     // The etag lets a provider refuse to delete an event the user has
     // edited since we wrote it (CalDAV does; Google ignores it).
     await provider.deleteEvent(link.externalEventId, link.etag);
-    deleteLink(target.id, date, mealType);
-    return;
+    deleteLinkById(link.id);
   }
 
+  for (const { entryId, recipe } of planned) {
+    await syncPlannedRecipe(target, provider, date, mealType, entryId, recipe, byEntry.get(entryId));
+  }
+}
+
+async function syncPlannedRecipe(
+  target: CalendarTarget,
+  provider: CalendarProvider,
+  date: string,
+  mealType: MealType,
+  entryId: string,
+  recipe: Recipe,
+  link: { externalEventId: string; etag: string | null } | undefined
+): Promise<void> {
   const { start, end } = getEventWindow(date, mealType);
   const input = {
     existingEventId: link?.externalEventId ?? null,
     existingEtag: link?.etag ?? null,
-    // The slot's identity, so a provider that addresses events by a UID
-    // it derives itself (CalDAV) stays idempotent even if this link row
-    // disappears.
-    slotKey: `${date}:${mealType}`,
+    // Identifies this planned recipe, so a provider that derives its own UID
+    // (CalDAV) stays idempotent even if the link row disappears. The entry id
+    // is part of it because two recipes in one slot would otherwise derive the
+    // same UID and overwrite each other.
+    slotKey: `${date}:${mealType}:${entryId}`,
     start,
     end,
     summary: buildEventSummary(mealType, recipe),
@@ -248,6 +308,7 @@ export async function syncSlot(
   }
   saveLink(
     target.id,
+    entryId,
     date,
     mealType,
     result.externalEventId,
@@ -290,7 +351,7 @@ async function pushSlotToTarget(
   target: CalendarTarget,
   date: string,
   mealType: MealType,
-  recipeId: string | null
+  planned: { entryId: string; recipe: Recipe }[]
 ): Promise<void> {
   let account: CalendarAccount | null = null;
   try {
@@ -299,8 +360,7 @@ async function pushSlotToTarget(
     if (!account) return;
 
     const provider = getProviderForTarget(target, account);
-    const recipe = getRecipe(recipeId) ?? null;
-    await syncSlot(target, provider, date, mealType, recipe);
+    await syncSlot(target, provider, date, mealType, planned);
     recordSyncSuccess(target.id);
     if (account.lastError) setAccountError(account.id, null);
   } catch (err) {
@@ -340,7 +400,6 @@ export async function pushPlanSlot(input: {
   userId?: string | null;
   date: string;
   mealType: MealType;
-  recipeId: string | null;
 }): Promise<void> {
   let targets: CalendarTarget[];
   try {
@@ -351,9 +410,25 @@ export async function pushPlanSlot(input: {
   }
   if (targets.length === 0) return; // The normal case for most deployments.
 
+  // Read the finished slot once, here, rather than per target: every target
+  // pushes the same set of recipes, and this runs after the plan write has
+  // committed.
+  const { getSlotEntries } = await import("@/lib/plan");
+  const planned = getSlotEntries(
+    input.date,
+    input.scope,
+    input.userId ?? "",
+    input.mealType
+  )
+    .map((entry) => {
+      const recipe = getRecipe(entry.recipeId);
+      return recipe ? { entryId: entry.id, recipe } : null;
+    })
+    .filter((p): p is { entryId: string; recipe: Recipe } => p !== null);
+
   await Promise.all(
     targets.map((target) =>
-      pushSlotToTarget(target, input.date, input.mealType, input.recipeId).catch(
+      pushSlotToTarget(target, input.date, input.mealType, planned).catch(
         (err) => {
           console.error("[calendar] unexpected per-target push error:", err);
         }
@@ -374,7 +449,6 @@ export function schedulePlanSlotPush(input: {
   userId?: string | null;
   date: string;
   mealType: MealType;
-  recipeId: string | null;
 }): void {
   void pushPlanSlot(input).catch((err) => {
     console.error("[calendar] unexpected push error:", err);
@@ -449,7 +523,10 @@ export async function resyncWeek(
       MEAL_TYPE_LIST.map((mealType) => ({
         date: day.date,
         mealType,
-        recipe: day.meals[mealType].recipe,
+        planned: day.meals[mealType].recipes.map(({ entryId, recipe }) => ({
+          entryId,
+          recipe,
+        })),
       }))
     );
 
@@ -457,11 +534,17 @@ export async function resyncWeek(
       jobs,
       MAX_CONCURRENT_PUSHES,
       async (job) => {
-        const link = getLink(target.id, job.date, job.mealType);
-        if (!job.recipe && !link) return "skipped" as const;
-        await syncSlot(target, provider, job.date, job.mealType, job.recipe);
-        if (!job.recipe) return "deleted" as const;
-        return link ? ("updated" as const) : ("created" as const);
+        // Counted per slot, as before. A slot with two recipes where one is
+        // new and one already existed reports as "created" — the summary is a
+        // progress report, not an audit, and splitting it per recipe would
+        // make the numbers stop matching the week the user is looking at.
+        const links = getLinksForSlot(target.id, job.date, job.mealType);
+        if (job.planned.length === 0 && links.length === 0) {
+          return "skipped" as const;
+        }
+        await syncSlot(target, provider, job.date, job.mealType, job.planned);
+        if (job.planned.length === 0) return "deleted" as const;
+        return links.length > 0 ? ("updated" as const) : ("created" as const);
       }
     );
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getRemainingDaysInWeek, todayDateString } from "@/lib/dates";
-import { getPlanEntry, getRecipePool, setPlanEntry, shuffle } from "@/lib/plan";
+import { getSlotEntries, getRecipePool, setPlanEntry, shuffle } from "@/lib/plan";
 import { spinWeekSchema } from "@/lib/validators";
 import { resolvePlanContext } from "@/lib/planContext";
 import type { MealType } from "@/db/schema";
@@ -38,8 +38,10 @@ export async function POST(req: NextRequest) {
   for (const mealType of mealTypes) {
     const daysToFill = remainingDays.filter((day) => {
       if (overwriteExisting) return true;
-      const existing = getPlanEntry(day.date, ctxScope, ctxUserId, mealType);
-      return !existing?.recipeId;
+      // 'Filled' means the slot holds at least one recipe. Without
+      // overwriteExisting a spin only fills empty slots, so a hand-built
+      // two-recipe dinner is never quietly replaced.
+      return getSlotEntries(day.date, ctxScope, ctxUserId, mealType).length === 0;
     });
 
     const pool = shuffle(getRecipePool(ctxScope, ctxUserId, mealType));
@@ -61,7 +63,7 @@ export async function POST(req: NextRequest) {
         scope: ctxScope,
         userId: ctxUserId,
         mealType,
-        recipeId: recipe.id,
+        recipeIds: [recipe.id],
         actingUserId: session.user.id,
         action: "spin_week",
       });

@@ -27,34 +27,39 @@ export async function GET(req: NextRequest) {
   for (const day of plan) {
     for (const mealType of MEAL_TYPE_LIST) {
       const slot = day.meals[mealType];
-      if (!slot.recipe) continue;
 
-      const baseDate = parseDateString(day.date);
-      const start = new Date(baseDate);
-      start.setHours(MEAL_DEFAULT_HOUR[mealType] ?? 18, 0, 0, 0);
-      const end = new Date(start);
-      end.setHours(start.getHours() + 1);
+      // One event per recipe. A two-recipe dinner becomes two events at the
+      // same hour rather than one merged event, so each keeps its own
+      // ingredients and instructions in the description where they are
+      // actually useful.
+      for (const { recipe } of slot.recipes) {
+        const baseDate = parseDateString(day.date);
+        const start = new Date(baseDate);
+        start.setHours(MEAL_DEFAULT_HOUR[mealType] ?? 18, 0, 0, 0);
+        const end = new Date(start);
+        end.setHours(start.getHours() + 1);
 
-      const ingredientsPreview = slot.recipe.ingredients
-        .split("\n")
-        .filter(Boolean)
-        .slice(0, 10)
-        .join(", ");
-
-      calendar.createEvent({
-        start,
-        end,
-        summary: `${MEAL_LABELS[mealType]}: ${slot.recipe.name}`,
-        description: [
-          ingredientsPreview ? `Ingredients: ${ingredientsPreview}` : null,
-          slot.recipe.instructions
-            ? `Instructions: ${slot.recipe.instructions.slice(0, 500)}`
-            : null,
-        ]
+        const ingredientsPreview = recipe.ingredients
+          .split("\n")
           .filter(Boolean)
-          .join("\n\n"),
-        status: ICalEventStatus.CONFIRMED,
-      });
+          .slice(0, 10)
+          .join(", ");
+
+        calendar.createEvent({
+          start,
+          end,
+          summary: `${MEAL_LABELS[mealType]}: ${recipe.name}`,
+          description: [
+            ingredientsPreview ? `Ingredients: ${ingredientsPreview}` : null,
+            recipe.instructions
+              ? `Instructions: ${recipe.instructions.slice(0, 500)}`
+              : null,
+          ]
+            .filter(Boolean)
+            .join("\n\n"),
+          status: ICalEventStatus.CONFIRMED,
+        });
+      }
     }
   }
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { recipes } from "@/db/schema";
@@ -48,24 +48,23 @@ export async function PUT(req: NextRequest) {
     );
   }
 
-  const { date, recipeId, scope, mealType, userId } = parsed.data;
+  const { date, recipeIds, scope, mealType, userId } = parsed.data;
 
   const resolved = resolvePlanContext(session.user, scope, userId, "write");
   if (!resolved.ok) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
 
-  if (recipeId) {
-    const recipeExists = db
-      .select()
+  if (recipeIds.length > 0) {
+    // Checked in one query rather than a loop: a slot holds few recipes, but
+    // a caller can send any list and each one still has to exist.
+    const found = db
+      .select({ id: recipes.id })
       .from(recipes)
-      .where(eq(recipes.id, recipeId))
-      .get();
-    if (!recipeExists) {
-      return NextResponse.json(
-        { error: "Recipe not found" },
-        { status: 404 }
-      );
+      .where(inArray(recipes.id, recipeIds))
+      .all();
+    if (found.length !== new Set(recipeIds).size) {
+      return NextResponse.json({ error: "Recipe not found" }, { status: 404 });
     }
   }
 
@@ -74,9 +73,9 @@ export async function PUT(req: NextRequest) {
     scope: resolved.context.scope,
     userId: resolved.context.userId,
     mealType,
-    recipeId: recipeId ?? null,
+    recipeIds,
     actingUserId: session.user.id,
-    action: recipeId ? "manual_set" : "manual_clear",
+    action: recipeIds.length > 0 ? "manual_set" : "manual_clear",
   });
 
   return NextResponse.json(updated);

@@ -180,9 +180,18 @@ export const planEntries = sqliteTable(
     // allow duplicate shared rows for the same date/meal).
     userId: text("user_id").notNull().default(""),
     mealType: text("meal_type").notNull().default("dinner"),
+    // Cascade rather than set-null. With one recipe per slot, blanking the
+    // recipe left a visible "Empty jar" where a meal used to be, which was the
+    // right signal. With several per slot, a null row is just an invisible
+    // blank alongside the recipes that are still there, so a deleted recipe
+    // should take its row with it.
     recipeId: text("recipe_id").references(() => recipes.id, {
-      onDelete: "set null",
+      onDelete: "cascade",
     }),
+    // Display order within a slot. Without it the main and the dessert would
+    // swap places on any query whose row order is not guaranteed, which SQLite
+    // does not promise without an ORDER BY.
+    position: integer("position").notNull().default(0),
     // Who last created/edited this entry (always populated, for audit —
     // distinct from `userId` above, which is the *ownership/scoping* key).
     createdByUserId: text("created_by_user_id").references(() => users.id),
@@ -194,11 +203,24 @@ export const planEntries = sqliteTable(
       .$defaultFn(() => new Date()),
   },
   (table) => ({
-    dateScopeUserMeal: unique().on(
+    // One row per RECIPE in a slot, not one row per slot. A dinner can hold a
+    // main and a dessert, or two mains for households cooking around an
+    // intolerance.
+    //
+    // The old index was on (date, scope, userId, mealType) — one recipe per
+    // slot, enforced in the database. Widening it by recipeId keeps the useful
+    // half of that guarantee (the same recipe cannot be added to one slot
+    // twice) while allowing several different ones.
+    //
+    // recipeId is nullable and SQLite treats NULLs as distinct, so this does
+    // not constrain rows whose recipe has been deleted. Those are removed
+    // outright now rather than left as blanks — see the cascade on recipeId.
+    dateScopeUserMealRecipe: unique().on(
       table.date,
       table.scope,
       table.userId,
-      table.mealType
+      table.mealType,
+      table.recipeId
     ),
   })
 );
@@ -214,6 +236,16 @@ export const shoppingListStatus = sqliteTable(
     userId: text("user_id").notNull().default(""),
     date: text("date").notNull(),
     mealType: text("meal_type").notNull(),
+    // Which recipe in the slot this line belongs to. Added because the key
+    // below used to stop at (date, mealType, ingredientText): once a dinner can
+    // hold two recipes that both use onions, they collided on one row, and
+    // ticking onions off for the main silently ticked it off for the dessert.
+    //
+    // Nullable so rows written before this column existed keep working; they
+    // behave as they always did, one shared line per ingredient.
+    recipeId: text("recipe_id").references(() => recipes.id, {
+      onDelete: "cascade",
+    }),
     ingredientText: text("ingredient_text").notNull(),
     onHand: integer("on_hand", { mode: "boolean" }).notNull().default(false),
     updatedAt: integer("updated_at", { mode: "timestamp" })
@@ -222,11 +254,12 @@ export const shoppingListStatus = sqliteTable(
     updatedByUserId: text("updated_by_user_id").references(() => users.id),
   },
   (table) => ({
-    scopeUserDateMealIngredient: unique().on(
+    scopeUserDateMealRecipeIngredient: unique().on(
       table.scope,
       table.userId,
       table.date,
       table.mealType,
+      table.recipeId,
       table.ingredientText
     ),
   })
@@ -424,10 +457,16 @@ export const oauthStates = sqliteTable("oauth_states", {
 });
 
 /**
- * Idempotency map from a plan slot (date + meal) to the event we created
- * on the provider, so later pushes update/delete that event instead of
- * creating duplicates. Keyed per TARGET: the same household meal now
- * produces one event in each participating user's own calendar.
+ * Idempotency map from a planned recipe to the event we created on the
+ * provider, so later pushes update/delete that event instead of creating
+ * duplicates. Keyed per TARGET: the same household meal produces one event in
+ * each participating user's own calendar.
+ *
+ * Keyed on the plan entry rather than (date, mealType). It used to be the
+ * latter, which was exactly right while a slot held one recipe and silently
+ * wrong the moment it could hold two: the second recipe had nowhere to record
+ * its event id, so pushing it would collide with the first and one of the two
+ * meals would go missing from the external calendar.
  */
 export const calendarEventLinks = sqliteTable(
   "calendar_event_links",
@@ -436,6 +475,15 @@ export const calendarEventLinks = sqliteTable(
     targetId: text("target_id")
       .notNull()
       .references(() => calendarTargets.id, { onDelete: "cascade" }),
+    // The planned recipe this event represents. Nullable so rows written
+    // before this column existed are still readable; the sync path treats a
+    // null as "legacy link" and re-keys it on the next push.
+    planEntryId: text("plan_entry_id").references(() => planEntries.id, {
+      onDelete: "cascade",
+    }),
+    // Kept alongside planEntryId rather than replaced by it: the delete path
+    // needs to know which slot an event belonged to after its entry row is
+    // already gone.
     date: text("date").notNull(),
     mealType: text("meal_type").notNull(),
     // The provider's own event id. For CalDAV there is no server-assigned
@@ -451,7 +499,9 @@ export const calendarEventLinks = sqliteTable(
       .$defaultFn(() => new Date()),
   },
   (table) => ({
-    targetDateMeal: unique().on(table.targetId, table.date, table.mealType),
+    // One event per planned recipe per target. Widened from
+    // (targetId, date, mealType), which allowed only one event per slot.
+    targetPlanEntry: unique().on(table.targetId, table.planEntryId),
   })
 );
 

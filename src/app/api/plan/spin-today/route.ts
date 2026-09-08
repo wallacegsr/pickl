@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { todayDateString } from "@/lib/dates";
-import { getPlanEntry, getRecipePool, getWeekPlan, setPlanEntry, shuffle } from "@/lib/plan";
+import { getSlotEntries, getRecipePool, getWeekPlan, setPlanEntry, shuffle } from "@/lib/plan";
 import { spinTodaySchema } from "@/lib/validators";
 import { resolvePlanContext } from "@/lib/planContext";
 import { db } from "@/db";
@@ -34,16 +35,22 @@ export async function POST(req: NextRequest) {
   const today = todayDateString();
 
   if (!force) {
-    const conflicts: { mealType: MealType; currentRecipe: unknown }[] = [];
+    // A slot can hold several recipes, so a conflict names all of them.
+    const conflicts: { mealType: MealType; currentRecipes: unknown[] }[] = [];
     for (const mealType of mealTypes) {
-      const existing = getPlanEntry(today, ctxScope, ctxUserId, mealType);
-      if (existing?.recipeId) {
-        const currentRecipe = db
+      // Any recipe in the slot makes it a conflict; a slot with a main and a
+      // dessert is just as 'already planned' as one with a single meal.
+      const existing = getSlotEntries(today, ctxScope, ctxUserId, mealType);
+      const existingIds = existing
+        .map((e) => e.recipeId)
+        .filter((id): id is string => Boolean(id));
+      if (existingIds.length > 0) {
+        const current = db
           .select()
           .from(recipes)
-          .where(eq(recipes.id, existing.recipeId))
-          .get();
-        conflicts.push({ mealType, currentRecipe });
+          .where(inArray(recipes.id, existingIds))
+          .all();
+        conflicts.push({ mealType, currentRecipes: current });
       }
     }
     if (conflicts.length > 0) {
@@ -67,8 +74,7 @@ export async function POST(req: NextRequest) {
     const usedThisWeek = new Set(
       weekPlan
         .filter((d) => d.date !== today)
-        .map((d) => d.meals[mealType]?.recipe?.id)
-        .filter((id): id is string => Boolean(id))
+        .flatMap((d) => d.meals[mealType].recipes.map((r) => r.recipe.id))
     );
     const unused = pool.filter((r) => !usedThisWeek.has(r.id));
     const drawPool = unused.length > 0 ? unused : pool;
@@ -79,7 +85,7 @@ export async function POST(req: NextRequest) {
       scope: ctxScope,
       userId: ctxUserId,
       mealType,
-      recipeId: picked.id,
+      recipeIds: [picked.id],
       actingUserId: session.user.id,
       action: "spin_today",
     });

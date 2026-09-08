@@ -822,3 +822,71 @@ html[data-pickl-sidebar="collapsed"] .pickl-sidebar-toggle {
     height: 300px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Multi-recipe slots
+
+   A slot holds several recipes now, so a cell needs to show which is which at
+   a glance. Colour is keyed to position within the slot.
+
+   The hues are the ones already validated for the report charts (see
+   chartTheme.ts): amber / teal / clay, checked for colourblind separation on
+   all four surfaces this app can present. They are reused rather than
+   re-picked so the app has one categorical palette rather than two that drift.
+
+   Colour is never the only signal — each chip carries the recipe's name, and
+   a slot with one recipe looks exactly as it always did.
+   ------------------------------------------------------------------------- */
+
+.pickl-slot-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.pickl-slot-chip {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  border-left: 3px solid transparent;
+  border-radius: 0.25rem;
+  /* Long names wrap inside the chip rather than widening the column. */
+  overflow-wrap: anywhere;
+}
+
+/* A slot holding exactly one recipe gets no tint at all: the overwhelmingly
+   common case should look like plain text, not like a tagged thing. */
+.pickl-slot-chips:has(> :only-child) .pickl-slot-chip {
+  padding-left: 0;
+  border-left-color: transparent;
+  background-color: transparent;
+}
+
+.pickl-slot-chip-1 {
+  border-left-color: #a8700f;
+  background-color: rgba(168, 112, 15, 0.12);
+}
+
+.pickl-slot-chip-2 {
+  border-left-color: #009698;
+  background-color: rgba(0, 150, 152, 0.12);
+}
+
+.pickl-slot-chip-3 {
+  border-left-color: #b8503f;
+  background-color: rgba(184, 80, 63, 0.12);
+}
+
+:root[data-bs-theme="dark"] .pickl-slot-chip-1 {
+  border-left-color: #bd8420;
+  background-color: rgba(189, 132, 32, 0.18);
+}
+
+:root[data-bs-theme="dark"] .pickl-slot-chip-2 {
+  border-left-color: #009a9d;
+  background-color: rgba(0, 154, 157, 0.18);
+}
+
+:root[data-bs-theme="dark"] .pickl-slot-chip-3 {
+  border-left-color: #c95a48;
+  background-color: rgba(201, 90, 72, 0.18);
+}

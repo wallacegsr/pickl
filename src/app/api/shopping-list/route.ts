@@ -51,7 +51,7 @@ export async function PUT(req: NextRequest) {
     );
   }
 
-  const { date, mealType, ingredientText, onHand, scope, userId } = parsed.data;
+  const { date, mealType, recipeId, ingredientText, onHand, scope, userId } = parsed.data;
 
   const resolved = resolvePlanContext(session.user, scope, userId, "read");
   if (!resolved.ok) {
@@ -63,6 +63,7 @@ export async function PUT(req: NextRequest) {
     userId: resolved.context.userId,
     date,
     mealType,
+    recipeId,
     ingredientText,
     onHand,
     actingUserId: session.user.id,

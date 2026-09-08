@@ -54,13 +54,17 @@ export default function RecipeQuickLookWidget() {
 
   const todayDay = days.find((d) => d.date === today) ?? null;
   const tonightSlot = todayDay?.meals.dinner ?? null;
-  const tonight = tonightSlot?.recipe
-    ? allRecipes.find((r) => r.id === tonightSlot.recipe!.id) ?? null
+  // The first recipe in the slot is the one worth surfacing here: this widget
+  // answers "what am I cooking tonight", and a dessert or a second main is
+  // detail the grid already shows.
+  const tonightPlanned = tonightSlot?.recipes[0] ?? null;
+  const tonight = tonightPlanned
+    ? allRecipes.find((r) => r.id === tonightPlanned.recipe.id) ?? null
     : null;
   // The pool is scoped to this calendar; if a recipe was planned and has
   // since gone private or been deleted, fall back to the name the plan
   // itself carries rather than showing nothing.
-  const tonightName = tonightSlot?.recipe?.name ?? null;
+  const tonightName = tonightPlanned?.recipe.name ?? null;
 
   const trimmed = query.trim();
   const results = useMemo(() => {

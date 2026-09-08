@@ -12,10 +12,25 @@ export function ownerKey(scope: Scope, userId?: string | null): string {
   return scope === "private" ? userId ?? "" : "";
 }
 
+/** One recipe planned into a slot. A slot can hold several. */
+export interface PlannedRecipe {
+  entryId: string;
+  recipe: Recipe;
+  position: number;
+}
+
 export interface PlanMealSlot {
   mealType: MealType;
-  entryId: string | null;
-  recipe: Recipe | null;
+  /**
+   * Every recipe planned for this slot, in `position` order — a main and a
+   * dessert, or two mains for a household cooking around an intolerance.
+   *
+   * This was `recipe: Recipe | null`, one per slot, enforced by a unique index
+   * on (date, scope, userId, mealType). Anything reading a slot has to cope
+   * with none, one, or several; an empty array is the "Empty jar" case that
+   * `null` used to represent.
+   */
+  recipes: PlannedRecipe[];
 }
 
 export interface PlanDay {
@@ -72,9 +87,9 @@ export function getRecipePool(
 
 function emptyMeals(): Record<MealType, PlanMealSlot> {
   return {
-    breakfast: { mealType: "breakfast", entryId: null, recipe: null },
-    lunch: { mealType: "lunch", entryId: null, recipe: null },
-    dinner: { mealType: "dinner", entryId: null, recipe: null },
+    breakfast: { mealType: "breakfast", recipes: [] },
+    lunch: { mealType: "lunch", recipes: [] },
+    dinner: { mealType: "dinner", recipes: [] },
   };
 }
 
@@ -126,17 +141,37 @@ export function getWeekPlan(
     for (const e of byDate.get(day.date) ?? []) {
       const mealType = e.mealType as MealType;
       if (!(mealType in meals)) continue;
-      meals[mealType] = {
-        mealType,
+      // A row whose recipe has been deleted is skipped rather than shown as a
+      // blank. It cannot normally exist — recipeId cascades — but a row
+      // written before that cascade existed still can.
+      const recipe = e.recipeId ? recipeMap.get(e.recipeId) : undefined;
+      if (!recipe) continue;
+      meals[mealType].recipes.push({
         entryId: e.id,
-        recipe: e.recipeId ? recipeMap.get(e.recipeId) ?? null : null,
-      };
+        recipe,
+        position: e.position,
+      });
+    }
+    // Stable order within each slot. SQLite makes no promise about row order
+    // without an ORDER BY, so without this the main and the dessert could
+    // swap places between two identical page loads.
+    for (const slot of Object.values(meals)) {
+      slot.recipes.sort(
+        (a, b) => a.position - b.position || a.recipe.name.localeCompare(b.recipe.name)
+      );
     }
     return { date: day.date, dayOfWeek: day.dayOfWeek, meals };
   });
 }
 
-export function getPlanEntry(
+/**
+ * Every row in one slot, in `position` order.
+ *
+ * Replaces a `getPlanEntry` that returned a single row and could do so safely
+ * only while the unique index guaranteed there was at most one. Callers that
+ * want "is anything planned here?" should check `.length`.
+ */
+export function getSlotEntries(
   date: string,
   scope: Scope,
   userId: string,
@@ -154,7 +189,8 @@ export function getPlanEntry(
         eq(planEntries.mealType, mealType)
       )
     )
-    .get();
+    .orderBy(planEntries.position)
+    .all();
 }
 
 export interface SetPlanEntryInput {
@@ -162,31 +198,67 @@ export interface SetPlanEntryInput {
   scope: Scope;
   userId: string; // owner of the calendar (private) — ignored for shared
   mealType: MealType;
-  recipeId: string | null;
+  /**
+   * The recipes this slot should contain afterwards, in display order.
+   *
+   * This is a whole-slot statement rather than a single recipe: an empty array
+   * clears the slot, one entry is the old behaviour, several is the new one.
+   * Expressing it this way keeps one write path — the alternative, separate
+   * add/remove calls, would have each needed its own audit and calendar
+   * fan-out, and the two could drift.
+   */
+  recipeIds: string[];
   actingUserId: string; // who is making this change, for audit + createdByUserId
   action: AuditAction;
   notes?: string | null;
 }
 
 /**
- * The single write path for plan_entries. Inserts or updates the entry and
- * always records an audit_log row (old recipe -> new recipe), so this must
- * be used by every route that touches plan_entries (manual edits, spins).
+ * The single write path for plan_entries. Reconciles a slot to the requested
+ * set of recipes and always records audit rows, so this must be used by every
+ * route that touches plan_entries (manual edits, spins).
+ *
+ * Reconciling rather than deleting-and-reinserting is deliberate: a recipe
+ * that stays in the slot keeps its row, and therefore keeps the calendar event
+ * link and shopping-list state hanging off that row. Clearing the slot and
+ * rewriting it would orphan the external events and silently lose every
+ * ticked-off ingredient on days where nothing actually changed.
  */
 export function setPlanEntry(input: SetPlanEntryInput) {
   const owner = ownerKey(input.scope, input.userId);
-  const existing = getPlanEntry(input.date, input.scope, input.userId, input.mealType);
+  const existing = getSlotEntries(
+    input.date,
+    input.scope,
+    input.userId,
+    input.mealType
+  );
 
-  if (existing) {
-    db.update(planEntries)
-      .set({
-        recipeId: input.recipeId,
-        createdByUserId: input.actingUserId,
-        updatedAt: new Date(),
-      })
-      .where(eq(planEntries.id, existing.id))
-      .run();
-  } else {
+  // Duplicates would violate the unique index; the last one wins, which
+  // matches what picking the same recipe twice in the editor should mean.
+  const wanted = [...new Set(input.recipeIds)];
+  const existingByRecipe = new Map(
+    existing.filter((e) => e.recipeId).map((e) => [e.recipeId as string, e])
+  );
+
+  const removed = existing.filter(
+    (e) => !e.recipeId || !wanted.includes(e.recipeId)
+  );
+  for (const row of removed) {
+    db.delete(planEntries).where(eq(planEntries.id, row.id)).run();
+  }
+
+  wanted.forEach((recipeId, index) => {
+    const current = existingByRecipe.get(recipeId);
+    if (current) {
+      // Already here — only its place in the order can have changed.
+      if (current.position !== index) {
+        db.update(planEntries)
+          .set({ position: index, updatedAt: new Date() })
+          .where(eq(planEntries.id, current.id))
+          .run();
+      }
+      return;
+    }
     db.insert(planEntries)
       .values({
         id: randomUUID(),
@@ -194,23 +266,44 @@ export function setPlanEntry(input: SetPlanEntryInput) {
         scope: input.scope,
         userId: owner,
         mealType: input.mealType,
-        recipeId: input.recipeId,
+        recipeId,
+        position: index,
         createdByUserId: input.actingUserId,
       })
       .run();
-  }
+  });
 
-  logAuditEntry({
+  // One audit row per recipe that actually entered or left the slot, so the
+  // log still reads as a sequence of changes rather than one opaque "slot was
+  // rewritten". A reorder alone is not a change worth logging.
+  const added = wanted.filter((id) => !existingByRecipe.has(id));
+  const auditBase = {
     userId: input.actingUserId,
     action: input.action,
     scope: input.scope,
     targetUserId: input.scope === "private" ? owner : null,
     date: input.date,
     mealType: input.mealType,
-    oldRecipeId: existing?.recipeId ?? null,
-    newRecipeId: input.recipeId,
     notes: input.notes ?? null,
-  });
+  };
+
+  // A one-out-one-in slot is the common case and reads best as a replacement,
+  // which is also exactly what the log recorded before slots could hold more
+  // than one recipe.
+  if (removed.length === 1 && added.length === 1) {
+    logAuditEntry({
+      ...auditBase,
+      oldRecipeId: removed[0]!.recipeId ?? null,
+      newRecipeId: added[0]!,
+    });
+  } else {
+    for (const row of removed) {
+      logAuditEntry({ ...auditBase, oldRecipeId: row.recipeId ?? null, newRecipeId: null });
+    }
+    for (const recipeId of added) {
+      logAuditEntry({ ...auditBase, oldRecipeId: null, newRecipeId: recipeId });
+    }
+  }
 
   // Push to every external calendar this write belongs in, AFTER the DB
   // write has committed and detached from this request.
@@ -228,17 +321,19 @@ export function setPlanEntry(input: SetPlanEntryInput) {
   // plan <-> calendar module graph acyclic.
   import("@/lib/calendar/sync")
     .then(({ schedulePlanSlotPush }) =>
+      // The whole slot is pushed, not one recipe: the sync side has to add
+      // events for what arrived, update what stayed and delete what left, and
+      // it can only work that out from the finished state of the slot.
       schedulePlanSlotPush({
         scope: input.scope,
         userId: owner,
         date: input.date,
         mealType: input.mealType,
-        recipeId: input.recipeId,
       })
     )
     .catch((err) => {
       console.error("[calendar] could not schedule push:", err);
     });
 
-  return getPlanEntry(input.date, input.scope, input.userId, input.mealType);
+  return getSlotEntries(input.date, input.scope, input.userId, input.mealType);
 }

@@ -11,7 +11,19 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+### Added
+
+- A meal slot can hold several recipes: a main and a dessert, or two mains for
+  a household cooking around an intolerance. Recipes in the same slot are
+  colour-coded so they read apart at a glance; a slot holding one recipe looks
+  exactly as it did before.
+
 ### Changed
+
+- **Breaking:** the JSON export now gives each meal an ARRAY of recipes rather
+  than one recipe or null. An empty array is the unplanned case.
+- The Past Preserves icon is a chart rather than an amphora, so it says what
+  the page does while keeping the name.
 
 - CI now verifies the Android signing keystore opens before starting a release
   build, so a wrong secret fails immediately and names the likely culprit.

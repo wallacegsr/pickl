@@ -29,8 +29,22 @@ export interface ShoppingListDay {
 export { splitIngredients } from "@/lib/ingredients";
 
 /**
+ * Key for one ingredient line: a specific ingredient, of a specific recipe, in
+ * one slot on one day. `null` for the recipe reproduces the pre-multi-recipe
+ * key so rows written before that column existed still resolve.
+ */
+export function onHandKey(
+  date: string,
+  mealType: string,
+  recipeId: string | null,
+  ingredientText: string
+) {
+  return `${date}|${mealType}|${recipeId ?? ""}|${ingredientText}`;
+}
+
+/**
  * Loads the on-hand status map for a given calendar (scope + owner) across
- * the given dates, keyed by `${date}|${mealType}|${ingredientText}`.
+ * the given dates, keyed by `onHandKey`.
  */
 export function getOnHandMap(
   scope: Scope,
@@ -54,7 +68,13 @@ export function getOnHandMap(
     .all();
 
   for (const row of rows) {
-    map.set(`${row.date}|${row.mealType}|${row.ingredientText}`, row.onHand);
+    // The recipe is part of the key now. Without it, two recipes in one slot
+    // that share an ingredient collided on a single entry, so ticking onions
+    // off for the main also ticked it off for the dessert.
+    //
+    // Rows written before recipeId existed have a null one; they keep their
+    // old key shape and go on behaving as they did.
+    map.set(onHandKey(row.date, row.mealType, row.recipeId, row.ingredientText), row.onHand);
   }
   return map;
 }
@@ -79,17 +99,25 @@ export function buildShoppingListWeek(
     const meals: ShoppingListMeal[] = [];
     for (const mealType of MEAL_TYPE_LIST) {
       const slot = day.meals[mealType];
-      if (!slot.recipe) continue;
-      const ingredients = splitIngredients(slot.recipe.ingredients).map((ingredientText) => ({
-        ingredientText,
-        onHand: onHandMap.get(`${day.date}|${mealType}|${ingredientText}`) ?? false,
-      }));
-      meals.push({
-        mealType,
-        recipeId: slot.recipe.id,
-        recipeName: slot.recipe.name,
-        ingredients,
-      });
+      // One shopping-list block per recipe, so a two-recipe dinner lists both
+      // under the same meal rather than merging their ingredients.
+      for (const { recipe } of slot.recipes) {
+        const ingredients = splitIngredients(recipe.ingredients).map((ingredientText) => ({
+          ingredientText,
+          onHand:
+            onHandMap.get(onHandKey(day.date, mealType, recipe.id, ingredientText)) ??
+            // Falls back to the pre-multi-recipe key, so ingredients ticked
+            // off before this change do not all come back unticked.
+            onHandMap.get(onHandKey(day.date, mealType, null, ingredientText)) ??
+            false,
+        }));
+        meals.push({
+          mealType,
+          recipeId: recipe.id,
+          recipeName: recipe.name,
+          ingredients,
+        });
+      }
     }
     if (meals.length > 0) {
       days.push({ date: day.date, dayOfWeek: day.dayOfWeek, meals });
@@ -103,12 +131,14 @@ export interface SetOnHandInput {
   userId: string; // owner of the calendar (private) — ignored for shared
   date: string;
   mealType: MealType;
+  /** Which recipe in the slot this line belongs to. */
+  recipeId: string;
   ingredientText: string;
   onHand: boolean;
   actingUserId: string;
 }
 
-/** The single write path for shopping_list_status: upserts by (scope, userId, date, mealType, ingredientText). */
+/** The single write path for shopping_list_status: upserts by (scope, userId, date, mealType, recipeId, ingredientText). */
 export function setOnHand(input: SetOnHandInput) {
   const owner = ownerKey(input.scope, input.userId);
 
@@ -121,6 +151,7 @@ export function setOnHand(input: SetOnHandInput) {
         eq(shoppingListStatus.userId, owner),
         eq(shoppingListStatus.date, input.date),
         eq(shoppingListStatus.mealType, input.mealType),
+        eq(shoppingListStatus.recipeId, input.recipeId),
         eq(shoppingListStatus.ingredientText, input.ingredientText)
       )
     )
@@ -143,6 +174,7 @@ export function setOnHand(input: SetOnHandInput) {
         userId: owner,
         date: input.date,
         mealType: input.mealType,
+        recipeId: input.recipeId,
         ingredientText: input.ingredientText,
         onHand: input.onHand,
         updatedByUserId: input.actingUserId,

@@ -12,6 +12,13 @@ const MEAL_LABELS: Record<MealType, string> = {
   dinner: "Dinner",
 };
 
+/**
+ * How many chip colours exist before they repeat. Three covers the cases this
+ * was built for — a main plus a dessert, or two mains — and the colours
+ * themselves live in globals.css.
+ */
+const SLOT_CHIP_VARIANTS = 3;
+
 /** How many events a day shows before collapsing the rest behind a count. */
 const OVERLAY_VISIBLE_LIMIT = 3;
 
@@ -168,8 +175,23 @@ export default function PlanGridWidget() {
                       onClick={() => openSlotEditor(day, mt)}
                       style={{ cursor: isEditable ? "pointer" : "default" }}
                     >
-                      {slot?.recipe ? (
-                        slot.recipe.name
+                      {slot.recipes.length > 0 ? (
+                        <div className="pickl-slot-chips">
+                          {slot.recipes.map((planned, index) => (
+                            <span
+                              key={planned.entryId}
+                              // Position drives the colour, so the second
+                              // recipe in a dinner reads as distinct from the
+                              // first at a glance. Capped so a long list wraps
+                              // back round rather than running out of styles.
+                              className={`pickl-slot-chip pickl-slot-chip-${
+                                (index % SLOT_CHIP_VARIANTS) + 1
+                              }`}
+                            >
+                              {planned.recipe.name}
+                            </span>
+                          ))}
+                        </div>
                       ) : (
                         <span className="text-muted fst-italic">Empty jar</span>
                       )}

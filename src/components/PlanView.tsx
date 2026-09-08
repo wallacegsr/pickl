@@ -36,10 +36,16 @@ const MEAL_LABELS: Record<MealType, string> = {
   dinner: "Dinner",
 };
 
+export interface PlannedRecipeData {
+  entryId: string;
+  recipe: { id: string; name: string };
+  position: number;
+}
+
 export interface PlanMealSlotData {
   mealType: MealType;
-  entryId: string | null;
-  recipe: { id: string; name: string } | null;
+  /** Every recipe in this slot, in order. Empty is the "Empty jar" case. */
+  recipes: PlannedRecipeData[];
 }
 
 export interface PlanDayData {
@@ -215,7 +221,8 @@ export default function PlanView({
     date: string;
     dayOfWeek: string;
     mealType: MealType;
-    recipeId: string;
+    /** Ordered: an id's index here becomes the slot's display order. */
+    recipeIds: string[];
   } | null>(null);
   const [savingSlot, setSavingSlot] = useState(false);
   const [slotSearch, setSlotSearch] = useState("");
@@ -372,19 +379,18 @@ export default function PlanView({
       date: day.date,
       dayOfWeek: day.dayOfWeek,
       mealType,
-      recipeId: day.meals[mealType]?.recipe?.id ?? "",
+      recipeIds: (day.meals[mealType]?.recipes ?? []).map((p) => p.recipe.id),
     });
   }
 
   /**
-   * Saves the slot. Takes an optional recipe id so double-clicking a result
-   * can pick and save in one gesture: setEditingSlot is async, so reading it
-   * back here would save whatever was selected before the double-click.
+   * Saves the slot. Takes an optional list so double-clicking a result can
+   * pick and save in one gesture: setEditingSlot is async, so reading it back
+   * here would save whatever was selected before the double-click.
    */
-  async function saveSlot(recipeIdOverride?: string) {
+  async function saveSlot(recipeIdsOverride?: string[]) {
     if (!editingSlot) return;
-    const recipeId =
-      recipeIdOverride !== undefined ? recipeIdOverride : editingSlot.recipeId;
+    const recipeIds = recipeIdsOverride ?? editingSlot.recipeIds;
     setSavingSlot(true);
     const res = await fetch("/api/plan", {
       method: "PUT",
@@ -392,7 +398,7 @@ export default function PlanView({
       body: JSON.stringify({
         date: editingSlot.date,
         mealType: editingSlot.mealType,
-        recipeId: recipeId || null,
+        recipeIds,
         scope,
         userId: scope === "private" ? requestedUserId : undefined,
       }),
@@ -560,15 +566,31 @@ export default function PlanView({
                 matchesRecipeSearch(r, slotSearch, slotSearchFields)
               );
               const searching = slotSearch.trim().length > 0;
-              const selectedId = editingSlot.recipeId;
-              // The assigned recipe stays reachable even when it does not match
-              // the current search, so filtering can never strand the current
-              // choice somewhere the user cannot see or clear it.
-              const current = pool.find((r) => r.id === selectedId);
-              const rows =
-                current && !matched.some((r) => r.id === current.id)
-                  ? [current, ...matched]
-                  : matched;
+              const selectedIds = editingSlot.recipeIds;
+              // Assigned recipes stay reachable even when they do not match the
+              // current search, so filtering can never strand a choice
+              // somewhere the user cannot see or remove it.
+              const chosen = selectedIds
+                .map((id) => pool.find((r) => r.id === id))
+                .filter((r): r is RecipeOption => Boolean(r));
+              const rows = [
+                ...chosen.filter((c) => !matched.some((r) => r.id === c.id)),
+                ...matched,
+              ];
+
+              // Toggle, not replace: clicking an already-chosen recipe takes it
+              // back out, which is how a slot goes from two recipes to one.
+              const toggle = (id: string) =>
+                setEditingSlot((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        recipeIds: prev.recipeIds.includes(id)
+                          ? prev.recipeIds.filter((existing) => existing !== id)
+                          : [...prev.recipeIds, id],
+                      }
+                    : prev
+                );
 
               const pick = (id: string) =>
                 setEditingSlot((prev) => (prev ? { ...prev, recipeId: id } : prev));
@@ -576,7 +598,14 @@ export default function PlanView({
               return (
                 <Form.Group>
                   <div className="d-flex justify-content-between align-items-baseline">
-                    <Form.Label className="mb-1">Assigned recipe</Form.Label>
+                    <Form.Label className="mb-1">
+                      Assigned recipes
+                      {selectedIds.length > 1 && (
+                        <span className="ms-2 badge text-bg-secondary">
+                          {selectedIds.length}
+                        </span>
+                      )}
+                    </Form.Label>
                     <span className="small text-body-secondary">
                       {searching
                         ? `${matched.length} of ${pool.length} match`
@@ -593,11 +622,17 @@ export default function PlanView({
                       as="button"
                       type="button"
                       role="option"
-                      aria-selected={selectedId === ""}
-                      active={selectedId === ""}
-                      onClick={() => pick("")}
+                      aria-selected={selectedIds.length === 0}
+                      active={selectedIds.length === 0}
+                      // Clears the whole slot rather than being one more
+                      // selectable row.
+                      onClick={() =>
+                        setEditingSlot((prev) =>
+                          prev ? { ...prev, recipeIds: [] } : prev
+                        )
+                      }
                     >
-                      <span className="fst-italic">Empty jar — no recipe</span>
+                      <span className="fst-italic">Empty jar — no recipes</span>
                     </ListGroup.Item>
 
                     {rows.map((r) => (
@@ -606,12 +641,13 @@ export default function PlanView({
                         as="button"
                         type="button"
                         role="option"
-                        aria-selected={selectedId === r.id}
-                        active={selectedId === r.id}
-                        onClick={() => pick(r.id)}
+                        aria-selected={selectedIds.includes(r.id)}
+                        active={selectedIds.includes(r.id)}
+                        onClick={() => toggle(r.id)}
                         onDoubleClick={() => {
-                          pick(r.id);
-                          void saveSlot(r.id);
+                          // Still means "just this one, done" — the fast path
+                          // for the common case of a slot holding one recipe.
+                          void saveSlot([r.id]);
                         }}
                       >
                         <div className="d-flex flex-wrap align-items-center gap-2">
