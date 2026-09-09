@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Alert, Button, Col, Form, Row, Spinner } from "react-bootstrap";
 import type { RecipeWithTags } from "@/db/schema";
 import { formatTagInput } from "@/lib/tagNames";
+import TagAutocompleteField from "@/components/TagAutocompleteField";
 
 const MEAL_TYPE_OPTIONS = [
   { value: "breakfast", label: "Breakfast" },
@@ -54,10 +55,17 @@ export default function RecipeForm({
   recipe,
   recipeId,
   isAdmin = false,
+  existingTags = [],
 }: {
   recipe?: RecipeWithTags | null;
   recipeId?: string;
   isAdmin?: boolean;
+  /**
+   * Tag names this user may see, for the autocomplete. Passed in from the page
+   * rather than fetched here: which tags are visible is a permission question,
+   * and that rule lives server-side in listVisibleTags.
+   */
+  existingTags?: string[];
 }) {
   const router = useRouter();
   const [values, setValues] = useState<RecipeFormValues>(
@@ -244,17 +252,22 @@ export default function RecipeForm({
         />
       </Form.Group>
 
-      <Form.Group className="mb-3" controlId="recipe-tags">
-        <Form.Label>Tags (comma separated)</Form.Label>
-        <Form.Control
+      {/* Not controlId: that would put the id on the Form.Control inside
+          TagAutocompleteField, where the combobox wiring needs to own it. */}
+      <Form.Group className="mb-3">
+        <Form.Label htmlFor="recipe-tags">Tags (comma separated)</Form.Label>
+        <TagAutocompleteField
+          id="recipe-tags"
           value={values.tags}
+          onChange={(next) => update("tags", next)}
+          suggestions={existingTags}
           placeholder="e.g. vegetarian, quick, pasta"
-          onChange={(e) => update("tags", e.target.value)}
+          describedBy="recipe-tags-help"
         />
-        <Form.Text muted>
+        <Form.Text id="recipe-tags-help" muted>
           Type them however you like — anything new becomes a tag, and an
-          existing tag is matched however you capitalise it. Manage the whole
-          list from Tags in the sidebar.
+          existing tag is matched however you capitalise it. Matching tags
+          appear as you type. Manage the whole list from Tags in the sidebar.
         </Form.Text>
       </Form.Group>
 

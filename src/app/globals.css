@@ -922,3 +922,28 @@ html[data-pickl-sidebar="collapsed"] .pickl-sidebar-toggle {
   border-left-color: #d4749d;
   background-color: rgba(212, 116, 157, 0.18);
 }
+
+/* ---------------------------------------------------------------------------
+   Tag autocomplete (see src/components/TagAutocompleteField.tsx)
+   ------------------------------------------------------------------------- */
+
+.pickl-tag-field {
+  position: relative;
+}
+
+/* Floats over what follows rather than pushing the rest of the form down —
+   a field that reflows the page as you type is worse than no suggestions. */
+.pickl-tag-suggestions {
+  position: absolute;
+  z-index: 1056; /* above a modal's backdrop, in case this ever sits in one */
+  inset-inline: 0;
+  top: calc(100% + 0.25rem);
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+/* Options are <button>s for keyboard and screen-reader behaviour, so the
+   default button alignment has to be undone. */
+.pickl-tag-suggestions .list-group-item {
+  text-align: start;
+}

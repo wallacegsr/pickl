@@ -17,6 +17,9 @@ changes with it — the two must never disagree about what is running.
   a household cooking around an intolerance. Recipes in the same slot are
   colour-coded so they read apart at a glance; a slot holding one recipe looks
   exactly as it did before.
+- The recipe form's tags box suggests existing tags as you type, matching the
+  tag you are currently typing rather than the whole field. Arrow keys and
+  Enter pick one; the box stays free text, so anything new is still a new tag.
 - Desserts. A recipe can be tagged **Dessert**, which is a category rather than
   a fourth meal slot — a dessert is planned alongside a meal and told apart
   there by its own colour and a cake marker. Shaking never proposes a dessert
