@@ -1,6 +1,14 @@
 import { sqliteTable, text, integer, unique } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 
+/**
+ * A user's role WITHIN their household.
+ *
+ * "admin" is a household administrator: they manage their own household's
+ * members and settings. It is deliberately not a platform role — see
+ * `users.isGlobalAdmin` for that, and the note on `households` for why the two
+ * are kept apart.
+ */
 export const ROLES = ["admin", "member"] as const;
 export type Role = (typeof ROLES)[number];
 
@@ -53,8 +61,62 @@ export type Visibility = (typeof VISIBILITIES)[number];
 export const THEME_PREFERENCES = ["light", "dark", "system"] as const;
 export type ThemePreference = (typeof THEME_PREFERENCES)[number];
 
+/**
+ * A household: one family's recipes, plans, tags and shopping lists.
+ *
+ * ---------------------------------------------------------------------------
+ * Two kinds of administrator, kept apart on purpose
+ * ---------------------------------------------------------------------------
+ * A HOUSEHOLD admin (`users.role = 'admin'`) runs one household: its members,
+ * its shared recipes, its settings. A PLATFORM admin
+ * (`users.isGlobalAdmin`) runs the deployment: households as objects,
+ * SMTP, the OAuth client, diagnostics.
+ *
+ * A platform admin is NOT a super-user over household contents. They can
+ * create, rename, suspend and delete a household, and see how much of it there
+ * is, but not read the recipes or plans inside one they are not a member of.
+ *
+ * That is enforced structurally rather than by remembering a check: every
+ * household-scoped query filters on the CALLER's `householdId`, so an operator
+ * with no membership in a household matches no rows there. There is no code
+ * path that says "unless you are the global admin", because a rule written
+ * that way is one forgotten `if` away from leaking another family's data.
+ *
+ * A self-hosted single-family deployment is simply one household, so nothing
+ * about that case changes.
+ */
+export const households = sqliteTable("households", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  /**
+   * A suspended household can still be signed into but not written to, so an
+   * operator can stop a runaway or unpaid tenant without destroying anything.
+   */
+  suspended: integer("suspended", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export type Household = typeof households.$inferSelect;
+
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
+  /**
+   * The household this user belongs to.
+   *
+   * Nullable for exactly one reason: a platform operator who administers the
+   * deployment without belonging to any family. Every household-scoped query
+   * requires it, so such an account sees no household content anywhere —
+   * which is the privacy guarantee, expressed as an absence rather than a
+   * check.
+   */
+  householdId: text("household_id").references(() => households.id, {
+    onDelete: "cascade",
+  }),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
@@ -122,6 +184,11 @@ export const users = sqliteTable("users", {
 
 export const recipes = sqliteTable("recipes", {
   id: text("id").primaryKey(),
+  // Owning household. Denormalised rather than reached through the owner:
+  // recipe queries start here, and a join is a scope you can forget.
+  householdId: text("household_id").references(() => households.id, {
+    onDelete: "cascade",
+  }),
   name: text("name").notNull(),
   ingredients: text("ingredients").notNull(),
   instructions: text("instructions").notNull(),
@@ -163,20 +230,33 @@ export const recipes = sqliteTable("recipes", {
  * user may see or change follows entirely from the recipes a tag is on —
  * see src/lib/tags.ts.
  */
-export const tags = sqliteTable("tags", {
-  id: text("id").primaryKey(),
-  // As typed, for display.
-  name: text("name").notNull(),
+export const tags = sqliteTable(
+  "tags",
+  {
+    id: text("id").primaryKey(),
+    householdId: text("household_id").references(() => households.id, {
+      onDelete: "cascade",
+    }),
+    // As typed, for display.
+    name: text("name").notNull(),
   // normalizeTagKey(name) — the case-insensitive identity of the tag.
-  nameKey: text("name_key").notNull().unique(),
+  // Unique per HOUSEHOLD, not globally: two families must each be able to own
+  // a tag called "Quick". The table-level index below carries that; a column
+  // -level .unique() here would silently make the first household to coin a
+  // word the only one allowed to use it.
+  nameKey: text("name_key").notNull(),
   createdByUserId: text("created_by_user_id").references(() => users.id),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-});
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    householdNameKey: unique().on(table.householdId, table.nameKey),
+  })
+);
 
 /**
  * The recipe↔tag join. Cascades both ways: deleting a recipe drops its
@@ -202,6 +282,9 @@ export const planEntries = sqliteTable(
   "plan_entries",
   {
     id: text("id").primaryKey(),
+    householdId: text("household_id").references(() => households.id, {
+      onDelete: "cascade",
+    }),
     date: text("date").notNull(),
     // 'shared' (household calendar) | 'private' (one user's own calendar)
     scope: text("scope").notNull().default("shared"),
@@ -262,6 +345,9 @@ export const shoppingListStatus = sqliteTable(
   "shopping_list_status",
   {
     id: text("id").primaryKey(),
+    householdId: text("household_id").references(() => households.id, {
+      onDelete: "cascade",
+    }),
     // 'shared' (household calendar) | 'private' (one user's own calendar)
     scope: text("scope").notNull().default("shared"),
     // Scoping key: same convention as plan_entries.userId — the owning
@@ -569,6 +655,13 @@ export const dashboardLayouts = sqliteTable("dashboard_layouts", {
 
 export const auditLog = sqliteTable("audit_log", {
   id: text("id").primaryKey(),
+  /**
+   * Owning household, or null for a platform-level event — a household being
+   * created, SMTP being reconfigured — which belongs to no family.
+   */
+  householdId: text("household_id").references(() => households.id, {
+    onDelete: "cascade",
+  }),
   timestamp: integer("timestamp", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

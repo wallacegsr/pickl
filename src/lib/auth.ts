@@ -66,6 +66,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           role: user.role,
           active: user.active,
           canAccessSharedCalendar: user.canAccessSharedCalendar,
+          householdId: user.householdId,
+          isGlobalAdmin: user.isGlobalAdmin,
         };
       },
     }),
@@ -77,6 +79,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.role = (user as { role?: string }).role ?? "member";
         token.canAccessSharedCalendar = Boolean(
           (user as { canAccessSharedCalendar?: boolean }).canAccessSharedCalendar
+        );
+        token.householdId =
+          (user as { householdId?: string | null }).householdId ?? null;
+        token.isGlobalAdmin = Boolean(
+          (user as { isGlobalAdmin?: boolean }).isGlobalAdmin
         );
       }
       // Re-read from the DB on every session check so admin changes to a
@@ -90,6 +97,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (fresh) {
           token.role = fresh.role;
           token.canAccessSharedCalendar = fresh.canAccessSharedCalendar;
+          // Re-read too, so moving a user between households (or revoking
+          // platform access) takes effect without a fresh login — the same
+          // reason the role is refreshed here.
+          token.householdId = fresh.householdId ?? null;
+          token.isGlobalAdmin = fresh.isGlobalAdmin;
         }
       }
       void trigger;
@@ -102,6 +114,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.canAccessSharedCalendar = Boolean(
           token.canAccessSharedCalendar
         );
+        session.user.householdId = (token.householdId as string | null) ?? null;
+        session.user.isGlobalAdmin = Boolean(token.isGlobalAdmin);
       }
       return session;
     },
