@@ -8,6 +8,7 @@ import { recipeSchema } from "@/lib/validators";
 import { canEditSharedRecipes, householdScope } from "@/lib/permissions";
 import { attachTags, attachTagsToRecipe, parseTagInput, setRecipeTags } from "@/lib/tags";
 import { logAuditEntry } from "@/lib/audit";
+import { suspensionError } from "@/lib/households";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -59,6 +60,11 @@ export async function POST(req: NextRequest) {
       { error: "This account is not part of a household." },
       { status: 403 }
     );
+  }
+
+  const suspended = suspensionError(householdId);
+  if (suspended) {
+    return NextResponse.json({ error: suspended.error }, { status: suspended.status });
   }
 
   if (data.visibility === "shared" && !canEditSharedRecipes(session.user)) {

@@ -4,6 +4,7 @@ import { todayDateString } from "@/lib/dates";
 import { shoppingListStatusSchema } from "@/lib/validators";
 import { buildShoppingListWeek, setOnHand } from "@/lib/shoppingList";
 import { resolvePlanContext } from "@/lib/planContext";
+import { suspensionError } from "@/lib/households";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -61,6 +62,14 @@ export async function PUT(req: NextRequest) {
   const resolved = resolvePlanContext(session.user, scope, userId, "read");
   if (!resolved.ok) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
+  }
+
+  // This route resolves with mode "read" on purpose — ticking an item off is
+  // a personal checklist, not a plan edit — so the suspension check that
+  // resolvePlanContext does for writes has to be repeated here.
+  const suspended = suspensionError(resolved.context.householdId);
+  if (suspended) {
+    return NextResponse.json({ error: suspended.error }, { status: suspended.status });
   }
 
   const updated = setOnHand({

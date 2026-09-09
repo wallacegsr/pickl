@@ -11,6 +11,7 @@ import {
 } from "@/db/schema";
 import { householdScope, isAdmin, type SessionUser } from "@/lib/permissions";
 import { MAX_TAG_LENGTH, normalizeTagName, tagKey } from "@/lib/tagNames";
+import { suspensionError } from "@/lib/households";
 
 export {
   normalizeTagName,
@@ -181,6 +182,17 @@ export interface TagSummary {
  */
 function scopeOf(user: SessionUser): string | null {
   return householdScope(user);
+}
+
+/**
+ * Suspension check for the three mutations below, in the shape they already
+ * return. Placed here rather than in the routes because these functions are
+ * where the household is resolved — a route-level check would need to resolve
+ * it a second time, and could be forgotten on a fourth mutation later.
+ */
+function suspendedResult(householdId: string): TagMutationResult | null {
+  const suspended = suspensionError(householdId);
+  return suspended ? { ok: false, ...suspended } : null;
 }
 
 function editableRecipeCondition(user: SessionUser, householdId: string) {
@@ -378,6 +390,8 @@ export function renameTag(
   // 404 rather than 403, matching how an id from another household behaves:
   // whether a tag exists elsewhere is not this caller's business.
   if (!householdId) return { ok: false, status: 404, error: "Tag not found." };
+  const frozen = suspendedResult(householdId);
+  if (frozen) return frozen;
   const tag = getTagById(householdId, tagId);
   if (!tag || !canSeeTag(user, tagId)) {
     return { ok: false, status: 404, error: "Tag not found." };
@@ -505,6 +519,8 @@ export function renameTag(
 export function deleteTag(user: SessionUser, tagId: string): TagMutationResult {
   const householdId = scopeOf(user);
   if (!householdId) return { ok: false, status: 404, error: "Tag not found." };
+  const frozen = suspendedResult(householdId);
+  if (frozen) return frozen;
   const tag = getTagById(householdId, tagId);
   if (!tag || !canSeeTag(user, tagId)) {
     return { ok: false, status: 404, error: "Tag not found." };
@@ -549,6 +565,8 @@ export function createTag(
   if (!householdId) {
     return { ok: false, status: 403, error: "This account is not part of a household." };
   }
+  const frozen = suspendedResult(householdId);
+  if (frozen) return frozen;
 
   const display = normalizeTagName(name).slice(0, MAX_TAG_LENGTH);
   if (!display) return { ok: false, status: 400, error: "Enter a tag name." };

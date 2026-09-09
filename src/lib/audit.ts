@@ -31,6 +31,14 @@ export type AuditAction =
   // Admin-level OAuth *client* configuration (deployment plumbing, same
   // category as SMTP settings). `notes` never carries the client secret.
   | "calendar_oauth_config"
+  // Household lifecycle. A rename can come from either admin; the rest are the
+  // platform operator's, and their rows carry no household (the operator has
+  // none), so they appear in no household's log — deliberately. What an
+  // operator does to a household is deployment history, not family history.
+  | "household_create"
+  | "household_rename"
+  | "household_suspend"
+  | "household_delete"
   // Self-service preference changes (/preferences). `userId` and
   // `targetUserId` are always the same user — these are never admin actions.
   // `notes` carries only non-secret context: never a password, never a

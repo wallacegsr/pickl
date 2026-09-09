@@ -2,7 +2,7 @@ import { getRecipePool, getWeekPlan, MEAL_TYPE_LIST } from "@/lib/plan";
 import { buildShoppingListWeek } from "@/lib/shoppingList";
 import { todayDateString } from "@/lib/dates";
 import { auth } from "@/lib/auth";
-import { canEditSharedCalendar, isAdmin } from "@/lib/permissions";
+import { canEditSharedCalendar, householdScope, isAdmin } from "@/lib/permissions";
 import { resolvePlanContext } from "@/lib/planContext";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -11,6 +11,7 @@ import PlanView, { type RecipeOption } from "@/components/PlanView";
 import { isOverlayEnabledForUser } from "@/lib/calendar/read";
 import { getDashboardLayout } from "@/lib/dashboard/store";
 import { getTagsForRecipes } from "@/lib/tags";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export default async function PlanPage({
@@ -23,6 +24,24 @@ export default async function PlanPage({
 
   const week = searchParams.week || todayDateString();
 
+  // Handled before the resolver, and NOT with a redirect. A platform operator
+  // belongs to no household, so no query string gets them a calendar —
+  // redirecting them to a different one just brings them back here, which is
+  // a loop rather than an answer.
+  if (!householdScope(session.user)) {
+    return (
+      <div>
+        <h2 className="mb-3">No household</h2>
+        <p className="text-muted" style={{ maxWidth: "34rem" }}>
+          This account administers the deployment rather than belonging to a
+          family, so it has no meal plan of its own. Households and their
+          settings are under{" "}
+          <Link href="/admin">Back of House</Link>.
+        </p>
+      </div>
+    );
+  }
+
   // The same resolver the plan API uses, rather than a second copy of the
   // rules here. It authorizes the scope, and — since a household admin may
   // name another user — checks that user is in the viewer's own household.
@@ -32,7 +51,18 @@ export default async function PlanPage({
     searchParams.userId,
     "read"
   );
-  if (!resolved.ok) redirect("/plan?scope=shared");
+  if (!resolved.ok) {
+    // Back to the plain shared calendar, but only from a query string that
+    // asked for something else. A bare /plan has nowhere to redirect to, so
+    // it says so instead of redirecting to itself forever.
+    if (searchParams.scope || searchParams.userId) redirect("/plan");
+    return (
+      <div>
+        <h2 className="mb-3">The Menu</h2>
+        <p className="text-muted">{resolved.error}</p>
+      </div>
+    );
+  }
   const { householdId, scope } = resolved.context;
   const requestedUserId = searchParams.userId || session.user.id;
 

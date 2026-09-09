@@ -25,6 +25,17 @@ changes with it — the two must never disagree about what is running.
 - Signing up creates your own household, with you as its admin. Joining an
   existing household happens by invitation, so nobody arrives in a family
   without someone in it deciding so.
+- Back of House now shows each admin their own job. A household admin gets
+  their members and their household's name; the global admin gets the list of
+  households, email delivery and the calendar integration. On a single-family
+  install one person holds both and sees all of it, as before.
+- The global admin can create, rename, suspend and delete households, and see
+  how big each one is — members, recipes, planned meals — without any way to
+  see what is in one. Deleting asks for the household's name typed out, and
+  says exactly what it is about to destroy.
+- A suspended household can still be signed into and read, but nothing in it
+  can be changed until it is resumed. Suspending is reversible and keeps
+  everything; deleting is neither.
 - A meal slot can hold several recipes: a main and a dessert, or two mains for
   a household cooking around an intolerance. Recipes in the same slot are
   colour-coded so they read apart at a glance; a slot holding one recipe looks

@@ -9,6 +9,7 @@ import {
   householdScope,
 } from "@/lib/permissions";
 import type { Scope } from "@/db/schema";
+import { suspensionError } from "@/lib/households";
 
 export interface PlanContext {
   /**
@@ -49,6 +50,13 @@ export function resolvePlanContext(
   // them to read or write. They administer households; they are not in one.
   if (!householdId) {
     return { ok: false, status: 403, error: "This account is not part of a household." };
+  }
+
+  // A suspended household is readable but frozen. Checked here rather than in
+  // each route so no write path can be added later that forgets it.
+  if (mode === "write") {
+    const suspended = suspensionError(householdId);
+    if (suspended) return { ok: false, ...suspended };
   }
 
   const scope: Scope = scopeRaw === "private" ? "private" : "shared";

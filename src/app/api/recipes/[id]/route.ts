@@ -7,6 +7,7 @@ import { recipeSchema } from "@/lib/validators";
 import { canEditRecipe, canEditSharedRecipes, householdScope } from "@/lib/permissions";
 import { attachTagsToRecipe, parseTagInput, setRecipeTags } from "@/lib/tags";
 import { logAuditEntry } from "@/lib/audit";
+import { suspensionError } from "@/lib/households";
 
 interface Params {
   params: { id: string };
@@ -73,6 +74,12 @@ export async function PUT(req: NextRequest, { params }: Params) {
   if (!canEditRecipe(session.user, existing)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const suspended = suspensionError(householdId);
+  if (suspended) {
+    return NextResponse.json({ error: suspended.error }, { status: suspended.status });
+  }
+
 
   const body = await req.json().catch(() => null);
   const parsed = recipeSchema.safeParse(body);
@@ -144,6 +151,12 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   if (!canEditRecipe(session.user, existing)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const suspended = suspensionError(householdId);
+  if (suspended) {
+    return NextResponse.json({ error: suspended.error }, { status: suspended.status });
+  }
+
 
   db.delete(recipes).where(eq(recipes.id, params.id)).run();
 

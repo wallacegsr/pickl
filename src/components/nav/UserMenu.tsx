@@ -40,8 +40,11 @@ export default function UserMenu() {
   const { data: session } = useSession();
   const user = session?.user;
   const userId = user?.id ?? null;
-  // The same admin check the old navbar used, via the shared session shape.
-  const isAdmin = user?.role === "admin";
+  // Either kind of admin has a Back of House; what is in it differs. A
+  // household admin gets their family, a platform operator gets the
+  // deployment, and on a single-family install one person is both.
+  const isAdmin = user?.role === "admin" || Boolean(user?.isGlobalAdmin);
+  const isPlatformAdmin = Boolean(user?.isGlobalAdmin);
 
   // Mirrors ThemeToggle exactly: "light" until the effect below corrects it.
   // The real value lives in a DOM attribute/localStorage the server cannot
@@ -113,7 +116,11 @@ export default function UserMenu() {
           <Dropdown.Item
             as={Link}
             href="/admin"
-            title="User accounts, SMTP email settings, and the Google Calendar integration."
+            title={
+              isPlatformAdmin
+                ? "Households on this deployment, email delivery, and the calendar integration."
+                : "Who is in this household, and what it is called."
+            }
           >
             <ShieldIcon className="pickl-menu-icon" />
             Back of House
