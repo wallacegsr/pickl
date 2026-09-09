@@ -30,6 +30,7 @@ import {
   RefreshCw,
   Server,
   Settings,
+  ShoppingBasket,
   Shield,
   Sun,
   Tag,
@@ -73,6 +74,8 @@ export const CalendarIcon = icon(CalendarDays, "CalendarIcon");
 export const BookIcon = icon(BookOpen, "BookIcon");
 /** Tags. */
 export const TagIcon = icon(Tag, "TagIcon");
+
+export const BasketIcon = icon(ShoppingBasket, "BasketIcon");
 /**
  * Past Preserves. A chart rather than a jar: the name is the joke, but the
  * icon has to say what the page does, and an amphora beside Plan/Recipes/Tags

@@ -452,7 +452,12 @@ html[data-pickl-sidebar="collapsed"] {
   position: sticky;
   top: 0;
   z-index: 1030;
-  height: var(--pickl-topbar-h);
+  /* Installed to an iPhone home screen the page runs under the status bar
+     (viewport-fit=cover plus black-translucent), so the bar grows by whatever
+     the notch needs and holds its own contents below it. Both resolve to 0px
+     in a browser tab and on every device without an inset. */
+  height: calc(var(--pickl-topbar-h) + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
   background: var(--bs-dark);
   color: var(--bs-light);
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
@@ -1014,4 +1019,173 @@ html[data-pickl-sidebar="collapsed"] .pickl-sidebar-toggle {
   padding: 0;
   background: transparent;
   color: inherit;
+}
+
+/* ---------------------------------------------------------------------------
+   Data tables that become cards on a phone
+   ---------------------------------------------------------------------------
+   A seven-column table of counts is unreadable at 375px: `table-responsive`
+   keeps it a table and hands you a sideways drag with the header scrolled out
+   of view. Below the phone breakpoint each row becomes a card and every cell
+   prints its column name from `data-label`, so the header travels with the
+   value.
+
+   The ARIA roles that make this safe live in the markup, not here — see
+   src/components/reports/StackedTable.tsx. Changing `display` strips a
+   table's implicit semantics, and the roles put them back.
+   --------------------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+  .pickl-stacked-table,
+  .pickl-stacked-table tbody,
+  .pickl-stacked-table tr,
+  .pickl-stacked-table td {
+    display: block;
+    width: auto;
+  }
+
+  /* Not display:none — that would take the header out of the accessibility
+     tree along with the layout, and the roles above depend on it being there.
+     Clipped to nothing instead. */
+  .pickl-stacked-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .pickl-stacked-table {
+    border: 0;
+  }
+
+  .pickl-stacked-table tr {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    background-color: var(--bs-body-bg);
+  }
+
+  .pickl-stacked-table td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 0;
+    border-bottom: 1px solid var(--bs-border-color);
+    padding: 0.4rem 0;
+    text-align: right;
+  }
+
+  .pickl-stacked-table tr td:last-child {
+    border-bottom: 0;
+  }
+
+  .pickl-stacked-table td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+    text-align: left;
+  }
+
+  /* The "no results" row is one message, not a labelled field. */
+  .pickl-stacked-table td.pickl-stacked-empty {
+    display: block;
+    text-align: center;
+    padding: 1rem 0;
+  }
+
+  .pickl-stacked-table td.pickl-stacked-empty::before {
+    content: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Bottom sheet
+   ---------------------------------------------------------------------------
+   A modal that docks to the bottom edge on a phone and stays an ordinary
+   centred dialog at a desk. Applied with `dialogClassName="pickl-sheet"`.
+
+   The reasoning is reach: these dialogs are opened by tapping something in a
+   grid, and a centred dialog puts its controls at the top of the screen — the
+   furthest point from the thumb that just tapped. It also opens nowhere near
+   what was tapped. Docked to the bottom it does both better.
+   --------------------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+  .modal-dialog.pickl-sheet {
+    position: fixed;
+    inset: auto 0 0 0;
+    width: auto;
+    max-width: none;
+    margin: 0;
+  }
+
+  .modal-dialog.pickl-sheet .modal-content {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
+    border-bottom: 0;
+    /* Leaves the top of the page visible, so the sheet reads as covering
+       something rather than as a new screen. */
+    max-height: 88vh;
+    /* Clears the home indicator; 0px on devices without one. */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* The sheet as a whole is capped above, so the scrolling happens in the
+     body and the title and buttons stay put at its edges. */
+  .modal-dialog.pickl-sheet .modal-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* A grabber, purely as a signal that this thing came up from the bottom
+     edge. Decorative, so it is hidden from assistive tech — the dialog
+     already has its close button and its title. */
+  .modal-dialog.pickl-sheet .modal-header::before {
+    content: "";
+    position: absolute;
+    top: 0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2.25rem;
+    height: 0.25rem;
+    border-radius: 1rem;
+    background-color: var(--bs-border-color);
+  }
+
+  .modal-dialog.pickl-sheet .modal-header {
+    position: relative;
+    padding-top: 1.25rem;
+  }
+
+  /* Bootstrap slides a dialog down from -50px, which is the wrong direction
+     for something anchored to the bottom edge. */
+  .modal.fade .modal-dialog.pickl-sheet {
+    transform: translateY(100%);
+  }
+
+  .modal.show .modal-dialog.pickl-sheet {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal.fade .modal-dialog.pickl-sheet {
+    transform: none;
+  }
+}
+
+/* The dashboard's layout controls are a desk affair. On a phone the board is
+   already a plain stack with dragging and resizing off (see
+   .pickl-dashboard-static above), so "Edit layout", "Add widget" and "Reset to
+   default" would rearrange something the reader cannot see the effect of.
+   Hidden rather than disabled: a row of dead buttons is worse than no row. */
+@media (max-width: 767.98px) {
+  .pickl-dashboard-toolbar {
+    display: none !important;
+  }
 }

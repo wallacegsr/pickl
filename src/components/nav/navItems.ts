@@ -1,5 +1,12 @@
 import type React from "react";
-import { BookIcon, CalendarIcon, JarIcon, TagIcon, type IconProps } from "./icons";
+import {
+  BasketIcon,
+  BookIcon,
+  CalendarIcon,
+  JarIcon,
+  TagIcon,
+  type IconProps,
+} from "./icons";
 
 /**
  * The primary destinations in the left sidebar.
@@ -34,6 +41,14 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
     label: "Plan",
     Icon: CalendarIcon,
     description: "This week's meals and your dashboard widgets.",
+  },
+  {
+    href: "/shopping",
+    label: "Shopping List",
+    // Five items share a phone's width, so this one needs the short form.
+    shortLabel: "Shopping",
+    Icon: BasketIcon,
+    description: "What this week's meals need, with what you already have ticked off.",
   },
   {
     href: "/recipes",

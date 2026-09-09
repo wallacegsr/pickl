@@ -406,7 +406,14 @@ export default function PlanDashboard({
 
   return (
     <div className="pickl-dashboard">
-      <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
+      {/*
+        Hidden on a phone (see .pickl-dashboard-toolbar in globals.css).
+        Below the phone breakpoint the board is already rendered as a plain
+        stack with dragging and resizing switched off, so every control here
+        either does nothing or rearranges a layout the reader cannot see the
+        effect of. The arrangement is a desk decision; the phone just reads it.
+      */}
+      <div className="pickl-dashboard-toolbar d-flex flex-wrap align-items-center gap-2 mb-3">
         <Button
           variant={editing ? "primary" : "outline-secondary"}
           size="sm"

@@ -541,8 +541,19 @@ export default function PlanView({
         </Modal.Footer>
       </Modal>
 
-      {/* Manual slot editor */}
-      <Modal show={Boolean(editingSlot)} onHide={() => setEditingSlot(null)}>
+      {/* Manual slot editor.
+
+          A bottom sheet on a phone (see .pickl-sheet in globals.css) and an
+          ordinary centred dialog at a desk. A slot editor is reached by
+          tapping a cell in the week grid, and a centred dialog puts the thing
+          you just tapped under your own hand while the controls sit at the
+          top of the screen, furthest from your thumb. Docked to the bottom
+          edge it opens where the tap was and keeps its controls in reach. */}
+      <Modal
+        show={Boolean(editingSlot)}
+        onHide={() => setEditingSlot(null)}
+        dialogClassName="pickl-sheet"
+      >
         <Modal.Header closeButton>
           <Modal.Title>
             {editingSlot

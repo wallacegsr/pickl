@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { Alert, Button, Col, Form, Nav, Row, Spinner, Table } from "react-bootstrap";
+import { Alert, Button, Col, Form, Nav, Row, Spinner } from "react-bootstrap";
+import {
+  StackedBody,
+  StackedCell,
+  StackedEmpty,
+  StackedHead,
+  StackedHeader,
+  StackedRow,
+  StackedTable,
+} from "@/components/reports/StackedTable";
 
 // Client-only, like the dashboard grid: Chart.js measures and paints a canvas,
 // so there is nothing for the server to render and no point shipping it into
@@ -391,79 +400,63 @@ export default function ReportsView({
       )}
 
       {tab === "history" && historyRows && grouping !== "flat" && (
-        <div className="table-responsive">
-          <Table bordered hover size="sm">
-            <thead>
-              <tr>
-                <th>{grouping === "week" ? "Week of" : "Month"}</th>
-                <th>Meals</th>
-                <th title="How many different recipes appeared — the variety behind the count">
-                  Distinct Recipes
-                </th>
-                <th>Breakfast</th>
-                <th>Lunch</th>
-                <th>Dinner</th>
-              </tr>
-            </thead>
-            <tbody>
-              {groupedHistory(historyRows, grouping).map((g) => (
-                <tr key={g.key}>
-                  <td>{g.key}</td>
-                  <td>{g.meals}</td>
-                  <td>{g.distinctRecipes}</td>
-                  <td>{g.breakfast}</td>
-                  <td>{g.lunch}</td>
-                  <td>{g.dinner}</td>
-                </tr>
-              ))}
-              {historyRows.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="text-muted text-center">
-                    No results.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
-        </div>
+        <StackedTable hover>
+          <StackedHead>
+            <StackedRow>
+              <StackedHeader>{grouping === "week" ? "Week of" : "Month"}</StackedHeader>
+              <StackedHeader>Meals</StackedHeader>
+              <StackedHeader title="How many different recipes appeared — the variety behind the count">
+                Distinct Recipes
+              </StackedHeader>
+              <StackedHeader>Breakfast</StackedHeader>
+              <StackedHeader>Lunch</StackedHeader>
+              <StackedHeader>Dinner</StackedHeader>
+            </StackedRow>
+          </StackedHead>
+          <StackedBody>
+            {groupedHistory(historyRows, grouping).map((g) => (
+              <StackedRow key={g.key}>
+                <StackedCell label={grouping === "week" ? "Week of" : "Month"}>{g.key}</StackedCell>
+                <StackedCell label="Meals">{g.meals}</StackedCell>
+                <StackedCell label="Distinct recipes">{g.distinctRecipes}</StackedCell>
+                <StackedCell label="Breakfast">{g.breakfast}</StackedCell>
+                <StackedCell label="Lunch">{g.lunch}</StackedCell>
+                <StackedCell label="Dinner">{g.dinner}</StackedCell>
+              </StackedRow>
+            ))}
+            {historyRows.length === 0 && <StackedEmpty colSpan={6}>No results.</StackedEmpty>}
+          </StackedBody>
+        </StackedTable>
       )}
 
       {tab === "history" && historyRows && grouping === "flat" && (
-        <div className="table-responsive">
-          <Table bordered hover size="sm">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Meal</th>
-                <th>Scope</th>
-                <th>Recipe</th>
-                <th>Tags</th>
-                <th>Planned By</th>
-                <th>Calendar Owner</th>
-              </tr>
-            </thead>
-            <tbody>
-              {historyRows.map((r, i) => (
-                <tr key={i}>
-                  <td>{r.date}</td>
-                  <td>{r.mealType}</td>
-                  <td>{r.scope}</td>
-                  <td>{r.recipeName}</td>
-                  <td>{r.tags.length > 0 ? r.tags.join(", ") : "-"}</td>
-                  <td>{r.plannedByName}</td>
-                  <td>{r.ownerName ?? "-"}</td>
-                </tr>
-              ))}
-              {historyRows.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="text-muted text-center">
-                    No results.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
-        </div>
+        <StackedTable hover>
+          <StackedHead>
+            <StackedRow>
+              <StackedHeader>Date</StackedHeader>
+              <StackedHeader>Meal</StackedHeader>
+              <StackedHeader>Scope</StackedHeader>
+              <StackedHeader>Recipe</StackedHeader>
+              <StackedHeader>Tags</StackedHeader>
+              <StackedHeader>Planned By</StackedHeader>
+              <StackedHeader>Calendar Owner</StackedHeader>
+            </StackedRow>
+          </StackedHead>
+          <StackedBody>
+            {historyRows.map((r, i) => (
+              <StackedRow key={i}>
+                <StackedCell label="Date">{r.date}</StackedCell>
+                <StackedCell label="Meal">{r.mealType}</StackedCell>
+                <StackedCell label="Scope">{r.scope}</StackedCell>
+                <StackedCell label="Recipe">{r.recipeName}</StackedCell>
+                <StackedCell label="Tags">{r.tags.length > 0 ? r.tags.join(", ") : "-"}</StackedCell>
+                <StackedCell label="Planned by">{r.plannedByName}</StackedCell>
+                <StackedCell label="Calendar owner">{r.ownerName ?? "-"}</StackedCell>
+              </StackedRow>
+            ))}
+            {historyRows.length === 0 && <StackedEmpty colSpan={7}>No results.</StackedEmpty>}
+          </StackedBody>
+        </StackedTable>
       )}
 
       {tab === "frequency" && frequencyRows && frequencyRows.length > 0 && (
@@ -471,43 +464,42 @@ export default function ReportsView({
       )}
 
       {tab === "frequency" && frequencyRows && (
-        <div className="table-responsive">
-          <Table bordered hover size="sm">
-            <thead>
-              <tr>
-                <th>Recipe</th>
-                <th>Scope</th>
-                <th>Times Planned</th>
-                <th title="Times per 30 days across the reported span, so two different ranges can be compared">
-                  Per Month
-                </th>
-                <th>Last Planned</th>
-                <th>Days Since</th>
-              </tr>
-            </thead>
-            <tbody>
-              {frequencyRows.map((r) => (
-                <tr key={r.recipeId} className={r.count === 0 ? "text-body-secondary" : undefined}>
-                  <td>{r.recipeName}</td>
-                  <td>{r.scope}</td>
-                  <td>{r.count}</td>
-                  {/* A dash rather than 0.0 when the span is too short to
-                      extrapolate from — a made-up rate is worse than none. */}
-                  <td>{r.perMonth === null ? "—" : r.perMonth.toFixed(1)}</td>
-                  <td>{r.lastPlanned ?? <em>Never</em>}</td>
-                  <td>{r.daysSince === null ? "—" : r.daysSince}</td>
-                </tr>
-              ))}
-              {frequencyRows.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="text-muted text-center">
-                    No results.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
-        </div>
+        <StackedTable hover>
+          <StackedHead>
+            <StackedRow>
+              <StackedHeader>Recipe</StackedHeader>
+              <StackedHeader>Scope</StackedHeader>
+              <StackedHeader>Times Planned</StackedHeader>
+              <StackedHeader title="Times per 30 days across the reported span, so two different ranges can be compared">
+                Per Month
+              </StackedHeader>
+              <StackedHeader>Last Planned</StackedHeader>
+              <StackedHeader>Days Since</StackedHeader>
+            </StackedRow>
+          </StackedHead>
+          <StackedBody>
+            {frequencyRows.map((r) => (
+              <StackedRow
+                key={r.recipeId}
+                className={r.count === 0 ? "text-body-secondary" : undefined}
+              >
+                <StackedCell label="Recipe">{r.recipeName}</StackedCell>
+                <StackedCell label="Scope">{r.scope}</StackedCell>
+                <StackedCell label="Times planned">{r.count}</StackedCell>
+                {/* A dash rather than 0.0 when the span is too short to
+                    extrapolate from — a made-up rate is worse than none. */}
+                <StackedCell label="Per month">
+                  {r.perMonth === null ? "—" : r.perMonth.toFixed(1)}
+                </StackedCell>
+                <StackedCell label="Last planned">{r.lastPlanned ?? <em>Never</em>}</StackedCell>
+                <StackedCell label="Days since">
+                  {r.daysSince === null ? "—" : r.daysSince}
+                </StackedCell>
+              </StackedRow>
+            ))}
+            {frequencyRows.length === 0 && <StackedEmpty colSpan={6}>No results.</StackedEmpty>}
+          </StackedBody>
+        </StackedTable>
       )}
 
       {tab === "patterns" && patterns && (
@@ -527,26 +519,26 @@ export default function ReportsView({
                 How often each meal actually gets planned. Counted per day, so a
                 dinner holding two recipes is still one dinner.
               </p>
-              <Table bordered size="sm">
-                <thead>
-                  <tr>
-                    <th>Meal</th>
-                    <th>Planned</th>
-                    <th>Of</th>
-                    <th>Share</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <StackedTable>
+                <StackedHead>
+                  <StackedRow>
+                    <StackedHeader>Meal</StackedHeader>
+                    <StackedHeader>Planned</StackedHeader>
+                    <StackedHeader>Of</StackedHeader>
+                    <StackedHeader>Share</StackedHeader>
+                  </StackedRow>
+                </StackedHead>
+                <StackedBody>
                   {patterns.coverage.map((c) => (
-                    <tr key={c.mealType}>
-                      <td>{c.mealType}</td>
-                      <td>{c.planned}</td>
-                      <td>{c.possible}</td>
-                      <td>{c.percent}%</td>
-                    </tr>
+                    <StackedRow key={c.mealType}>
+                      <StackedCell label="Meal">{c.mealType}</StackedCell>
+                      <StackedCell label="Planned">{c.planned}</StackedCell>
+                      <StackedCell label="Of">{c.possible}</StackedCell>
+                      <StackedCell label="Share">{c.percent}%</StackedCell>
+                    </StackedRow>
                   ))}
-                </tbody>
-              </Table>
+                </StackedBody>
+              </StackedTable>
             </Col>
 
             <Col md={6}>
@@ -563,31 +555,27 @@ export default function ReportsView({
               </p>
 
               <h3 className="h6">Who plans</h3>
-              <Table bordered size="sm">
-                <thead>
-                  <tr>
-                    <th>Who</th>
-                    <th>Meals</th>
-                    <th>Share</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <StackedTable>
+                <StackedHead>
+                  <StackedRow>
+                    <StackedHeader>Who</StackedHeader>
+                    <StackedHeader>Meals</StackedHeader>
+                    <StackedHeader>Share</StackedHeader>
+                  </StackedRow>
+                </StackedHead>
+                <StackedBody>
                   {patterns.planners.map((p) => (
-                    <tr key={p.userName}>
-                      <td>{p.userName}</td>
-                      <td>{p.count}</td>
-                      <td>{p.percent}%</td>
-                    </tr>
+                    <StackedRow key={p.userName}>
+                      <StackedCell label="Who">{p.userName}</StackedCell>
+                      <StackedCell label="Meals">{p.count}</StackedCell>
+                      <StackedCell label="Share">{p.percent}%</StackedCell>
+                    </StackedRow>
                   ))}
                   {patterns.planners.length === 0 && (
-                    <tr>
-                      <td colSpan={3} className="text-muted text-center">
-                        Nothing planned in this range.
-                      </td>
-                    </tr>
+                    <StackedEmpty colSpan={3}>Nothing planned in this range.</StackedEmpty>
                   )}
-                </tbody>
-              </Table>
+                </StackedBody>
+              </StackedTable>
             </Col>
 
             <Col md={6}>
@@ -596,30 +584,32 @@ export default function ReportsView({
                 Average prep + cook minutes. Only recipes that state a time can
                 count, so the last column says how many did.
               </p>
-              <Table bordered size="sm">
-                <thead>
-                  <tr>
-                    <th>Day</th>
-                    <th>Meals</th>
-                    <th>Avg minutes</th>
-                    <th title="How many of those meals stated a prep or cook time">
+              <StackedTable>
+                <StackedHead>
+                  <StackedRow>
+                    <StackedHeader>Day</StackedHeader>
+                    <StackedHeader>Meals</StackedHeader>
+                    <StackedHeader>Avg minutes</StackedHeader>
+                    <StackedHeader title="How many of those meals stated a prep or cook time">
                       With times
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </StackedHeader>
+                  </StackedRow>
+                </StackedHead>
+                <StackedBody>
                   {patterns.weekdays.map((w) => (
-                    <tr key={w.weekday}>
-                      <td>{w.weekdayName}</td>
-                      <td>{w.meals}</td>
+                    <StackedRow key={w.weekday}>
+                      <StackedCell label="Day">{w.weekdayName}</StackedCell>
+                      <StackedCell label="Meals">{w.meals}</StackedCell>
                       {/* Dash, not 0: an average of no measurements is not
                           zero minutes. */}
-                      <td>{w.averageMinutes === null ? "—" : w.averageMinutes}</td>
-                      <td>{w.withTimes}</td>
-                    </tr>
+                      <StackedCell label="Avg minutes">
+                        {w.averageMinutes === null ? "—" : w.averageMinutes}
+                      </StackedCell>
+                      <StackedCell label="With times">{w.withTimes}</StackedCell>
+                    </StackedRow>
                   ))}
-                </tbody>
-              </Table>
+                </StackedBody>
+              </StackedTable>
             </Col>
 
             <Col md={6}>
@@ -631,78 +621,68 @@ export default function ReportsView({
                   <> {patterns.untaggedMeals} planned {patterns.untaggedMeals === 1 ? "meal has" : "meals have"} no tags at all.</>
                 )}
               </p>
-              <Table bordered size="sm">
-                <thead>
-                  <tr>
-                    <th>Tag</th>
-                    <th>Meals</th>
-                    <th>Share</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <StackedTable>
+                <StackedHead>
+                  <StackedRow>
+                    <StackedHeader>Tag</StackedHeader>
+                    <StackedHeader>Meals</StackedHeader>
+                    <StackedHeader>Share</StackedHeader>
+                  </StackedRow>
+                </StackedHead>
+                <StackedBody>
                   {patterns.tagMix.map((t) => (
-                    <tr key={t.tag}>
-                      <td>{t.tag}</td>
-                      <td>{t.count}</td>
-                      <td>{t.percent}%</td>
-                    </tr>
+                    <StackedRow key={t.tag}>
+                      <StackedCell label="Tag">{t.tag}</StackedCell>
+                      <StackedCell label="Meals">{t.count}</StackedCell>
+                      <StackedCell label="Share">{t.percent}%</StackedCell>
+                    </StackedRow>
                   ))}
                   {patterns.tagMix.length === 0 && (
-                    <tr>
-                      <td colSpan={3} className="text-muted text-center">
-                        No tagged meals in this range.
-                      </td>
-                    </tr>
+                    <StackedEmpty colSpan={3}>No tagged meals in this range.</StackedEmpty>
                   )}
-                </tbody>
-              </Table>
+                </StackedBody>
+              </StackedTable>
             </Col>
           </Row>
         </div>
       )}
 
       {tab === "audit" && auditRows && (
-        <div className="table-responsive">
-          <Table bordered hover size="sm">
-            <thead>
-              <tr>
-                <th>When</th>
-                <th>User</th>
-                <th>Action</th>
-                <th>Scope</th>
-                <th>Calendar Owner</th>
-                <th>Date</th>
-                <th>Meal</th>
-                <th>Old Recipe</th>
-                <th>New Recipe</th>
-                <th>Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {auditRows.map((r) => (
-                <tr key={r.id}>
-                  <td suppressHydrationWarning>{new Date(r.timestamp).toLocaleString()}</td>
-                  <td>{r.userName}</td>
-                  <td>{r.action}</td>
-                  <td>{r.scope ?? "-"}</td>
-                  <td>{r.targetUserName ?? "-"}</td>
-                  <td>{r.date ?? "-"}</td>
-                  <td>{r.mealType ?? "-"}</td>
-                  <td>{r.oldRecipeName ?? "-"}</td>
-                  <td>{r.newRecipeName ?? "-"}</td>
-                  <td>{r.notes ?? "-"}</td>
-                </tr>
-              ))}
-              {auditRows.length === 0 && (
-                <tr>
-                  <td colSpan={10} className="text-muted text-center">
-                    No results.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
-        </div>
+        <StackedTable hover>
+          <StackedHead>
+            <StackedRow>
+              <StackedHeader>When</StackedHeader>
+              <StackedHeader>User</StackedHeader>
+              <StackedHeader>Action</StackedHeader>
+              <StackedHeader>Scope</StackedHeader>
+              <StackedHeader>Calendar Owner</StackedHeader>
+              <StackedHeader>Date</StackedHeader>
+              <StackedHeader>Meal</StackedHeader>
+              <StackedHeader>Old Recipe</StackedHeader>
+              <StackedHeader>New Recipe</StackedHeader>
+              <StackedHeader>Notes</StackedHeader>
+            </StackedRow>
+          </StackedHead>
+          <StackedBody>
+            {auditRows.map((r) => (
+              <StackedRow key={r.id}>
+                <StackedCell label="When" suppressHydrationWarning>
+                  {new Date(r.timestamp).toLocaleString()}
+                </StackedCell>
+                <StackedCell label="User">{r.userName}</StackedCell>
+                <StackedCell label="Action">{r.action}</StackedCell>
+                <StackedCell label="Scope">{r.scope ?? "-"}</StackedCell>
+                <StackedCell label="Calendar owner">{r.targetUserName ?? "-"}</StackedCell>
+                <StackedCell label="Date">{r.date ?? "-"}</StackedCell>
+                <StackedCell label="Meal">{r.mealType ?? "-"}</StackedCell>
+                <StackedCell label="Old recipe">{r.oldRecipeName ?? "-"}</StackedCell>
+                <StackedCell label="New recipe">{r.newRecipeName ?? "-"}</StackedCell>
+                <StackedCell label="Notes">{r.notes ?? "-"}</StackedCell>
+              </StackedRow>
+            ))}
+            {auditRows.length === 0 && <StackedEmpty colSpan={10}>No results.</StackedEmpty>}
+          </StackedBody>
+        </StackedTable>
       )}
     </div>
   );

@@ -91,30 +91,50 @@ export default function ShoppingListPanel({
   const todayDay = days.find((d) => d.date === today) ?? null;
   const visibleDays = mode === "today" ? (todayDay ? [todayDay] : []) : days;
 
+  /**
+   * Flips one ingredient line, identified by slot AND recipe.
+   *
+   * The recipe is part of the identity, not decoration: a dinner can hold a
+   * main and a dessert, and two recipes sharing an ingredient would otherwise
+   * tick each other off — on screen here, and in the database, which keys the
+   * row the same way.
+   */
+  function applyOnHand(
+    list: ShoppingListDayData[],
+    date: string,
+    mealType: MealType,
+    recipeId: string,
+    ingredientText: string,
+    onHand: boolean
+  ): ShoppingListDayData[] {
+    return list.map((day) => {
+      if (day.date !== date) return day;
+      return {
+        ...day,
+        meals: day.meals.map((meal) => {
+          if (meal.mealType !== mealType || meal.recipeId !== recipeId) return meal;
+          return {
+            ...meal,
+            ingredients: meal.ingredients.map((ing) =>
+              ing.ingredientText === ingredientText ? { ...ing, onHand } : ing
+            ),
+          };
+        }),
+      };
+    });
+  }
+
   async function toggleIngredient(
     date: string,
     mealType: MealType,
+    recipeId: string,
     ingredientText: string,
     nextOnHand: boolean
   ) {
     setError(null);
     // Optimistic update.
     setDays((prev) =>
-      prev.map((day) => {
-        if (day.date !== date) return day;
-        return {
-          ...day,
-          meals: day.meals.map((meal) => {
-            if (meal.mealType !== mealType) return meal;
-            return {
-              ...meal,
-              ingredients: meal.ingredients.map((ing) =>
-                ing.ingredientText === ingredientText ? { ...ing, onHand: nextOnHand } : ing
-              ),
-            };
-          }),
-        };
-      })
+      applyOnHand(prev, date, mealType, recipeId, ingredientText, nextOnHand)
     );
 
     const res = await fetch("/api/shopping-list", {
@@ -123,6 +143,7 @@ export default function ShoppingListPanel({
       body: JSON.stringify({
         date,
         mealType,
+        recipeId,
         ingredientText,
         onHand: nextOnHand,
         scope,
@@ -133,23 +154,7 @@ export default function ShoppingListPanel({
     if (!res.ok) {
       // Revert on failure.
       setDays((prev) =>
-        prev.map((day) => {
-          if (day.date !== date) return day;
-          return {
-            ...day,
-            meals: day.meals.map((meal) => {
-              if (meal.mealType !== mealType) return meal;
-              return {
-                ...meal,
-                ingredients: meal.ingredients.map((ing) =>
-                  ing.ingredientText === ingredientText
-                    ? { ...ing, onHand: !nextOnHand }
-                    : ing
-                ),
-              };
-            }),
-          };
-        })
+        applyOnHand(prev, date, mealType, recipeId, ingredientText, !nextOnHand)
       );
       const data = await res.json().catch(() => ({}));
       setError(data.error || "Could not update this item.");
@@ -192,7 +197,9 @@ export default function ShoppingListPanel({
 
   function renderMealTable(day: ShoppingListDayData, meal: ShoppingListMealData) {
     return (
-      <div key={`${day.date}-${meal.mealType}`} className="mb-3">
+      // Keyed by recipe too: a slot can hold two, and keying on the meal
+      // alone gave React duplicate keys for the same dinner.
+      <div key={`${day.date}-${meal.mealType}-${meal.recipeId}`} className="mb-3">
         <div className="fw-semibold mb-1">
           {MEAL_LABELS[meal.mealType]} — {meal.recipeName}
         </div>
@@ -213,7 +220,13 @@ export default function ShoppingListPanel({
                       type="checkbox"
                       checked={ing.onHand}
                       onChange={(e) =>
-                        toggleIngredient(day.date, meal.mealType, ing.ingredientText, e.target.checked)
+                        toggleIngredient(
+                          day.date,
+                          meal.mealType,
+                          meal.recipeId,
+                          ing.ingredientText,
+                          e.target.checked
+                        )
                       }
                       aria-label={ing.onHand ? "Mark as need to buy" : "Mark as on hand"}
                     />

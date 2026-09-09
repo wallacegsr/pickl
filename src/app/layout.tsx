@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 // Bootstrap recompiled from Sass with the Pickl "jar & brine" palette. Must
 // NOT be swapped back to bootstrap/dist/css/bootstrap.min.css: the prebuilt
 // file hardcodes the stock blue into every component. See the file's header.
@@ -10,7 +11,33 @@ export const metadata: Metadata = {
   description: "Out of the pickle, onto the plate.",
   icons: {
     icon: "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥒</text></svg>",
+    // A real PNG, because iOS will not take the SVG above and falls back to a
+    // screenshot of the page without one. Same pickle as the Android
+    // launcher icon — see public/ and the drawables it was traced from.
+    apple: "/apple-touch-icon.png",
   },
+  appleWebApp: {
+    // What "Add to Home Screen" produces on iOS: no browser chrome, and the
+    // status bar drawn over the page rather than beside it. On iPhone this is
+    // the only way to install Pickl at all.
+    capable: true,
+    title: "Pickl",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Lets the page reach under a notch and the home indicator; every fixed
+  // element then pads itself back out with env(safe-area-inset-*).
+  viewportFit: "cover",
+  // Tints the browser and task-switcher chrome to match, per theme, so an
+  // installed app does not sit in a white frame in dark mode.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f8ef" },
+    { media: "(prefers-color-scheme: dark)", color: "#141a14" },
+  ],
 };
 
 // Runs before hydration to set data-bs-theme from localStorage (or OS
@@ -99,7 +126,10 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: sidebarInitScript }} />
         <script dangerouslySetInnerHTML={{ __html: paletteInitScript }} />
       </head>
-      <body>{children}</body>
+      <body>
+        <ServiceWorkerRegistrar />
+        {children}
+      </body>
     </html>
   );
 }

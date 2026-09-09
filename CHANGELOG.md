@@ -36,6 +36,21 @@ changes with it — the two must never disagree about what is running.
 - A suspended household can still be signed into and read, but nothing in it
   can be changed until it is resumed. Suspending is reversible and keeps
   everything; deleting is neither.
+- Pickl can be installed to a phone's home screen and runs without browser
+  chrome. On Android that sits alongside the APK; on iPhone, where there is no
+  sideloading, it is the only way to install Pickl at all.
+- **The shopping list has its own screen**, reachable from the nav and from the
+  installed app's shortcut. It was only ever a widget on the plan page, which
+  is right at a desk and wrong in a shop.
+- Report tables become cards on a phone, each value labelled with its column,
+  instead of a ten-column grid you drag sideways with the header out of view.
+- The slot editor opens as a sheet from the bottom edge on a phone, next to the
+  thumb that tapped, rather than as a dialog centred over the cell.
+- Pickl now says "no connection" instead of showing the browser's error page
+  when the network drops. It deliberately keeps no copy of your plan, recipes
+  or shopping list on the device: a remembered meal shown on an offline screen
+  reads as today's, and a copy of one household's week has no business
+  outliving a sign-out on a shared phone.
 - A meal slot can hold several recipes: a main and a dessert, or two mains for
   a household cooking around an intolerance. Recipes in the same slot are
   colour-coded so they read apart at a glance; a slot holding one recipe looks
@@ -66,6 +81,10 @@ changes with it — the two must never disagree about what is running.
 
 ### Fixed
 
+- Ticking an ingredient off the shopping list did nothing. Slots gained the
+  ability to hold several recipes, and the list kept sending its updates
+  without saying which recipe a line belonged to, so every one of them was
+  rejected.
 - The Audit Log's date range now means the **viewer's** day, not the server's.
   In a container the server keeps UTC time, so for anyone west of it the range
   ended early — in California, everything after 5pm fell outside a range naming
