@@ -93,7 +93,3 @@ export function getUserById(id: string) {
   return db.select().from(users).where(eq(users.id, id)).get();
 }
 
-export function countUsers(): number {
-  const row = db.select().from(users).all();
-  return row.length;
-}

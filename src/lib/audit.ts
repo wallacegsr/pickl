@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { auditLog, type Scope } from "@/db/schema";
+import { auditLog, users, type Scope } from "@/db/schema";
 
 export type AuditAction =
   | "spin_today"
@@ -53,11 +54,30 @@ export interface LogAuditEntryInput {
   notes?: string | null;
 }
 
-/** Records an audit_log row. Called from every plan-entry / recipe write path. */
+/**
+ * Records an audit_log row. Called from every plan-entry / recipe write path.
+ *
+ * The household is looked up from the acting user rather than passed in.
+ * There is no path by which a user writes an audit row about another
+ * household — that is the point of the scoping everywhere else — so deriving
+ * it here is both always right and impossible for a caller to get wrong,
+ * which is worth one indexed lookup on a write path.
+ *
+ * Null for a platform operator: deployment-level actions (SMTP, the OAuth
+ * client) belong to no household, and no household's audit log should list
+ * them.
+ */
 export function logAuditEntry(input: LogAuditEntryInput) {
+  const actor = db
+    .select({ householdId: users.householdId })
+    .from(users)
+    .where(eq(users.id, input.userId))
+    .get();
+
   db.insert(auditLog)
     .values({
       id: randomUUID(),
+      householdId: actor?.householdId ?? null,
       userId: input.userId,
       action: input.action,
       scope: input.scope ?? null,

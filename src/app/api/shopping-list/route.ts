@@ -20,7 +20,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
 
-  const days = buildShoppingListWeek(week, resolved.context.scope, resolved.context.userId);
+  const days = buildShoppingListWeek(
+    resolved.context.householdId,
+    week,
+    resolved.context.scope,
+    resolved.context.userId
+  );
 
   return NextResponse.json({
     week,
@@ -59,6 +64,7 @@ export async function PUT(req: NextRequest) {
   }
 
   const updated = setOnHand({
+    householdId: resolved.context.householdId,
     scope: resolved.context.scope,
     userId: resolved.context.userId,
     date,

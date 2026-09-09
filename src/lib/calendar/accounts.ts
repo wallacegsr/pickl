@@ -5,6 +5,7 @@ import {
   calendarAccounts,
   calendarEventLinks,
   calendarTargets,
+  users,
   type CalendarAccount,
   type CalendarTarget,
   type Scope,
@@ -79,18 +80,41 @@ export function getTargetForUserScope(
     .get();
 }
 
-/** Every enabled 'shared'-scope target across all users — the fan-out list. */
-export function getEnabledSharedTargets(): CalendarTarget[] {
-  return db
-    .select()
+/**
+ * Every enabled 'shared'-scope target in ONE household — the fan-out list.
+ *
+ * Joined to users rather than filtered on a column of its own: a target
+ * belongs to a person, and the person's household is the authoritative
+ * answer, so moving someone between households moves their calendars with
+ * them and cannot leave a stale copy behind.
+ *
+ * Household-blind, this fan-out pushed one family's dinners into every other
+ * family's Google Calendar — a leak that leaves the app entirely.
+ */
+export function getEnabledSharedTargets(householdId: string): CalendarTarget[] {
+  const rows = db
+    .select({ target: calendarTargets })
     .from(calendarTargets)
+    .innerJoin(users, eq(users.id, calendarTargets.userId))
     .where(
       and(
+        eq(users.householdId, householdId),
         eq(calendarTargets.scope, "shared"),
         eq(calendarTargets.enabled, true)
       )
     )
     .all();
+  return rows.map((r) => r.target);
+}
+
+/** The household a target's owner belongs to, or null. */
+export function householdOfUser(userId: string): string | null {
+  const row = db
+    .select({ householdId: users.householdId })
+    .from(users)
+    .where(eq(users.id, userId))
+    .get();
+  return row?.householdId ?? null;
 }
 
 export function getAccountById(

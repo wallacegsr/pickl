@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users, appSettings, SMTP_SETTINGS_ID } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { isAdmin } from "@/lib/permissions";
+import { householdScope, isAdmin } from "@/lib/permissions";
 import AdminUserTable from "@/components/AdminUserTable";
 import SmtpSettingsPanel from "@/components/SmtpSettingsPanel";
 import GoogleOAuthSettingsPanel from "@/components/GoogleOAuthSettingsPanel";
@@ -21,7 +21,11 @@ export default async function AdminPage() {
     redirect("/plan");
   }
 
-  const allUsers = db.select().from(users).all();
+  const householdId = householdScope(session?.user);
+  // A household admin administers their own family, and nobody else's.
+  const allUsers = householdId
+    ? db.select().from(users).where(eq(users.householdId, householdId)).all()
+    : [];
   const sanitized = allUsers.map((u) => ({
     id: u.id,
     name: u.name,

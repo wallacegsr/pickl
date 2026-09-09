@@ -13,6 +13,18 @@ changes with it — the two must never disagree about what is running.
 
 ### Added
 
+- **Households.** Every recipe, tag, plan entry, shopping list and audit entry
+  now belongs to a household, and is reachable only from inside it — by id, by
+  search, by report, and by calendar sync alike. Two households can use the
+  same tag and recipe names without ever meeting. A single-family install is
+  unchanged: it is simply a deployment with one household.
+- Two kinds of administrator. A **household admin** runs their own family:
+  members, shared recipes, settings. The **global admin** runs the deployment
+  and — deliberately — has no way into any household's contents. Household
+  privacy does not depend on the global admin choosing not to look.
+- Signing up creates your own household, with you as its admin. Joining an
+  existing household happens by invitation, so nobody arrives in a family
+  without someone in it deciding so.
 - A meal slot can hold several recipes: a main and a dessert, or two mains for
   a household cooking around an intolerance. Recipes in the same slot are
   colour-coded so they read apart at a glance; a slot holding one recipe looks

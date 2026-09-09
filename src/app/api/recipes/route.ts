@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
-import { desc, eq, or } from "drizzle-orm";
+import { and, desc, eq, or } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { recipes } from "@/db/schema";
 import { recipeSchema } from "@/lib/validators";
-import { canEditSharedRecipes } from "@/lib/permissions";
+import { canEditSharedRecipes, householdScope } from "@/lib/permissions";
 import { attachTags, attachTagsToRecipe, parseTagInput, setRecipeTags } from "@/lib/tags";
 import { logAuditEntry } from "@/lib/audit";
 
@@ -15,18 +15,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Every user sees the shared pool plus their own private recipes.
+  const householdId = householdScope(session.user);
+  if (!householdId) return NextResponse.json([]);
+
+  // Every user sees their household's shared pool plus their own private
+  // recipes.
   const allRecipes = db
     .select()
     .from(recipes)
     .where(
-      or(eq(recipes.visibility, "shared"), eq(recipes.ownerUserId, session.user.id))
+      and(
+        eq(recipes.householdId, householdId),
+        or(eq(recipes.visibility, "shared"), eq(recipes.ownerUserId, session.user.id))
+      )
     )
     .orderBy(desc(recipes.createdAt))
     .all();
 
   // One extra query for the whole page of recipes, never one per recipe.
-  return NextResponse.json(attachTags(allRecipes));
+  return NextResponse.json(attachTags(householdId, allRecipes));
 }
 
 export async function POST(req: NextRequest) {
@@ -46,6 +53,14 @@ export async function POST(req: NextRequest) {
 
   const data = parsed.data;
 
+  const householdId = householdScope(session.user);
+  if (!householdId) {
+    return NextResponse.json(
+      { error: "This account is not part of a household." },
+      { status: 403 }
+    );
+  }
+
   if (data.visibility === "shared" && !canEditSharedRecipes(session.user)) {
     return NextResponse.json(
       { error: "Only admins can create shared recipes." },
@@ -58,6 +73,7 @@ export async function POST(req: NextRequest) {
   db.insert(recipes)
     .values({
       id,
+      householdId,
       name: data.name,
       ingredients: data.ingredients,
       instructions: data.instructions,
@@ -73,7 +89,7 @@ export async function POST(req: NextRequest) {
     })
     .run();
 
-  setRecipeTags(id, parseTagInput(data.tags ?? ""), session.user.id);
+  setRecipeTags(householdId, id, parseTagInput(data.tags ?? ""), session.user.id);
 
   logAuditEntry({
     userId: session.user.id,
@@ -83,7 +99,7 @@ export async function POST(req: NextRequest) {
 
   const created = db.select().from(recipes).where(eq(recipes.id, id)).get();
 
-  return NextResponse.json(created ? attachTagsToRecipe(created) : null, {
+  return NextResponse.json(created ? attachTagsToRecipe(householdId, created) : null, {
     status: 201,
   });
 }

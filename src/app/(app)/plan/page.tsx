@@ -2,9 +2,11 @@ import { getRecipePool, getWeekPlan, MEAL_TYPE_LIST } from "@/lib/plan";
 import { buildShoppingListWeek } from "@/lib/shoppingList";
 import { todayDateString } from "@/lib/dates";
 import { auth } from "@/lib/auth";
-import { canAccessPrivateCalendar, canEditSharedCalendar, isAdmin } from "@/lib/permissions";
+import { canEditSharedCalendar, isAdmin } from "@/lib/permissions";
+import { resolvePlanContext } from "@/lib/planContext";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { users, type MealType, type Scope } from "@/db/schema";
+import { users, type MealType } from "@/db/schema";
 import PlanView, { type RecipeOption } from "@/components/PlanView";
 import { isOverlayEnabledForUser } from "@/lib/calendar/read";
 import { getDashboardLayout } from "@/lib/dashboard/store";
@@ -20,25 +22,32 @@ export default async function PlanPage({
   if (!session?.user) redirect("/login");
 
   const week = searchParams.week || todayDateString();
-  const scope: Scope = searchParams.scope === "private" ? "private" : "shared";
+
+  // The same resolver the plan API uses, rather than a second copy of the
+  // rules here. It authorizes the scope, and — since a household admin may
+  // name another user — checks that user is in the viewer's own household.
+  const resolved = resolvePlanContext(
+    session.user,
+    searchParams.scope,
+    searchParams.userId,
+    "read"
+  );
+  if (!resolved.ok) redirect("/plan?scope=shared");
+  const { householdId, scope } = resolved.context;
   const requestedUserId = searchParams.userId || session.user.id;
 
-  if (scope === "private" && !canAccessPrivateCalendar(session.user, requestedUserId)) {
-    redirect("/plan");
-  }
-
-  const effectiveUserId = scope === "private" ? requestedUserId : "";
-  const days = getWeekPlan(week, scope, effectiveUserId);
-  const shoppingListDays = buildShoppingListWeek(week, scope, effectiveUserId);
+  const effectiveUserId = resolved.context.userId;
+  const days = getWeekPlan(householdId, week, scope, effectiveUserId);
+  const shoppingListDays = buildShoppingListWeek(householdId, week, scope, effectiveUserId);
 
   // Recipe pool for the manual editor: union across all meal types eligible
   // for this calendar; PlanView filters further by the specific slot's meal.
   const poolsByMeal = MEAL_TYPE_LIST.map(
     (mt) =>
-      [mt, getRecipePool(scope, scope === "private" ? requestedUserId : "", mt)] as const
+      [mt, getRecipePool(householdId, scope, effectiveUserId, mt)] as const
   );
   // One tag lookup for the union of all three pools — never one per recipe.
-  const poolTags = getTagsForRecipes([
+  const poolTags = getTagsForRecipes(householdId, [
     ...new Set(poolsByMeal.flatMap(([, pool]) => pool.map((r) => r.id))),
   ]);
   const poolByMeal = Object.fromEntries(
@@ -58,6 +67,9 @@ export default async function PlanPage({
     ? db
         .select({ id: users.id, name: users.name, email: users.email })
         .from(users)
+        // This household's members only. An admin administers their own
+        // family, not everyone on the deployment.
+        .where(eq(users.householdId, householdId))
         .all()
     : [];
 

@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { isAdmin } from "@/lib/permissions";
+import { householdScope, isAdmin } from "@/lib/permissions";
 import { adminManualAddUserSchema } from "@/lib/validators";
 import { logAuditEntry } from "@/lib/audit";
 
@@ -27,6 +27,18 @@ export async function POST(req: NextRequest) {
   const { name, role, password } = parsed.data;
   const email = parsed.data.email.toLowerCase();
 
+  // Created into the admin's own household, for the same reason as an invite.
+  const householdId = householdScope(session.user);
+  if (!householdId) {
+    return NextResponse.json(
+      { error: "This account is not part of a household." },
+      { status: 403 }
+    );
+  }
+
+  // Deliberately NOT household-scoped, unlike everything else here: email is
+  // the login identity, so it has to stay unique across the deployment. Two
+  // households cannot both hold an account for the same address.
   const existing = db.select().from(users).where(eq(users.email, email)).get();
   if (existing) {
     return NextResponse.json(
@@ -41,6 +53,7 @@ export async function POST(req: NextRequest) {
   db.insert(users)
     .values({
       id,
+      householdId,
       name,
       email,
       passwordHash,

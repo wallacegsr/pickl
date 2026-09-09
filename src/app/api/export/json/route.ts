@@ -20,7 +20,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
 
-  const plan = getWeekPlan(week, resolved.context.scope, resolved.context.userId);
+  const plan = getWeekPlan(
+    resolved.context.householdId,
+    week,
+    resolved.context.scope,
+    resolved.context.userId
+  );
 
   // Tags for every recipe in the week, in one query rather than per slot.
   const plannedRecipeIds = [
@@ -32,7 +37,7 @@ export async function GET(req: NextRequest) {
       )
     ),
   ];
-  const tagsByRecipe = getTagsForRecipes(plannedRecipeIds);
+  const tagsByRecipe = getTagsForRecipes(resolved.context.householdId, plannedRecipeIds);
 
   const payload = plan.map((day) => ({
     date: day.date,

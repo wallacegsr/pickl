@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { recipes } from "@/db/schema";
@@ -23,7 +23,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
 
-  const plan = getWeekPlan(week, resolved.context.scope, resolved.context.userId);
+  const plan = getWeekPlan(
+    resolved.context.householdId,
+    week,
+    resolved.context.scope,
+    resolved.context.userId
+  );
 
   return NextResponse.json({
     week,
@@ -61,7 +66,12 @@ export async function PUT(req: NextRequest) {
     const found = db
       .select({ id: recipes.id })
       .from(recipes)
-      .where(inArray(recipes.id, recipeIds))
+      .where(
+        and(
+          eq(recipes.householdId, resolved.context.householdId),
+          inArray(recipes.id, recipeIds)
+        )
+      )
       .all();
     if (found.length !== new Set(recipeIds).size) {
       return NextResponse.json({ error: "Recipe not found" }, { status: 404 });
@@ -69,6 +79,7 @@ export async function PUT(req: NextRequest) {
   }
 
   const updated = setPlanEntry({
+    householdId: resolved.context.householdId,
     date,
     scope: resolved.context.scope,
     userId: resolved.context.userId,

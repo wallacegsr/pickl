@@ -7,9 +7,10 @@ import {
   recipes,
   users,
   type MealType,
+  type Recipe,
   type Scope,
 } from "@/db/schema";
-import { isAdmin, type SessionUser } from "@/lib/permissions";
+import { householdScope, isAdmin, type SessionUser } from "@/lib/permissions";
 import { parseDateString, todayDateString, getSundayOfWeek, toDateString } from "@/lib/dates";
 import { getTagsForRecipes } from "@/lib/tags";
 import { tagKey } from "@/lib/tagNames";
@@ -36,16 +37,32 @@ export interface MealHistoryRow {
   tags: string[];
 }
 
-function loadLookups() {
-  const allRecipes = db.select().from(recipes).all();
-  const allUsers = db.select().from(users).all();
+/**
+ * Recipe and user-name lookups for one household.
+ *
+ * These maps resolve ids into names for display, so unscoped they were the
+ * quietest leak in the app: no report ever listed another household's rows,
+ * but the maps behind them held every recipe title and every member's name
+ * on the deployment, one stray id away from being printed.
+ */
+function loadLookups(householdId: string) {
+  const allRecipes = db
+    .select()
+    .from(recipes)
+    .where(eq(recipes.householdId, householdId))
+    .all();
+  const allUsers = db
+    .select()
+    .from(users)
+    .where(eq(users.householdId, householdId))
+    .all();
   const recipeMap = new Map(allRecipes.map((r) => [r.id, r]));
   const userMap = new Map(allUsers.map((u) => [u.id, u]));
   return { recipeMap, userMap };
 }
 
-function dateRangeConditions(filters: ReportFilters) {
-  const conditions = [];
+function dateRangeConditions(householdId: string, filters: ReportFilters) {
+  const conditions = [eq(planEntries.householdId, householdId)];
   if (filters.startDate) conditions.push(gte(planEntries.date, filters.startDate));
   if (filters.endDate) conditions.push(lte(planEntries.date, filters.endDate));
   return conditions;
@@ -66,16 +83,20 @@ export function getMealHistory(
   requestingUser: SessionUser,
   filters: ReportFilters
 ): MealHistoryRow[] {
-  const conditions = dateRangeConditions(filters);
+  const householdId = householdScope(requestingUser);
+  if (!householdId) return [];
+
+  const conditions = dateRangeConditions(householdId, filters);
   const rows = db
     .select()
     .from(planEntries)
-    .where(conditions.length ? and(...conditions) : undefined)
+    .where(and(...conditions))
     .all();
 
-  const { recipeMap, userMap } = loadLookups();
+  const { recipeMap, userMap } = loadLookups(householdId);
   // One query for the whole report rather than one per row.
   const tagsByRecipe = getTagsForRecipes(
+    householdId,
     [...new Set(rows.map((e) => e.recipeId).filter((id): id is string => Boolean(id)))]
   );
   const wantedTag = filters.tag ? tagKey(filters.tag) : null;
@@ -132,13 +153,18 @@ export interface RecipeFrequencyRow {
 
 /** Recipes this user can see: the shared pool plus their own private ones. */
 function visibleRecipes(requestingUser: SessionUser) {
+  const householdId = householdScope(requestingUser);
+  if (!householdId) return [];
   return db
     .select()
     .from(recipes)
     .where(
-      or(
-        eq(recipes.visibility, "shared"),
-        eq(recipes.ownerUserId, requestingUser.id)
+      and(
+        eq(recipes.householdId, householdId),
+        or(
+          eq(recipes.visibility, "shared"),
+          eq(recipes.ownerUserId, requestingUser.id)
+        )
       )
     )
     .all();
@@ -310,7 +336,10 @@ export function getAuditLogReport(
   //
   // The other two reports are about planned meals, so they still filter on the
   // plan date (see dateRangeConditions). This one is a log of actions.
-  const conditions = [];
+  const householdId = householdScope(requestingUser);
+  if (!householdId) return [];
+
+  const conditions = [eq(auditLog.householdId, householdId)];
 
   // The browser's instants win when it sends them. The date-string path stays
   // as a fallback for a direct API call, but it can only interpret a day in
@@ -341,10 +370,10 @@ export function getAuditLogReport(
   const rows = db
     .select()
     .from(auditLog)
-    .where(conditions.length ? and(...conditions) : undefined)
+    .where(and(...conditions))
     .all();
 
-  const { recipeMap, userMap } = loadLookups();
+  const { recipeMap, userMap } = loadLookups(householdId);
 
   return rows
     .filter((r) => {
@@ -454,8 +483,11 @@ export function getPatternsReport(
   requestingUser: SessionUser,
   filters: ReportFilters
 ): PatternsReport {
+  const householdId = householdScope(requestingUser);
   const history = getMealHistory(requestingUser, filters);
-  const { recipeMap } = loadLookups();
+  const { recipeMap } = householdId
+    ? loadLookups(householdId)
+    : { recipeMap: new Map<string, Recipe>() };
 
   const dates = history.map((r) => r.date).sort();
   const spanStart = filters.startDate ?? dates[0] ?? null;

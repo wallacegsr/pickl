@@ -83,8 +83,8 @@ export function dessertSlotFor(mealTypes: MealType[]): MealType | null {
 }
 
 /** All recipes, unfiltered (used for admin management views). */
-export function getAllRecipes(): Recipe[] {
-  return db.select().from(recipes).all();
+export function getAllRecipes(householdId: string): Recipe[] {
+  return db.select().from(recipes).where(eq(recipes.householdId, householdId)).all();
 }
 
 /**
@@ -99,12 +99,17 @@ export function getAllRecipes(): Recipe[] {
  * proposes cake, "dessert" so shaking for dessert proposes nothing else.
  */
 export function getRecipePool(
+  householdId: string,
   scope: Scope,
   userId: string,
   mealType: MealType,
   course: "any" | "main" | "dessert" = "any"
 ): Recipe[] {
-  const all = db.select().from(recipes).all();
+  const all = db
+    .select()
+    .from(recipes)
+    .where(eq(recipes.householdId, householdId))
+    .all();
   const pool = all.filter((r) => {
     const visibleInScope =
       r.visibility === "shared" ||
@@ -140,6 +145,7 @@ function emptyMeals(): Record<MealType, PlanMealSlot> {
 
 /** Fetches the full Sun-Sat week for a given calendar (scope + owner). */
 export function getWeekPlan(
+  householdId: string,
   referenceDate: string,
   scope: Scope,
   userId: string
@@ -153,6 +159,7 @@ export function getWeekPlan(
     .from(planEntries)
     .where(
       and(
+        eq(planEntries.householdId, householdId),
         inArray(planEntries.date, dates),
         eq(planEntries.scope, scope),
         eq(planEntries.userId, owner)
@@ -166,10 +173,15 @@ export function getWeekPlan(
 
   const recipeMap = new Map<string, Recipe>();
   if (recipeIds.length > 0) {
+    // The ids came from household-scoped entries, so this is belt-and-braces
+    // — but it costs one predicate and means the query is safe to read in
+    // isolation rather than only in the light of the one above.
     const foundRecipes = db
       .select()
       .from(recipes)
-      .where(inArray(recipes.id, recipeIds))
+      .where(
+        and(eq(recipes.householdId, householdId), inArray(recipes.id, recipeIds))
+      )
       .all();
     for (const r of foundRecipes) recipeMap.set(r.id, r);
   }
@@ -218,6 +230,7 @@ export function getWeekPlan(
  * want "is anything planned here?" should check `.length`.
  */
 export function getSlotEntries(
+  householdId: string,
   date: string,
   scope: Scope,
   userId: string,
@@ -229,6 +242,7 @@ export function getSlotEntries(
     .from(planEntries)
     .where(
       and(
+        eq(planEntries.householdId, householdId),
         eq(planEntries.date, date),
         eq(planEntries.scope, scope),
         eq(planEntries.userId, owner),
@@ -240,6 +254,8 @@ export function getSlotEntries(
 }
 
 export interface SetPlanEntryInput {
+  /** Required, so the compiler finds any write that forgot to scope itself. */
+  householdId: string;
   date: string;
   scope: Scope;
   userId: string; // owner of the calendar (private) — ignored for shared
@@ -273,6 +289,7 @@ export interface SetPlanEntryInput {
 export function setPlanEntry(input: SetPlanEntryInput) {
   const owner = ownerKey(input.scope, input.userId);
   const existing = getSlotEntries(
+    input.householdId,
     input.date,
     input.scope,
     input.userId,
@@ -308,6 +325,7 @@ export function setPlanEntry(input: SetPlanEntryInput) {
     db.insert(planEntries)
       .values({
         id: randomUUID(),
+        householdId: input.householdId,
         date: input.date,
         scope: input.scope,
         userId: owner,
@@ -371,6 +389,7 @@ export function setPlanEntry(input: SetPlanEntryInput) {
       // events for what arrived, update what stayed and delete what left, and
       // it can only work that out from the finished state of the slot.
       schedulePlanSlotPush({
+        householdId: input.householdId,
         scope: input.scope,
         userId: owner,
         date: input.date,
@@ -381,5 +400,11 @@ export function setPlanEntry(input: SetPlanEntryInput) {
       console.error("[calendar] could not schedule push:", err);
     });
 
-  return getSlotEntries(input.date, input.scope, input.userId, input.mealType);
+  return getSlotEntries(
+    input.householdId,
+    input.date,
+    input.scope,
+    input.userId,
+    input.mealType
+  );
 }

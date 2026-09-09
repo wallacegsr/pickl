@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { households, users } from "@/db/schema";
 import { signupSchema } from "@/lib/validators";
 import { generateToken, tokenExpiryDate } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/mail";
@@ -44,7 +44,22 @@ export async function POST(req: NextRequest) {
   // src/db/schema.ts).
   const userCount = db.select().from(users).all().length;
   const isFirstUser = userCount === 0;
-  const role = isFirstUser ? "admin" : "member";
+
+  // Every self-signup gets its OWN household, and is its admin.
+  //
+  // The alternative — dropping new signups into an existing household — is
+  // the one thing this must not do: signup is open to anyone who can reach
+  // the page, so it would hand a stranger the family's calendar. Joining an
+  // existing household happens by invitation, which is where someone with
+  // authority over that household makes the decision.
+  //
+  // This also means every account has a household from the moment it exists.
+  // A null one reaches no content at all, so an account without it is not a
+  // safe default, it is a broken one.
+  const householdId = randomUUID();
+  db.insert(households)
+    .values({ id: householdId, name: `${name}'s household` })
+    .run();
 
   // The first account skips email verification entirely.
   //
@@ -63,13 +78,16 @@ export async function POST(req: NextRequest) {
   db.insert(users)
     .values({
       id: randomUUID(),
+      householdId,
       name,
       email,
       passwordHash,
       emailVerified: isFirstUser ? new Date() : null,
       verificationToken: isFirstUser ? null : token,
       verificationTokenExpires: isFirstUser ? null : tokenExpiryDate(24),
-      role,
+      // Admin of their own household either way: the first user because the
+      // deployment needs one, everyone else because it is their household.
+      role: "admin",
       isGlobalAdmin: isFirstUser,
     })
     .run();

@@ -9,7 +9,7 @@ import {
   type RecipeWithTags,
   type Tag,
 } from "@/db/schema";
-import { isAdmin, type SessionUser } from "@/lib/permissions";
+import { householdScope, isAdmin, type SessionUser } from "@/lib/permissions";
 import { MAX_TAG_LENGTH, normalizeTagName, tagKey } from "@/lib/tagNames";
 
 export {
@@ -32,6 +32,7 @@ export {
  * tags per recipe in a loop.
  */
 export function getTagsForRecipes(
+  householdId: string,
   recipeIds: string[]
 ): Map<string, string[]> {
   const byRecipe = new Map<string, string[]>();
@@ -46,7 +47,9 @@ export function getTagsForRecipes(
     })
     .from(recipeTags)
     .innerJoin(tags, eq(tags.id, recipeTags.tagId))
-    .where(inArray(recipeTags.recipeId, recipeIds))
+    .where(
+      and(eq(tags.householdId, householdId), inArray(recipeTags.recipeId, recipeIds))
+    )
     .orderBy(tags.nameKey)
     .all();
 
@@ -58,31 +61,48 @@ export function getTagsForRecipes(
 }
 
 /** Attaches `tags: string[]` to a list of recipe rows (one extra query). */
-export function attachTags<T extends Recipe>(rows: T[]): (T & { tags: string[] })[] {
-  const byRecipe = getTagsForRecipes(rows.map((r) => r.id));
+export function attachTags<T extends Recipe>(
+  householdId: string,
+  rows: T[]
+): (T & { tags: string[] })[] {
+  const byRecipe = getTagsForRecipes(householdId, rows.map((r) => r.id));
   return rows.map((row) => ({ ...row, tags: byRecipe.get(row.id) ?? [] }));
 }
 
 /** Attaches tags to a single recipe row. */
-export function attachTagsToRecipe(row: Recipe): RecipeWithTags {
-  return attachTags([row])[0];
+export function attachTagsToRecipe(householdId: string, row: Recipe): RecipeWithTags {
+  return attachTags(householdId, [row])[0];
 }
 
 // ---------------------------------------------------------------------------
 // Writes from the recipe form
 // ---------------------------------------------------------------------------
 
-/** Finds (or creates) the tag row for `name`, matching case-insensitively. */
-export function ensureTag(name: string, userId: string | null): Tag {
+/**
+ * Finds (or creates) the tag row for `name` in one household, matching
+ * case-insensitively.
+ *
+ * The household is half of the lookup key, not a filter applied afterwards.
+ * "Vegan" is uniquely named per household, so matching on nameKey alone
+ * would hand one family the other's tag row and quietly cross-link their
+ * recipes through it.
+ */
+export function ensureTag(
+  householdId: string,
+  name: string,
+  userId: string | null
+): Tag {
   const display = normalizeTagName(name).slice(0, MAX_TAG_LENGTH);
   const key = tagKey(display);
-  const existing = db.select().from(tags).where(eq(tags.nameKey, key)).get();
+  const where = and(eq(tags.householdId, householdId), eq(tags.nameKey, key));
+  const existing = db.select().from(tags).where(where).get();
   if (existing) return existing;
 
   const id = randomUUID();
   db.insert(tags)
     .values({
       id,
+      householdId,
       name: display,
       nameKey: key,
       createdByUserId: userId,
@@ -92,7 +112,7 @@ export function ensureTag(name: string, userId: string | null): Tag {
 
   // onConflictDoNothing covers the race where another request created the
   // same tag between the SELECT and the INSERT; re-read rather than assume.
-  return db.select().from(tags).where(eq(tags.nameKey, key)).get()!;
+  return db.select().from(tags).where(where).get()!;
 }
 
 /**
@@ -104,13 +124,14 @@ export function ensureTag(name: string, userId: string | null): Tag {
  * "garbage".
  */
 export function setRecipeTags(
+  householdId: string,
   recipeId: string,
   names: string[],
   userId: string | null
 ) {
   const wanted = new Map<string, Tag>();
   for (const name of names) {
-    const tag = ensureTag(name, userId);
+    const tag = ensureTag(householdId, name, userId);
     wanted.set(tag.id, tag);
   }
 
@@ -151,10 +172,22 @@ export interface TagSummary {
   usage: TagUsage;
 }
 
-function editableRecipeCondition(user: SessionUser) {
-  return isAdmin(user)
+/**
+ * The household whose tags this user may touch, or null.
+ *
+ * Everything below treats null as "nothing visible, nothing editable"
+ * rather than throwing: a platform operator has no household, and the
+ * honest answer to "which tags may they edit" is none, not an error page.
+ */
+function scopeOf(user: SessionUser): string | null {
+  return householdScope(user);
+}
+
+function editableRecipeCondition(user: SessionUser, householdId: string) {
+  const own = isAdmin(user)
     ? or(eq(recipes.visibility, "shared"), eq(recipes.ownerUserId, user.id))
     : and(eq(recipes.visibility, "private"), eq(recipes.ownerUserId, user.id));
+  return and(eq(recipes.householdId, householdId), own);
 }
 
 /** Recipe ids carrying `tagId` that `user` is allowed to edit. */
@@ -162,20 +195,31 @@ export function editableRecipeIdsForTag(
   user: SessionUser,
   tagId: string
 ): string[] {
+  const householdId = scopeOf(user);
+  if (!householdId) return [];
   return db
     .select({ id: recipes.id })
     .from(recipeTags)
     .innerJoin(recipes, eq(recipes.id, recipeTags.recipeId))
-    .where(and(eq(recipeTags.tagId, tagId), editableRecipeCondition(user)))
+    .where(
+      and(eq(recipeTags.tagId, tagId), editableRecipeCondition(user, householdId))
+    )
     .all()
     .map((r) => r.id);
 }
 
 export function getTagUsage(user: SessionUser, tagId: string): TagUsage {
+  const householdId = scopeOf(user);
+  if (!householdId) return { editable: 0, locked: 0, total: 0 };
+  // Counted through recipes so "total" means this household's recipes. A
+  // tag belongs to one household, but counting recipe_tags directly would
+  // still survive a stray cross-household association as an inflated
+  // "locked" number the user could neither see nor explain.
   const total = db
     .select({ id: recipeTags.recipeId })
     .from(recipeTags)
-    .where(eq(recipeTags.tagId, tagId))
+    .innerJoin(recipes, eq(recipes.id, recipeTags.recipeId))
+    .where(and(eq(recipeTags.tagId, tagId), eq(recipes.householdId, householdId)))
     .all().length;
   const editable = editableRecipeIdsForTag(user, tagId).length;
   return { editable, locked: total - editable, total };
@@ -191,7 +235,14 @@ export function getTagUsage(user: SessionUser, tagId: string): TagUsage {
  * the same reason the recipe itself is not.
  */
 export function listVisibleTags(user: SessionUser): TagSummary[] {
-  const all = db.select().from(tags).orderBy(tags.nameKey).all();
+  const householdId = scopeOf(user);
+  if (!householdId) return [];
+  const all = db
+    .select()
+    .from(tags)
+    .where(eq(tags.householdId, householdId))
+    .orderBy(tags.nameKey)
+    .all();
 
   const visibleCounts = new Map<string, number>();
   const editableCounts = new Map<string, number>();
@@ -200,6 +251,8 @@ export function listVisibleTags(user: SessionUser): TagSummary[] {
   for (const row of db
     .select({ tagId: recipeTags.tagId, count: sql<number>`count(*)` })
     .from(recipeTags)
+    .innerJoin(recipes, eq(recipes.id, recipeTags.recipeId))
+    .where(eq(recipes.householdId, householdId))
     .groupBy(recipeTags.tagId)
     .all()) {
     totalCounts.set(row.tagId, Number(row.count));
@@ -210,7 +263,10 @@ export function listVisibleTags(user: SessionUser): TagSummary[] {
     .from(recipeTags)
     .innerJoin(recipes, eq(recipes.id, recipeTags.recipeId))
     .where(
-      or(eq(recipes.visibility, "shared"), eq(recipes.ownerUserId, user.id))
+      and(
+        eq(recipes.householdId, householdId),
+        or(eq(recipes.visibility, "shared"), eq(recipes.ownerUserId, user.id))
+      )
     )
     .groupBy(recipeTags.tagId)
     .all()) {
@@ -221,7 +277,7 @@ export function listVisibleTags(user: SessionUser): TagSummary[] {
     .select({ tagId: recipeTags.tagId, count: sql<number>`count(*)` })
     .from(recipeTags)
     .innerJoin(recipes, eq(recipes.id, recipeTags.recipeId))
-    .where(editableRecipeCondition(user))
+    .where(editableRecipeCondition(user, householdId))
     .groupBy(recipeTags.tagId)
     .all()) {
     editableCounts.set(row.tagId, Number(row.count));
@@ -246,10 +302,23 @@ export function listVisibleTags(user: SessionUser): TagSummary[] {
 
 /** Whether `user` may see this tag at all (same rule as listVisibleTags). */
 export function canSeeTag(user: SessionUser, tagId: string): boolean {
+  const householdId = scopeOf(user);
+  if (!householdId) return false;
+  // Checked before anything else: an unused tag is visible to its own
+  // household, and the rule below would otherwise say yes to every other
+  // household's unused tags too.
+  const tag = db
+    .select({ id: tags.id })
+    .from(tags)
+    .where(and(eq(tags.id, tagId), eq(tags.householdId, householdId)))
+    .get();
+  if (!tag) return false;
+
   const total = db
     .select({ id: recipeTags.recipeId })
     .from(recipeTags)
-    .where(eq(recipeTags.tagId, tagId))
+    .innerJoin(recipes, eq(recipes.id, recipeTags.recipeId))
+    .where(and(eq(recipeTags.tagId, tagId), eq(recipes.householdId, householdId)))
     .all().length;
   if (total === 0) return true;
   const visible = db
@@ -259,6 +328,7 @@ export function canSeeTag(user: SessionUser, tagId: string): boolean {
     .where(
       and(
         eq(recipeTags.tagId, tagId),
+        eq(recipes.householdId, householdId),
         or(eq(recipes.visibility, "shared"), eq(recipes.ownerUserId, user.id))
       )
     )
@@ -266,12 +336,20 @@ export function canSeeTag(user: SessionUser, tagId: string): boolean {
   return visible > 0;
 }
 
-export function findTagByName(name: string): Tag | undefined {
-  return db.select().from(tags).where(eq(tags.nameKey, tagKey(name))).get();
+export function findTagByName(householdId: string, name: string): Tag | undefined {
+  return db
+    .select()
+    .from(tags)
+    .where(and(eq(tags.householdId, householdId), eq(tags.nameKey, tagKey(name))))
+    .get();
 }
 
-export function getTagById(id: string): Tag | undefined {
-  return db.select().from(tags).where(eq(tags.id, id)).get();
+export function getTagById(householdId: string, id: string): Tag | undefined {
+  return db
+    .select()
+    .from(tags)
+    .where(and(eq(tags.id, id), eq(tags.householdId, householdId)))
+    .get();
 }
 
 export type TagMutationResult =
@@ -296,7 +374,11 @@ export function renameTag(
   newName: string,
   opts: { confirmMerge?: boolean } = {}
 ): TagMutationResult {
-  const tag = getTagById(tagId);
+  const householdId = scopeOf(user);
+  // 404 rather than 403, matching how an id from another household behaves:
+  // whether a tag exists elsewhere is not this caller's business.
+  if (!householdId) return { ok: false, status: 404, error: "Tag not found." };
+  const tag = getTagById(householdId, tagId);
   if (!tag || !canSeeTag(user, tagId)) {
     return { ok: false, status: 404, error: "Tag not found." };
   }
@@ -342,7 +424,11 @@ export function renameTag(
     };
   }
 
-  const target = db.select().from(tags).where(eq(tags.nameKey, newKey)).get();
+  const target = db
+    .select()
+    .from(tags)
+    .where(and(eq(tags.householdId, householdId), eq(tags.nameKey, newKey)))
+    .get();
   if (target && !opts.confirmMerge) {
     return {
       ok: false,
@@ -368,7 +454,7 @@ export function renameTag(
     };
   }
 
-  const destination = target ?? ensureTag(display, user.id);
+  const destination = target ?? ensureTag(householdId, display, user.id);
 
   for (const recipeId of editableIds) {
     db.delete(recipeTags)
@@ -383,6 +469,10 @@ export function renameTag(
   // The old tag only disappears if nothing is left on it. When a member's
   // rename left it on shared recipes, it stays — exactly as those recipes
   // still show it.
+  //
+  // Unscoped on purpose, unlike the counts above: this decides whether the
+  // ROW may be deleted, so it has to see every association still pointing at
+  // it, not just this household's.
   const remaining = db
     .select({ id: recipeTags.recipeId })
     .from(recipeTags)
@@ -413,7 +503,9 @@ export function renameTag(
  * If the tag is left on recipes out of reach, the tag row survives.
  */
 export function deleteTag(user: SessionUser, tagId: string): TagMutationResult {
-  const tag = getTagById(tagId);
+  const householdId = scopeOf(user);
+  if (!householdId) return { ok: false, status: 404, error: "Tag not found." };
+  const tag = getTagById(householdId, tagId);
   if (!tag || !canSeeTag(user, tagId)) {
     return { ok: false, status: 404, error: "Tag not found." };
   }
@@ -453,13 +545,18 @@ export function createTag(
   user: SessionUser,
   name: string
 ): TagMutationResult {
+  const householdId = scopeOf(user);
+  if (!householdId) {
+    return { ok: false, status: 403, error: "This account is not part of a household." };
+  }
+
   const display = normalizeTagName(name).slice(0, MAX_TAG_LENGTH);
   if (!display) return { ok: false, status: 400, error: "Enter a tag name." };
 
   const existing = db
     .select()
     .from(tags)
-    .where(eq(tags.nameKey, tagKey(display)))
+    .where(and(eq(tags.householdId, householdId), eq(tags.nameKey, tagKey(display))))
     .get();
   if (existing) {
     return {
@@ -469,7 +566,7 @@ export function createTag(
     };
   }
 
-  ensureTag(display, user.id);
+  ensureTag(householdId, display, user.id);
   return {
     ok: true,
     movedRecipes: 0,

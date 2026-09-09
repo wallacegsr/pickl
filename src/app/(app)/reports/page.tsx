@@ -1,7 +1,8 @@
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { isAdmin } from "@/lib/permissions";
+import { householdScope, isAdmin } from "@/lib/permissions";
 import ReportsView from "@/components/ReportsView";
 import { listVisibleTags } from "@/lib/tags";
 
@@ -11,9 +12,15 @@ export default async function ReportsPage() {
   const session = await auth();
   const admin = isAdmin(session?.user);
 
-  const householdUsers = admin
-    ? db.select({ id: users.id, name: users.name }).from(users).all()
-    : [];
+  const householdId = householdScope(session?.user);
+  const householdUsers =
+    admin && householdId
+      ? db
+          .select({ id: users.id, name: users.name })
+          .from(users)
+          .where(eq(users.householdId, householdId))
+          .all()
+      : [];
 
   // Same visibility rule as the Tags page: a tag living only on someone
   // else's private recipe is not offered as a filter.

@@ -21,6 +21,7 @@ import {
   accountHasCredentials,
   getAccountById,
   getEnabledSharedTargets,
+  householdOfUser,
   getTargetForUserScope,
   setAccountError,
 } from "./accounts";
@@ -376,6 +377,7 @@ async function pushSlotToTarget(
  *  - shared:  every user's enabled shared target (the fan-out).
  */
 export function getTargetsForPlanWrite(
+  householdId: string,
   scope: Scope,
   userId?: string | null
 ): CalendarTarget[] {
@@ -384,7 +386,7 @@ export function getTargetsForPlanWrite(
     const target = getTargetForUserScope(userId, "private");
     return target && target.enabled ? [target] : [];
   }
-  return getEnabledSharedTargets();
+  return getEnabledSharedTargets(householdId);
 }
 
 /**
@@ -396,6 +398,7 @@ export function getTargetsForPlanWrite(
  * being updated.
  */
 export async function pushPlanSlot(input: {
+  householdId: string;
   scope: Scope;
   userId?: string | null;
   date: string;
@@ -403,7 +406,7 @@ export async function pushPlanSlot(input: {
 }): Promise<void> {
   let targets: CalendarTarget[];
   try {
-    targets = getTargetsForPlanWrite(input.scope, input.userId);
+    targets = getTargetsForPlanWrite(input.householdId, input.scope, input.userId);
   } catch (err) {
     console.error("[calendar] could not resolve sync targets:", err);
     return;
@@ -415,6 +418,7 @@ export async function pushPlanSlot(input: {
   // committed.
   const { getSlotEntries } = await import("@/lib/plan");
   const planned = getSlotEntries(
+    input.householdId,
     input.date,
     input.scope,
     input.userId ?? "",
@@ -445,6 +449,7 @@ export async function pushPlanSlot(input: {
  * down.
  */
 export function schedulePlanSlotPush(input: {
+  householdId: string;
   scope: Scope;
   userId?: string | null;
   date: string;
@@ -507,11 +512,21 @@ export async function resyncWeek(
     return result;
   }
 
+  // Taken from the target's owner rather than passed in: a reconcile reads a
+  // whole week of plan back out, and deriving the household here means no
+  // caller can hand it the wrong one.
+  const householdId = householdOfUser(target.userId);
+  if (!householdId) {
+    result.error = "This account is not part of a household.";
+    return result;
+  }
+
   try {
     const provider = getProviderForTarget(target, account);
     // Imported lazily to keep the plan <-> calendar module graph acyclic.
     const { getWeekPlan, MEAL_TYPE_LIST } = await import("@/lib/plan");
     const plan = getWeekPlan(
+      householdId,
       weekReferenceDate,
       target.scope as Scope,
       target.userId

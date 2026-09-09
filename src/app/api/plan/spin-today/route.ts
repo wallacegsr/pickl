@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { todayDateString } from "@/lib/dates";
 import { dessertSlotFor, getSlotEntries, getRecipePool, getWeekPlan, setPlanEntry, shuffle } from "@/lib/plan";
@@ -7,7 +7,6 @@ import { spinTodaySchema } from "@/lib/validators";
 import { resolvePlanContext } from "@/lib/planContext";
 import { db } from "@/db";
 import { recipes } from "@/db/schema";
-import { eq } from "drizzle-orm";
 import type { MealType } from "@/db/schema";
 
 export async function POST(req: NextRequest) {
@@ -30,7 +29,7 @@ export async function POST(req: NextRequest) {
   if (!resolved.ok) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
-  const { scope: ctxScope, userId: ctxUserId } = resolved.context;
+  const { householdId, scope: ctxScope, userId: ctxUserId } = resolved.context;
 
   const today = todayDateString();
 
@@ -40,7 +39,7 @@ export async function POST(req: NextRequest) {
     for (const mealType of mealTypes) {
       // Any recipe in the slot makes it a conflict; a slot with a main and a
       // dessert is just as 'already planned' as one with a single meal.
-      const existing = getSlotEntries(today, ctxScope, ctxUserId, mealType);
+      const existing = getSlotEntries(householdId, today, ctxScope, ctxUserId, mealType);
       const existingIds = existing
         .map((e) => e.recipeId)
         .filter((id): id is string => Boolean(id));
@@ -48,7 +47,7 @@ export async function POST(req: NextRequest) {
         const current = db
           .select()
           .from(recipes)
-          .where(inArray(recipes.id, existingIds))
+          .where(and(eq(recipes.householdId, householdId), inArray(recipes.id, existingIds)))
           .all();
         conflicts.push({ mealType, currentRecipes: current });
       }
@@ -58,7 +57,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const weekPlan = getWeekPlan(today, ctxScope, ctxUserId);
+  const weekPlan = getWeekPlan(householdId, today, ctxScope, ctxUserId);
 
   const results: { mealType: MealType; recipe: { id: string; name: string } | null }[] = [];
   const errors: string[] = [];
@@ -68,7 +67,7 @@ export async function POST(req: NextRequest) {
 
   for (const mealType of mealTypes) {
     // "main" so shaking for dinner never proposes cake.
-    const pool = getRecipePool(ctxScope, ctxUserId, mealType, "main");
+    const pool = getRecipePool(householdId, ctxScope, ctxUserId, mealType, "main");
     if (pool.length === 0) {
       errors.push(`No eligible recipes for ${mealType}.`);
       results.push({ mealType, recipe: null });
@@ -87,7 +86,7 @@ export async function POST(req: NextRequest) {
     const recipeIds = [picked.id];
 
     if (mealType === dessertSlot) {
-      const dessertPool = getRecipePool(ctxScope, ctxUserId, mealType, "dessert");
+      const dessertPool = getRecipePool(householdId, ctxScope, ctxUserId, mealType, "dessert");
       if (dessertPool.length === 0) {
         errors.push("No recipes are tagged as desserts yet.");
       } else {
@@ -98,6 +97,7 @@ export async function POST(req: NextRequest) {
     }
 
     setPlanEntry({
+      householdId,
       date: today,
       scope: ctxScope,
       userId: ctxUserId,

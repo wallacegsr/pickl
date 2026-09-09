@@ -47,6 +47,7 @@ export function onHandKey(
  * the given dates, keyed by `onHandKey`.
  */
 export function getOnHandMap(
+  householdId: string,
   scope: Scope,
   userId: string,
   dates: string[]
@@ -60,6 +61,7 @@ export function getOnHandMap(
     .from(shoppingListStatus)
     .where(
       and(
+        eq(shoppingListStatus.householdId, householdId),
         eq(shoppingListStatus.scope, scope),
         eq(shoppingListStatus.userId, owner),
         inArray(shoppingListStatus.date, dates)
@@ -86,13 +88,14 @@ export function getOnHandMap(
  * status attached.
  */
 export function buildShoppingListWeek(
+  householdId: string,
   referenceDate: string,
   scope: Scope,
   userId: string
 ): ShoppingListDay[] {
-  const weekPlan = getWeekPlan(referenceDate, scope, userId);
+  const weekPlan = getWeekPlan(householdId, referenceDate, scope, userId);
   const dates = weekPlan.map((d) => d.date);
-  const onHandMap = getOnHandMap(scope, userId, dates);
+  const onHandMap = getOnHandMap(householdId, scope, userId, dates);
 
   const days: ShoppingListDay[] = [];
   for (const day of weekPlan) {
@@ -127,6 +130,7 @@ export function buildShoppingListWeek(
 }
 
 export interface SetOnHandInput {
+  householdId: string;
   scope: Scope;
   userId: string; // owner of the calendar (private) — ignored for shared
   date: string;
@@ -147,6 +151,7 @@ export function setOnHand(input: SetOnHandInput) {
     .from(shoppingListStatus)
     .where(
       and(
+        eq(shoppingListStatus.householdId, input.householdId),
         eq(shoppingListStatus.scope, input.scope),
         eq(shoppingListStatus.userId, owner),
         eq(shoppingListStatus.date, input.date),
@@ -170,6 +175,7 @@ export function setOnHand(input: SetOnHandInput) {
     db.insert(shoppingListStatus)
       .values({
         id: randomUUID(),
+        householdId: input.householdId,
         scope: input.scope,
         userId: owner,
         date: input.date,

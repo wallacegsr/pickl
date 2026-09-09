@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { isAdmin } from "@/lib/permissions";
+import { householdScope, isAdmin } from "@/lib/permissions";
 import { logAuditEntry } from "@/lib/audit";
 
 interface Params {
@@ -24,7 +24,19 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const target = db.select().from(users).where(eq(users.id, params.id)).get();
+  const householdId = householdScope(session.user);
+  if (!householdId) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Scoped to the admin's own household, so a user id from another one is
+  // simply not found. Without this, being an admin of any household meant
+  // being able to deactivate or promote anybody on the deployment.
+  const target = db
+    .select()
+    .from(users)
+    .where(and(eq(users.id, params.id), eq(users.householdId, householdId)))
+    .get();
   if (!target) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

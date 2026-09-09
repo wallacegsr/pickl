@@ -22,9 +22,15 @@ ALTER TABLE `users` ADD `household_id` text REFERENCES households(id);--> statem
 -- to it, including the global admin, who is a real member of that family as
 -- well as the operator. Multi-tenancy therefore changes nothing for a
 -- self-hosted install: it is simply a deployment with one household.
+--
+-- Only when there is something to adopt. On a brand-new deployment this
+-- migration runs against empty tables, and creating the household anyway
+-- would leave a permanent memberless one behind: the first signup makes its
+-- own, so nothing would ever join it.
 INSERT INTO `households` (`id`, `name`, `suspended`, `created_at`, `updated_at`)
 SELECT 'household-default', 'Household', 0, strftime('%s','now'), strftime('%s','now')
-WHERE NOT EXISTS (SELECT 1 FROM `households`);
+WHERE NOT EXISTS (SELECT 1 FROM `households`)
+  AND EXISTS (SELECT 1 FROM `users`);
 --> statement-breakpoint
 UPDATE `users` SET `household_id` = 'household-default' WHERE `household_id` IS NULL;--> statement-breakpoint
 UPDATE `recipes` SET `household_id` = 'household-default' WHERE `household_id` IS NULL;--> statement-breakpoint

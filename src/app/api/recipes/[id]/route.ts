@@ -1,15 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { recipes } from "@/db/schema";
 import { recipeSchema } from "@/lib/validators";
-import { canEditRecipe, canEditSharedRecipes } from "@/lib/permissions";
+import { canEditRecipe, canEditSharedRecipes, householdScope } from "@/lib/permissions";
 import { attachTagsToRecipe, parseTagInput, setRecipeTags } from "@/lib/tags";
 import { logAuditEntry } from "@/lib/audit";
 
 interface Params {
   params: { id: string };
+}
+
+/**
+ * One recipe, looked up by id AND household.
+ *
+ * The household belongs in the WHERE clause rather than in a check after
+ * the fact: another family's *shared* recipe would satisfy the visibility
+ * rule below perfectly well, and the only thing wrong with it is that it
+ * isn't ours. Unresolvable is the right answer, and it gives the existing
+ * 404 for free.
+ */
+function findRecipe(householdId: string, id: string) {
+  return db
+    .select()
+    .from(recipes)
+    .where(and(eq(recipes.id, id), eq(recipes.householdId, householdId)))
+    .get();
 }
 
 export async function GET(_req: NextRequest, { params }: Params) {
@@ -18,11 +35,12 @@ export async function GET(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const recipe = db
-    .select()
-    .from(recipes)
-    .where(eq(recipes.id, params.id))
-    .get();
+  const householdId = householdScope(session.user);
+  if (!householdId) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const recipe = findRecipe(householdId, params.id);
 
   if (!recipe) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -32,7 +50,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json(attachTagsToRecipe(recipe));
+  return NextResponse.json(attachTagsToRecipe(householdId, recipe));
 }
 
 export async function PUT(req: NextRequest, { params }: Params) {
@@ -41,11 +59,12 @@ export async function PUT(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const existing = db
-    .select()
-    .from(recipes)
-    .where(eq(recipes.id, params.id))
-    .get();
+  const householdId = householdScope(session.user);
+  if (!householdId) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const existing = findRecipe(householdId, params.id);
 
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -92,7 +111,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     .where(eq(recipes.id, params.id))
     .run();
 
-  setRecipeTags(params.id, parseTagInput(data.tags ?? ""), session.user.id);
+  setRecipeTags(householdId, params.id, parseTagInput(data.tags ?? ""), session.user.id);
 
   logAuditEntry({
     userId: session.user.id,
@@ -100,13 +119,9 @@ export async function PUT(req: NextRequest, { params }: Params) {
     notes: `Updated recipe "${data.name}"`,
   });
 
-  const updated = db
-    .select()
-    .from(recipes)
-    .where(eq(recipes.id, params.id))
-    .get();
+  const updated = findRecipe(householdId, params.id);
 
-  return NextResponse.json(updated ? attachTagsToRecipe(updated) : null);
+  return NextResponse.json(updated ? attachTagsToRecipe(householdId, updated) : null);
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
@@ -115,11 +130,12 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const existing = db
-    .select()
-    .from(recipes)
-    .where(eq(recipes.id, params.id))
-    .get();
+  const householdId = householdScope(session.user);
+  if (!householdId) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const existing = findRecipe(householdId, params.id);
 
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });

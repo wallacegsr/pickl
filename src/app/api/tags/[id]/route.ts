@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { updateTagSchema } from "@/lib/validators";
 import { deleteTag, getTagById, listVisibleTags, renameTag } from "@/lib/tags";
 import { logAuditEntry } from "@/lib/audit";
+import { householdScope } from "@/lib/permissions";
 
 interface Params {
   params: { id: string };
@@ -22,6 +23,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const householdId = householdScope(session.user);
+  if (!householdId) {
+    return NextResponse.json({ error: "Tag not found." }, { status: 404 });
+  }
+
   const body = await req.json().catch(() => null);
   const parsed = updateTagSchema.safeParse(body);
   if (!parsed.success) {
@@ -31,7 +37,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     );
   }
 
-  const before = getTagById(params.id);
+  // Household-scoped, so a foreign tag id reads as absent here and renameTag
+  // below returns its own 404 for the same reason.
+  const before = getTagById(householdId, params.id);
   const result = renameTag(session.user, params.id, parsed.data.name, {
     confirmMerge: parsed.data.confirmMerge,
   });

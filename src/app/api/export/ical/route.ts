@@ -20,7 +20,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
 
-  const plan = getWeekPlan(week, resolved.context.scope, resolved.context.userId);
+  const plan = getWeekPlan(
+    resolved.context.householdId,
+    week,
+    resolved.context.scope,
+    resolved.context.userId
+  );
 
   const calendar = ical({ name: "Pickl" });
 

@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   if (!resolved.ok) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
-  const { scope: ctxScope, userId: ctxUserId } = resolved.context;
+  const { householdId, scope: ctxScope, userId: ctxUserId } = resolved.context;
 
   const today = todayDateString();
   const remainingDays = getRemainingDaysInWeek(today);
@@ -43,14 +43,14 @@ export async function POST(req: NextRequest) {
       // 'Filled' means the slot holds at least one recipe. Without
       // overwriteExisting a spin only fills empty slots, so a hand-built
       // two-recipe dinner is never quietly replaced.
-      return getSlotEntries(day.date, ctxScope, ctxUserId, mealType).length === 0;
+      return getSlotEntries(householdId, day.date, ctxScope, ctxUserId, mealType).length === 0;
     });
 
-    const pool = shuffle(getRecipePool(ctxScope, ctxUserId, mealType, "main"));
+    const pool = shuffle(getRecipePool(householdId, ctxScope, ctxUserId, mealType, "main"));
     // Reshuffled per day below, so a week of desserts is not one repeated pick.
     const dessertPool =
       mealType === dessertSlot
-        ? getRecipePool(ctxScope, ctxUserId, mealType, "dessert")
+        ? getRecipePool(householdId, ctxScope, ctxUserId, mealType, "dessert")
         : [];
     if (mealType === dessertSlot && dessertPool.length === 0) {
       notes.push("No recipes are tagged as desserts yet.");
@@ -69,6 +69,7 @@ export async function POST(req: NextRequest) {
       }
 
       setPlanEntry({
+        householdId,
         date: day.date,
         scope: ctxScope,
         userId: ctxUserId,

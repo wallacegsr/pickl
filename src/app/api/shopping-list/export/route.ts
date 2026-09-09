@@ -55,6 +55,7 @@ export async function GET(req: NextRequest) {
   }
 
   const allDays = buildShoppingListWeek(
+    resolved.context.householdId,
     week,
     resolved.context.scope,
     resolved.context.userId

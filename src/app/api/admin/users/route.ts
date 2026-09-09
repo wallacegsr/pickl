@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { isAdmin } from "@/lib/permissions";
+import { householdScope, isAdmin } from "@/lib/permissions";
 
 export async function GET() {
   const session = await auth();
@@ -10,7 +11,17 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const allUsers = db.select().from(users).all();
+  const householdId = householdScope(session.user);
+  if (!householdId) return NextResponse.json([]);
+
+  // A household admin administers their own family. Managing OTHER
+  // households is the platform operator's panel, and it deals in households
+  // as objects — never in their members.
+  const allUsers = db
+    .select()
+    .from(users)
+    .where(eq(users.householdId, householdId))
+    .all();
 
   const sanitized = allUsers.map((u) => ({
     id: u.id,
