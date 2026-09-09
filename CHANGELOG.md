@@ -11,6 +11,14 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-09-09
+
+Pickl can now host more than one household, which is why this is a major
+version rather than a minor one. A single-family install carries on as it was —
+the migration adopts everything already there into one household — but two
+things behave differently enough on an existing deployment to be worth reading
+before you upgrade. Both are under **Changed**.
+
 ### Added
 
 - **Households.** Every recipe, tag, plan entry, shopping list and audit entry
@@ -104,6 +112,16 @@ changes with it — the two must never disagree about what is running.
 
 ### Changed
 
+- **Self-signup no longer joins the existing household.** Anyone signing up now
+  gets their own, with themselves as its admin. If you have been telling family
+  members to sign up at your URL to join the household, that no longer works —
+  invite them from Back of House instead. The old behaviour cannot be kept:
+  signup is open to whoever can reach the page, so joining an existing family
+  by simply signing up would hand a stranger the household's calendar.
+- **SMTP and the calendar integration are the global admin's alone.** They are
+  deployment settings rather than household ones. On a single-family install
+  the same person holds both roles and sees no difference; a second household
+  admin who could previously reach those panels no longer can.
 - The JSON export gives each meal an **array** of recipes rather than one
   recipe or null; an empty array is the unplanned case. Anything consuming that
   export needs updating. Classed as a minor change rather than a major one:
@@ -196,6 +214,7 @@ Initial public release: the container image published to
 - Light and dark themes.
 - Docker deployment, with the image published to GHCR.
 
-[Unreleased]: https://github.com/wallacegsr/pickl/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/wallacegsr/pickl/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/wallacegsr/pickl/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/wallacegsr/pickl/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/wallacegsr/pickl/releases/tag/v1.0.0
