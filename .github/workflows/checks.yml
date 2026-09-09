@@ -1,0 +1,57 @@
+# The fast checks: types, and every palette's contrast.
+#
+# Deliberately not a build. The container workflow already builds on every push
+# to main and on tags, and repeating `next build` here would roughly triple the
+# runtime of the check that is supposed to give quick feedback. What is here
+# instead is the pair of things nothing else covers — the type checker, and the
+# contrast script, which is the sort of check that quietly stops being run the
+# moment it is only a command in a README.
+name: Checks
+
+on:
+  # `push` is limited to main while `pull_request` covers everything else. Both
+  # events fire for a branch pushed in this repo and then opened as a PR, so
+  # listing every branch here would run each check twice for the same commit.
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  # A second push to the same branch makes the first run's answer irrelevant.
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # Matches the Dockerfile, so a type error here is a type error there.
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        # `ci` rather than `install`: it installs exactly what the lockfile
+        # pins and fails if the lockfile and package.json disagree, which is
+        # the behaviour a check wants.
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Palette contrast
+        # Runs even when the type check failed, so one failure does not hide
+        # the other — both answers in a single run beats finding the second
+        # after fixing the first. `!cancelled()` rather than `always()`, so
+        # that cancelling the run actually stops it.
+        if: ${{ !cancelled() }}
+        run: node scripts/check-palettes.mjs --verbose

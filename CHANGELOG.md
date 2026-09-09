@@ -23,6 +23,9 @@ changes with it — the two must never disagree about what is running.
   muted and link text, borders, and each button's label against its own fill,
   in both modes. It reads the colours out of the stylesheet rather than keeping
   a copy, so it cannot report on a palette that is no longer the one shipping.
+- A **Checks** workflow runs the type checker and that contrast script on every
+  push to main and every pull request, so neither depends on someone
+  remembering to run it.
 
 ### Changed
 
