@@ -29,6 +29,18 @@ changes with it — the two must never disagree about what is running.
   there by its own colour and a cake marker. Shaking never proposes a dessert
   as a main, and "Dessert" in the shaker adds one to the last meal ticked.
 
+- A **Patterns** report on Past Preserves: how often each meal actually gets
+  planned, average cook time by day of the week, the tag mix, dessert
+  frequency, and who does the planning.
+- Recipe Frequency now lists every recipe, including ones never planned, with
+  when each was last planned and how long ago — so it answers "what haven't we
+  had in ages?" as well as "what do we cook most". It also reports a per-month
+  rate, so two different date ranges can be compared.
+- Meal History gains a tag column, a tag filter, and optional grouping by week
+  or month.
+- The Audit Log gains a "plan changes only" filter, hiding tag, recipe and
+  preference edits.
+
 ### Fixed
 
 - The Audit Log's date range filtered on the date a *meal was planned for*

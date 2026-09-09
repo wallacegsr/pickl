@@ -16,9 +16,10 @@ export async function GET(req: NextRequest) {
   const scope = (sp.get("scope") as Scope | null) || undefined;
   const mealType = (sp.get("mealType") as MealType | null) || undefined;
   const userId = isAdmin(session.user) ? sp.get("userId") || undefined : undefined;
+  const tag = sp.get("tag") || undefined;
   const format = sp.get("format");
 
-  const rows = getMealHistory(session.user, { startDate, endDate, scope, mealType, userId });
+  const rows = getMealHistory(session.user, { startDate, endDate, scope, mealType, userId, tag });
 
   if (format === "csv") {
     const csv = toCsv(

@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getRecipeFrequency, toCsv } from "@/lib/reports";
 import { isAdmin } from "@/lib/permissions";
+import { getPatternsReport } from "@/lib/reports";
 import type { MealType, Scope } from "@/db/schema";
 
+/**
+ * The Patterns report: coverage, cook time by weekday, tag mix, desserts and
+ * who plans, from one pass over the same filtered history the other reports
+ * use.
+ *
+ * No CSV export. Every other report is a list of rows that means something in
+ * a spreadsheet; this one is five different shapes at once, and flattening
+ * them into a single CSV would produce a file nobody could use.
+ */
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) {
@@ -17,19 +26,15 @@ export async function GET(req: NextRequest) {
   const mealType = (sp.get("mealType") as MealType | null) || undefined;
   const userId = isAdmin(session.user) ? sp.get("userId") || undefined : undefined;
   const tag = sp.get("tag") || undefined;
-  const format = sp.get("format");
 
-  const rows = getRecipeFrequency(session.user, { startDate, endDate, scope, mealType, userId, tag });
-
-  if (format === "csv") {
-    const csv = toCsv(["recipeName", "scope", "count"], rows);
-    return new NextResponse(csv, {
-      headers: {
-        "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="recipe-frequency.csv"`,
-      },
-    });
-  }
-
-  return NextResponse.json(rows);
+  return NextResponse.json(
+    getPatternsReport(session.user, {
+      startDate,
+      endDate,
+      scope,
+      mealType,
+      userId,
+      tag,
+    })
+  );
 }

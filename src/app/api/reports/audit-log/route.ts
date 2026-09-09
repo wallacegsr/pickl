@@ -14,9 +14,16 @@ export async function GET(req: NextRequest) {
   const endDate = sp.get("endDate") || undefined;
   const action = sp.get("action") || undefined;
   const userId = isAdmin(session.user) ? sp.get("userId") || undefined : undefined;
+  const planChangesOnly = sp.get("planChangesOnly") === "1";
   const format = sp.get("format");
 
-  const rows = getAuditLogReport(session.user, { startDate, endDate, action, userId });
+  const rows = getAuditLogReport(session.user, {
+    startDate,
+    endDate,
+    action,
+    userId,
+    planChangesOnly,
+  });
 
   if (format === "csv") {
     const csv = toCsv(
