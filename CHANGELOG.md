@@ -19,7 +19,11 @@ changes with it — the two must never disagree about what is running.
   exactly as it did before.
 - The recipe form's tags box suggests existing tags as you type, matching the
   tag you are currently typing rather than the whole field. Arrow keys and
-  Enter pick one; the box stays free text, so anything new is still a new tag.
+  Enter pick one; anything new is still a new tag.
+- Tags in that box appear as removable pills — comma or Enter adds one,
+  Backspace or the pill's × removes one.
+- On the Tags page, a tag's recipe count links to the recipe list filtered to
+  that tag.
 - Desserts. A recipe can be tagged **Dessert**, which is a category rather than
   a fourth meal slot — a dessert is planned alongside a meal and told apart
   there by its own colour and a cake marker. Shaking never proposes a dessert

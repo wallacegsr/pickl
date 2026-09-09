@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Alert,
@@ -257,10 +258,18 @@ export default function TagManager({
                   </td>
                   <td>
                     {tag.usage.total === 0 ? (
+                      // Nothing to open, so nothing to link to.
                       <span className="text-body-secondary">Not used yet</span>
                     ) : (
                       <>
-                        {tag.usage.total}
+                        <Link
+                          href={`/recipes?tag=${encodeURIComponent(tag.name)}`}
+                          title={`Show the ${tag.usage.total} recipe${
+                            tag.usage.total === 1 ? "" : "s"
+                          } tagged "${tag.name}"`}
+                        >
+                          {tag.usage.total}
+                        </Link>
                         {tag.usage.locked > 0 && (
                           <span className="text-body-secondary small ms-2">
                             ({tag.usage.editable} you can edit)

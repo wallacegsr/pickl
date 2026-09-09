@@ -947,3 +947,71 @@ html[data-pickl-sidebar="collapsed"] .pickl-sidebar-toggle {
 .pickl-tag-suggestions .list-group-item {
   text-align: start;
 }
+
+/* Tag pills. The box mimics .form-control so the field still reads as one
+   input; the real <input> sits inside it and carries only the tag being
+   typed. */
+.pickl-tag-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  /* Overrides form-control's fixed height: the box grows with its pills. */
+  height: auto;
+  min-height: calc(1.5em + 0.75rem + 2px);
+  cursor: text;
+}
+
+/* The focus ring belongs on the box, since that is what looks like the
+   control — the inner input has no border of its own to show one on. */
+.pickl-tag-box:focus-within {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 var(--bs-focus-ring-width, 0.25rem) var(--bs-focus-ring-color);
+}
+
+.pickl-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.2rem 0.1rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  background-color: rgba(var(--bs-primary-rgb), 0.14);
+  color: var(--bs-body-color);
+}
+
+.pickl-tag-pill-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 20px is under the 44px touch floor, but the pill is a secondary control
+     with a keyboard route (Backspace) and a full-size alternative (clearing
+     the field), so a larger target would cost more than it gains. */
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--bs-secondary-color);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.pickl-tag-pill-remove:hover,
+.pickl-tag-pill-remove:focus-visible {
+  background-color: rgba(var(--bs-primary-rgb), 0.25);
+  color: var(--bs-body-color);
+}
+
+/* Borderless because the box around it is the control. */
+.pickl-tag-input {
+  flex: 1 1 8ch;
+  min-width: 8ch;
+  border: 0;
+  outline: none;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+}

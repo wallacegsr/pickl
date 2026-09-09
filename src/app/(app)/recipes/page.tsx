@@ -6,7 +6,11 @@ import { isAdmin } from "@/lib/permissions";
 import RecipeList from "@/components/RecipeList";
 import { attachTags } from "@/lib/tags";
 
-export default async function RecipesPage() {
+export default async function RecipesPage({
+  searchParams,
+}: {
+  searchParams?: { tag?: string };
+}) {
   const session = await auth();
   const userId = session!.user.id;
 
@@ -23,6 +27,7 @@ export default async function RecipesPage() {
       <RecipeList
         initialRecipes={attachTags(allRecipes)}
         currentUserId={userId}
+        initialTagFilter={searchParams?.tag}
         isAdmin={isAdmin(session?.user)}
       />
     </div>

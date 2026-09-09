@@ -27,17 +27,30 @@ export default function RecipeList({
   initialRecipes,
   currentUserId,
   isAdmin,
+  initialTagFilter,
 }: {
   initialRecipes: RecipeWithTags[];
   currentUserId: string;
   isAdmin: boolean;
+  /**
+   * A tag to filter by on arrival, from `?tag=` — the Tags page links its
+   * recipe counts here. Search is narrowed to tags only, so following the "3"
+   * beside "Quick" shows those three rather than every recipe whose name or
+   * ingredients happen to contain the word.
+   */
+  initialTagFilter?: string;
 }) {
   const router = useRouter();
   const [recipes, setRecipes] = useState(initialRecipes);
   const [tab, setTab] = useState<Tab>("shared");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialTagFilter ?? "");
+  // Narrowed to tags when arriving from the Tags page: the count that was
+  // clicked counts tagged recipes, so the list it opens has to mean the same
+  // thing, or the number and the result would disagree.
   const [searchFields, setSearchFields] = useState<RecipeSearchFields>(
-    DEFAULT_RECIPE_SEARCH_FIELDS
+    initialTagFilter
+      ? { name: false, tags: true, ingredients: false }
+      : DEFAULT_RECIPE_SEARCH_FIELDS
   );
   const [deleteTarget, setDeleteTarget] = useState<Recipe | null>(null);
   const [deleting, setDeleting] = useState(false);

@@ -39,7 +39,11 @@ function recipeToFormValues(recipe?: RecipeWithTags | null, isAdmin?: boolean): 
     prepTimeMinutes: recipe?.prepTimeMinutes?.toString() ?? "",
     cookTimeMinutes: recipe?.cookTimeMinutes?.toString() ?? "",
     servings: recipe?.servings?.toString() ?? "",
-    tags: recipe ? formatTagInput(recipe.tags) : "",
+    // Trailing separator on purpose. In the tags field everything before the
+    // last comma is a committed pill and the tail is what you are typing —
+    // without it, the last saved tag would open as loose text in the input
+    // rather than as a pill like its siblings.
+    tags: recipe && recipe.tags.length > 0 ? `${formatTagInput(recipe.tags)}, ` : "",
     sourceUrl: recipe?.sourceUrl ?? "",
     notes: recipe?.notes ?? "",
     visibility:
@@ -255,7 +259,10 @@ export default function RecipeForm({
       {/* Not controlId: that would put the id on the Form.Control inside
           TagAutocompleteField, where the combobox wiring needs to own it. */}
       <Form.Group className="mb-3">
-        <Form.Label htmlFor="recipe-tags">Tags (comma separated)</Form.Label>
+        {/* No longer "(comma separated)": a comma still commits a tag, but the
+            field presents them as pills, so describing it as comma-separated
+            text would be describing the old control. */}
+        <Form.Label htmlFor="recipe-tags">Tags</Form.Label>
         <TagAutocompleteField
           id="recipe-tags"
           value={values.tags}
@@ -265,9 +272,10 @@ export default function RecipeForm({
           describedBy="recipe-tags-help"
         />
         <Form.Text id="recipe-tags-help" muted>
-          Type them however you like — anything new becomes a tag, and an
-          existing tag is matched however you capitalise it. Matching tags
-          appear as you type. Manage the whole list from Tags in the sidebar.
+          Type a tag and press comma or Enter to add it; matching existing tags
+          appear as you type. Backspace removes the last one. Anything new
+          becomes a tag, and an existing tag is matched however you capitalise
+          it. Manage the whole list from Tags in the sidebar.
         </Form.Text>
       </Form.Group>
 
