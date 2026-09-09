@@ -118,6 +118,16 @@ export default function ReportsView({
   const [auditRows, setAuditRows] = useState<AuditLogRow[] | null>(null);
   const [patterns, setPatterns] = useState<PatternsReport | null>(null);
 
+  /**
+   * Local midnight of a YYYY-MM-DD, in epoch milliseconds, optionally N days
+   * later. Built from the parts rather than `new Date(string)`, which parses
+   * a bare date as UTC and would reintroduce the very offset this avoids.
+   */
+  function localDayStart(date: string, plusDays = 0) {
+    const [year, month, day] = date.split("-").map(Number);
+    return new Date(year, month - 1, day + plusDays).getTime();
+  }
+
   function buildParams(extra?: Record<string, string>) {
     const params = new URLSearchParams();
     if (startDate) params.set("startDate", startDate);
@@ -129,6 +139,13 @@ export default function ReportsView({
     } else {
       if (action) params.set("action", action);
       if (planChangesOnly) params.set("planChangesOnly", "1");
+      // The audit log is a list of moments, so "8 September" has to mean this
+      // viewer's 8 September. Only the browser knows that, so it resolves the
+      // picked dates to instants here rather than letting the server guess
+      // with its own clock — which in a container is UTC, and cut the day off
+      // at 5pm for anyone in California.
+      if (startDate) params.set("startAt", String(localDayStart(startDate)));
+      if (endDate) params.set("endBefore", String(localDayStart(endDate, 1)));
     }
     if (isAdmin && userId) params.set("userId", userId);
     if (extra) {

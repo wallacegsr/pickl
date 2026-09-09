@@ -14,12 +14,25 @@ export async function GET(req: NextRequest) {
   const endDate = sp.get("endDate") || undefined;
   const action = sp.get("action") || undefined;
   const userId = isAdmin(session.user) ? sp.get("userId") || undefined : undefined;
+  // Epoch milliseconds computed by the browser from the dates it showed, in
+  // its own timezone. Parsed defensively: a junk value must fall back to the
+  // date strings rather than silently filtering everything out.
+  const asEpoch = (name: string) => {
+    const raw = sp.get(name);
+    if (raw === null) return undefined;
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : undefined;
+  };
+  const startAt = asEpoch("startAt");
+  const endBefore = asEpoch("endBefore");
   const planChangesOnly = sp.get("planChangesOnly") === "1";
   const format = sp.get("format");
 
   const rows = getAuditLogReport(session.user, {
     startDate,
     endDate,
+    startAt,
+    endBefore,
     action,
     userId,
     planChangesOnly,

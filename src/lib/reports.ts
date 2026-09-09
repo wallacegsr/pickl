@@ -257,6 +257,24 @@ export interface AuditLogRow {
 export interface AuditLogFilters {
   startDate?: string;
   endDate?: string;
+  /**
+   * The range as absolute instants, in epoch milliseconds: `startAt` inclusive,
+   * `endBefore` exclusive.
+   *
+   * Sent by the browser, which computes them from the picked dates in ITS OWN
+   * timezone. Preferred over startDate/endDate, and the reason is a bug that
+   * survived one fix already.
+   *
+   * "All of 8 September" is not a fact about an instant; it depends on who is
+   * asking. Deriving it server-side used the server's zone, which in a
+   * container is UTC — so for a viewer in Los Angeles the day ended at 5pm
+   * their time, and everything they did that evening fell outside a range that
+   * named their own date. The browser is the only party that knows which
+   * instants the user means, so it decides, and this side does no zone maths
+   * at all.
+   */
+  startAt?: number;
+  endBefore?: number;
   action?: string;
   userId?: string; // admin-only: restrict to actions by/about one user
   /** Drop everything that is not a change to the plan itself. */
@@ -293,18 +311,32 @@ export function getAuditLogReport(
   // The other two reports are about planned meals, so they still filter on the
   // plan date (see dateRangeConditions). This one is a log of actions.
   const conditions = [];
-  if (filters.startDate) {
-    conditions.push(gte(auditLog.timestamp, parseDateString(filters.startDate)));
-  }
-  if (filters.endDate) {
+
+  // The browser's instants win when it sends them. The date-string path stays
+  // as a fallback for a direct API call, but it can only interpret a day in
+  // the server's own zone, which is the very thing that made this wrong.
+  const startAt =
+    filters.startAt !== undefined
+      ? new Date(filters.startAt)
+      : filters.startDate
+        ? parseDateString(filters.startDate)
+        : null;
+
+  let endBefore: Date | null = null;
+  if (filters.endBefore !== undefined) {
+    endBefore = new Date(filters.endBefore);
+  } else if (filters.endDate) {
     // The end date is inclusive of the whole day, so the bound is midnight at
-    // the START of the following day and the comparison is exclusive. Using
-    // lte against the end date's midnight would have hidden everything but
-    // actions taken in the first instant of it.
+    // the START of the following day and the comparison is exclusive. An lte
+    // against the end date's own midnight would return only actions taken in
+    // its first instant.
     const dayAfterEnd = parseDateString(filters.endDate);
     dayAfterEnd.setDate(dayAfterEnd.getDate() + 1);
-    conditions.push(lt(auditLog.timestamp, dayAfterEnd));
+    endBefore = dayAfterEnd;
   }
+
+  if (startAt) conditions.push(gte(auditLog.timestamp, startAt));
+  if (endBefore) conditions.push(lt(auditLog.timestamp, endBefore));
 
   const rows = db
     .select()

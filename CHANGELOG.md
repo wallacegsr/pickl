@@ -43,6 +43,11 @@ changes with it — the two must never disagree about what is running.
 
 ### Fixed
 
+- The Audit Log's date range now means the **viewer's** day, not the server's.
+  In a container the server keeps UTC time, so for anyone west of it the range
+  ended early — in California, everything after 5pm fell outside a range naming
+  that very date. The browser now resolves the picked dates to instants,
+  because it is the only side that knows which day the user meant.
 - The Audit Log's date range filtered on the date a *meal was planned for*
   rather than when the action happened. Tag edits, recipe edits and theme
   changes carry no meal date and so vanished from any dated report entirely,
