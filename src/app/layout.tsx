@@ -1,5 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
+import {
+  DEFAULT_PALETTE,
+  PALETTE_HTML_ATTRIBUTE,
+  PALETTE_STORAGE_KEY,
+  PALETTE_VALUES,
+} from "@/lib/paletteValues";
 // Bootstrap recompiled from Sass with the Pickl "jar & brine" palette. Must
 // NOT be swapped back to bootstrap/dist/css/bootstrap.min.css: the prebuilt
 // file hardcodes the stock blue into every component. See the file's header.
@@ -90,15 +96,17 @@ const sidebarInitScript = `
 // light/dark above. Must run before first paint for the same reason — a page
 // that paints deep green and then swaps to cream is worse than either.
 //
-// The key must stay in sync with PALETTE_STORAGE_KEY in src/lib/palette.ts.
+// The names and keys are interpolated from src/lib/paletteValues.ts rather
+// than written out again here, so adding a palette needs no edit to this file.
 // Default (nothing stored) is the original jar-and-brine green.
 const paletteInitScript = `
 (function () {
   try {
-    var palette = localStorage.getItem("pickl-palette-v1");
+    var allowed = ${JSON.stringify(PALETTE_VALUES)};
+    var palette = localStorage.getItem(${JSON.stringify(PALETTE_STORAGE_KEY)});
     document.documentElement.setAttribute(
-      "data-pickl-palette",
-      palette === "bright" ? "bright" : "default"
+      ${JSON.stringify(PALETTE_HTML_ATTRIBUTE)},
+      allowed.indexOf(palette) === -1 ? ${JSON.stringify(DEFAULT_PALETTE)} : palette
     );
   } catch (e) {}
 })();

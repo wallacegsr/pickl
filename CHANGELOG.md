@@ -11,6 +11,30 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+### Added
+
+- Four more colour schemes: **Golden Hour** (amber on warm paper), **Brick**
+  (terracotta and warm clay), **Slate** (cool indigo on near-white) and
+  **Graphite** (near-neutral, with colour kept for the things that mean
+  something). Each works in light and dark, same as the two before them.
+- The colour scheme picker shows a swatch of each palette's actual paper,
+  button and link colours.
+- `node scripts/check-palettes.mjs` checks every palette's contrast — body,
+  muted and link text, borders, and each button's label against its own fill,
+  in both modes. It reads the colours out of the stylesheet rather than keeping
+  a copy, so it cannot report on a palette that is no longer the one shipping.
+
+### Changed
+
+- A palette is now defined by sixteen colours passed to a mixin, rather than
+  163 lines of hand-written rules. Hover, active and disabled states, button
+  label colours and every dark-mode accent are derived from those sixteen by
+  Bootstrap's own functions. Adding a scheme was a copy-paste-and-hope job and
+  is now about eighteen lines.
+- Fresh & Sunny's dark-mode accents shift by a few points per channel. They
+  were hand-picked tints of the light-mode hues; they are now computed tints of
+  the same hues, which is what they were approximating.
+
 ## [2.0.0] - 2026-09-09
 
 Pickl can now host more than one household, which is why this is a major

@@ -4,9 +4,9 @@
  * Colour palette ("tone"), independent of light/dark mode.
  *
  * Two axes, deliberately separate: `data-bs-theme` decides light vs dark, and
- * `data-pickl-palette` decides which set of hues fills it. Every combination is
- * defined in src/styles/pickl-bootstrap.scss, so bright works in dark mode and
- * the default works in light.
+ * `data-pickl-palette` decides which set of hues fills it. Every palette is
+ * defined for both modes in src/styles/pickl-bootstrap.scss, so all of them
+ * work either way round — the combinations are a grid, not a list.
  *
  * ---------------------------------------------------------------------------
  * Why localStorage rather than the database
@@ -22,12 +22,27 @@
  * /api/preferences/theme; nothing here would have to change shape.
  */
 
-export type Palette = "default" | "bright";
+// The names and keys live in a module without "use client" so the root layout
+// can read them on the server to build its pre-hydration script. Re-exported
+// here so existing importers do not have to care which file they came from.
+export {
+  PALETTE_VALUES,
+  DEFAULT_PALETTE,
+  PALETTE_STORAGE_KEY,
+  PALETTE_HTML_ATTRIBUTE,
+  PALETTE_CHANGE_EVENT,
+  isPalette,
+  type Palette,
+} from "@/lib/paletteValues";
 
-export const PALETTE_STORAGE_KEY = "pickl-palette-v1";
-/** Must stay in sync with the literal in the inline script in src/app/layout.tsx. */
-export const PALETTE_HTML_ATTRIBUTE = "data-pickl-palette";
-export const PALETTE_CHANGE_EVENT = "pickl-palette-change";
+import {
+  DEFAULT_PALETTE,
+  isPalette,
+  PALETTE_CHANGE_EVENT,
+  PALETTE_HTML_ATTRIBUTE,
+  PALETTE_STORAGE_KEY,
+  type Palette,
+} from "@/lib/paletteValues";
 
 export const PALETTES: { value: Palette; label: string; description: string }[] = [
   {
@@ -40,27 +55,43 @@ export const PALETTES: { value: Palette; label: string; description: string }[] 
     label: "Fresh & Sunny",
     description: "Warm cream paper, vivid leaf green and sunny yellow.",
   },
+  {
+    value: "golden",
+    label: "Golden Hour",
+    description: "Amber and bronze on warm paper.",
+  },
+  {
+    value: "brick",
+    label: "Brick",
+    description: "Terracotta and warm clay.",
+  },
+  {
+    value: "slate",
+    label: "Slate",
+    description: "Cool indigo on near-white. Crisp and plain.",
+  },
+  {
+    value: "graphite",
+    label: "Graphite",
+    description: "Near-neutral greys, with colour kept for what means something.",
+  },
 ];
-
-export function isPalette(value: unknown): value is Palette {
-  return value === "default" || value === "bright";
-}
 
 export function readStoredPalette(): Palette {
   try {
     const stored = window.localStorage.getItem(PALETTE_STORAGE_KEY);
-    return isPalette(stored) ? stored : "default";
+    return isPalette(stored) ? stored : DEFAULT_PALETTE;
   } catch {
     // Private browsing or storage disabled.
-    return "default";
+    return DEFAULT_PALETTE;
   }
 }
 
 /** Reads what the pre-hydration script decided, off the DOM. */
 export function readAppliedPalette(): Palette {
-  if (typeof document === "undefined") return "default";
+  if (typeof document === "undefined") return DEFAULT_PALETTE;
   const applied = document.documentElement.getAttribute(PALETTE_HTML_ATTRIBUTE);
-  return isPalette(applied) ? applied : "default";
+  return isPalette(applied) ? applied : DEFAULT_PALETTE;
 }
 
 export function setPalette(palette: Palette) {

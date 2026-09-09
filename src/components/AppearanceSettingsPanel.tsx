@@ -125,7 +125,26 @@ export default function AppearanceSettingsPanel({
               onChange={() => choosePalette(option.value)}
               label={
                 <>
-                  {option.label}
+                  <span className="d-inline-flex align-items-center gap-2">
+                    {/*
+                      The swatch carries the palette's own attributes, so the
+                      three dots below resolve their colours from the palette's
+                      real CSS rather than from a copy of its hexes kept here.
+                      Nothing to keep in step, and a new palette gets a correct
+                      swatch for free.
+                    */}
+                    <span
+                      className="pickl-swatch"
+                      data-pickl-palette={option.value}
+                      data-bs-theme="light"
+                      aria-hidden="true"
+                    >
+                      <i style={{ background: "var(--bs-body-bg)" }} />
+                      <i style={{ background: "var(--bs-primary)" }} />
+                      <i style={{ background: "var(--bs-link-color)" }} />
+                    </span>
+                    {option.label}
+                  </span>
                   <span className="d-block text-muted small">
                     {option.description}
                   </span>
