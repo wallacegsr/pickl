@@ -31,6 +31,12 @@ changes with it — the two must never disagree about what is running.
 
 ### Fixed
 
+- The Audit Log's date range filtered on the date a *meal was planned for*
+  rather than when the action happened. Tag edits, recipe edits and theme
+  changes carry no meal date and so vanished from any dated report entirely,
+  and a shake that filled the rest of the week was judged by the days it
+  planned for rather than the day it ran. The range is now inclusive of both
+  whole days.
 - Saving a recipe tagged **Dessert** failed with "Invalid enum value". The API's
   meal-type list was written out by hand and had not gained "dessert", so the
   checkbox existed but nothing it produced could be stored. Both meal-type

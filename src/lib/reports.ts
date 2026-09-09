@@ -1,7 +1,8 @@
-import { and, gte, lte } from "drizzle-orm";
+import { and, gte, lt, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { auditLog, planEntries, recipes, users, type MealType, type Scope } from "@/db/schema";
 import { isAdmin, type SessionUser } from "@/lib/permissions";
+import { parseDateString } from "@/lib/dates";
 
 export interface ReportFilters {
   startDate?: string;
@@ -148,9 +149,30 @@ export function getAuditLogReport(
   requestingUser: SessionUser,
   filters: AuditLogFilters
 ): AuditLogRow[] {
+  // Filtered on WHEN THE ACTION HAPPENED, not on the plan date it refers to.
+  //
+  // This used to compare `auditLog.date`, which is the date of the meal an
+  // entry is about and is null for everything that is not a plan edit. That
+  // dropped every tag edit, recipe edit and theme change out of any dated
+  // report — a null fails both comparisons — and judged the rest by the day
+  // they planned FOR rather than the day they were made, so a Monday shake
+  // that filled the rest of the week vanished from a Monday-to-Tuesday range.
+  //
+  // The other two reports are about planned meals, so they still filter on the
+  // plan date (see dateRangeConditions). This one is a log of actions.
   const conditions = [];
-  if (filters.startDate) conditions.push(gte(auditLog.date, filters.startDate));
-  if (filters.endDate) conditions.push(lte(auditLog.date, filters.endDate));
+  if (filters.startDate) {
+    conditions.push(gte(auditLog.timestamp, parseDateString(filters.startDate)));
+  }
+  if (filters.endDate) {
+    // The end date is inclusive of the whole day, so the bound is midnight at
+    // the START of the following day and the comparison is exclusive. Using
+    // lte against the end date's midnight would have hidden everything but
+    // actions taken in the first instant of it.
+    const dayAfterEnd = parseDateString(filters.endDate);
+    dayAfterEnd.setDate(dayAfterEnd.getDate() + 1);
+    conditions.push(lt(auditLog.timestamp, dayAfterEnd));
+  }
 
   const rows = db
     .select()
