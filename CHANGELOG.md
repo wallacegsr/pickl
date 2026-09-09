@@ -22,6 +22,14 @@ changes with it — the two must never disagree about what is running.
   there by its own colour and a cake marker. Shaking never proposes a dessert
   as a main, and "Dessert" in the shaker adds one to the last meal ticked.
 
+### Fixed
+
+- Saving a recipe tagged **Dessert** failed with "Invalid enum value". The API's
+  meal-type list was written out by hand and had not gained "dessert", so the
+  checkbox existed but nothing it produced could be stored. Both meal-type
+  enums are now derived from the schema, and "dessert" survives the "Any meal"
+  collapse rather than being silently dropped on save.
+
 ### Changed
 
 - The JSON export gives each meal an **array** of recipes rather than one

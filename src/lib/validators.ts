@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MEAL_TYPES, RECIPE_MEAL_TYPES } from "@/db/schema";
 
 export const signupSchema = z
   .object({
@@ -82,12 +83,15 @@ export const themePreferenceSchema = z.object({
   theme: z.enum(["light", "dark", "system"]),
 });
 
-export const recipeMealTypeSchema = z.enum([
-  "breakfast",
-  "lunch",
-  "dinner",
-  "any",
-]);
+/**
+ * Derived from RECIPE_MEAL_TYPES rather than repeating it.
+ *
+ * This list was written out by hand here, which meant adding "dessert" to the
+ * schema and the form left the API still rejecting it: the checkbox saved
+ * nothing and the form showed a state it would not let you create. Deriving it
+ * makes that class of drift impossible.
+ */
+export const recipeMealTypeSchema = z.enum(RECIPE_MEAL_TYPES);
 
 export const recipeSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(300),
@@ -123,7 +127,15 @@ export const recipeSchema = z.object({
     // either redundant or contradictory. Collapse it here as well as in the
     // form, so an API client cannot store ["any","dinner"] and leave the UI
     // showing a state it will not let you create.
-    .transform((v) => (v.includes("any") ? ["any"] : v)),
+    //
+    // "dessert" survives the collapse. It is a category, not a slot — it says
+    // what a recipe IS, where the others say when it may be planned — so
+    // ["any","dessert"] is a perfectly coherent trifle, not a contradiction.
+    // Collapsing it away would have silently unticked Dessert on save.
+    .transform((v) => {
+      if (!v.includes("any")) return v;
+      return v.includes("dessert") ? ["any" as const, "dessert" as const] : ["any" as const];
+    }),
 });
 
 // ---------------------------------------------------------------------------
@@ -150,7 +162,13 @@ export const updateTagSchema = z.object({
 });
 
 export const scopeSchema = z.enum(["shared", "private"]);
-export const mealTypeSchema = z.enum(["breakfast", "lunch", "dinner"]);
+/**
+ * The three plan SLOTS. Deliberately not RECIPE_MEAL_TYPES: "any" and
+ * "dessert" describe a recipe, not a place on the calendar, and neither is
+ * somewhere a meal can be planned. Derived from MEAL_TYPES for the same
+ * anti-drift reason as recipeMealTypeSchema above.
+ */
+export const mealTypeSchema = z.enum(MEAL_TYPES);
 
 export const planEntrySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date"),
