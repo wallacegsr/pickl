@@ -141,6 +141,12 @@ function checksFor({ colours: c }, settings) {
   const add = (mode, label, fg, bg, min) =>
     rows.push({ mode, label, fg, bg, min, value: ratio(fg, bg) });
 
+  // A palette may name its own accent for dark mode; most inherit the one
+  // primary. Everything dark-mode below is measured against whichever it
+  // actually uses, or the numbers would describe a colour that never renders.
+  const primaryDark = c["primary-dark"] ?? c.primary;
+  const linkDark = c["link-dark"] ?? tint(primaryDark, 0.55);
+
   // --- light mode ---
   add("light", "body text on background", c.fg, c.bg, 7);
   add("light", "muted text on background", c.muted, c.bg, 4.5);
@@ -153,9 +159,9 @@ function checksFor({ colours: c }, settings) {
   add("dark", "body text on background", c["fg-dark"], c["bg-dark"], 7);
   add("dark", "muted text on background", mix(c["fg-dark"], c["bg-dark"], 0.78), c["bg-dark"], 4.5);
   add("dark", "body text on raised surface", c["fg-dark"], c["tertiary-dark"], 7);
-  add("dark", "link on background", tint(c.primary, 0.55), c["bg-dark"], 4.5);
+  add("dark", "link on background", linkDark, c["bg-dark"], 4.5);
   add("dark", "border against background", c["border-dark"], c["bg-dark"], 1.3);
-  add("dark", "primary emphasis text", tint(c.primary, 0.55), c["bg-dark"], 4.5);
+  add("dark", "primary emphasis text", linkDark, c["bg-dark"], 4.5);
   add("dark", "success emphasis text", tint(c.success, 0.45), c["bg-dark"], 4.5);
   add("dark", "warning emphasis text", tint(c.warning, 0.3), c["bg-dark"], 4.5);
   add("dark", "danger emphasis text", tint(c.danger, 0.45), c["bg-dark"], 4.5);
@@ -177,7 +183,26 @@ function checksFor({ colours: c }, settings) {
 
   // A filled button also has to be visible as a shape against the page.
   add("light", "primary fill against background", c.primary, c.bg, 1.4);
-  add("dark", "primary fill against background", c.primary, c["bg-dark"], 1.4);
+  add("dark", "primary fill against background", primaryDark, c["bg-dark"], 1.4);
+
+  // The dark accent gets its own label check: it is a different fill, so
+  // color-contrast() may well pick different ink for it.
+  if (c["primary-dark"]) {
+    const label = autoLabel(primaryDark, settings);
+    rows.push({
+      mode: "dark",
+      label: `btn-primary label (${toHex(label) === "#ffffff" ? "light" : "dark"} ${toHex(label)}) on dark accent`,
+      fg: label,
+      bg: primaryDark,
+      min: settings.minRatio,
+      value: ratio(label, primaryDark),
+    });
+  }
+
+  // The header is one bar under both modes, so it is checked once.
+  if (c["nav-bg"] && c["nav-ink"]) {
+    add("both", "header ink on header", c["nav-ink"], c["nav-bg"], 4.5);
+  }
 
   return rows;
 }

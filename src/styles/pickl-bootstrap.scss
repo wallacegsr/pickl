@@ -530,13 +530,43 @@ $navbar-dark-active-color: $white;
   $tertiary-dark: map-get($c, tertiary-dark);
   $border-dark: map-get($c, border-dark);
 
+  // --- The header -------------------------------------------------------
+  // One bar for both modes. It reads as chrome rather than as page, and a
+  // header that inverts with the theme stops being the fixed landmark at the
+  // top of every screen.
+  $nav-bg: map-get($c, nav-bg);
+  $nav-ink: map-get($c, nav-ink);
+
+  // --- Optional per-mode accent -----------------------------------------
+  // A palette may name a different primary for dark mode. Most do not need
+  // to: a mid-toned hue fills a shape legibly against either ground, and one
+  // primary keeps the CSS smaller.
+  //
+  // It matters when a palette is DESIGNED around a dark ground — a pale mint
+  // accent that carries dark ink beautifully at #0E1512 is a washed-out
+  // button on white paper, and the deep version that works on paper is
+  // invisible against near-black. Those palettes name both.
+  $primary-dark: if(map-has-key($c, primary-dark), map-get($c, primary-dark), $primary);
+  $has-dark-primary: $primary-dark != $primary;
+
   // --- Derived dark accents ---------------------------------------------
   // A dark background needs the light hue lightened, not the text colour
   // darkened. Weights differ per role because the hues start at different
   // lightnesses: warning is already pale, danger and success are not.
-  $link-dark: pickl-crisp(tint-color($primary, 55%));
-  $link-dark-hover: pickl-crisp(tint-color($primary, 72%));
-  $primary-emphasis-dark: pickl-crisp(tint-color($primary, 55%));
+  // Derived from whichever primary dark mode actually uses, and overridable
+  // outright for a palette that has a chosen hover tone rather than a
+  // computed one.
+  $link-dark: if(
+    map-has-key($c, link-dark),
+    map-get($c, link-dark),
+    pickl-crisp(tint-color($primary-dark, 55%))
+  );
+  $link-dark-hover: if(
+    map-has-key($c, link-dark-hover),
+    map-get($c, link-dark-hover),
+    pickl-crisp(tint-color($primary-dark, 72%))
+  );
+  $primary-emphasis-dark: $link-dark;
   $success-emphasis-dark: pickl-crisp(tint-color($success, 45%));
   $warning-emphasis-dark: pickl-crisp(tint-color($warning, 30%));
   $danger-emphasis-dark: pickl-crisp(tint-color($danger, 45%));
@@ -595,6 +625,11 @@ $navbar-dark-active-color: $white;
     --bs-danger: #{$danger};
     --bs-danger-rgb: #{to-rgb($danger)};
     --bs-focus-ring-color: #{rgba($primary, $focus-ring-opacity)};
+
+    // The header. Read by .pickl-topbar in globals.css, which falls back to
+    // the jar-and-brine bar when no palette is set.
+    --pickl-topbar-bg: #{$nav-bg};
+    --pickl-topbar-ink: #{$nav-ink};
 
     // Buttons. Regenerated through Bootstrap's mixin so hover/active/disabled
     // and the label colour are derived, not guessed.
@@ -661,6 +696,40 @@ $navbar-dark-active-color: $white;
     .nav-tabs .nav-link.active {
       color: $link-dark;
     }
+
+    // Emitted only for a palette that named a dark accent, so the palettes
+    // using one primary throughout pay nothing for the option.
+    @if $has-dark-primary {
+      --bs-primary: #{$primary-dark};
+      --bs-primary-rgb: #{to-rgb($primary-dark)};
+      --bs-focus-ring-color: #{rgba($primary-dark, $focus-ring-opacity)};
+
+      .btn-primary { @include button-variant($primary-dark, $primary-dark); }
+      .btn-outline-primary { @include button-outline-variant($primary-dark); }
+
+      .form-check-input:checked {
+        background-color: $primary-dark;
+        border-color: $primary-dark;
+      }
+
+      .form-check-input:focus,
+      .form-control:focus,
+      .form-select:focus {
+        border-color: tint-color($primary-dark, 30%);
+      }
+
+      .nav-pills .nav-link.active,
+      .nav-pills .show > .nav-link,
+      .list-group-item.active {
+        background-color: $primary-dark;
+        border-color: $primary-dark;
+        color: color-contrast($primary-dark);
+      }
+
+      .progress-bar {
+        background-color: $primary-dark;
+      }
+    }
   }
 }
 
@@ -668,24 +737,42 @@ $navbar-dark-active-color: $white;
 // The palettes
 // ---------------------------------------------------------------------------
 
-// "Fresh & Sunny" — warm cream paper, vivid leaf green, sunnier accents.
+// "Fresh & Crisp" — a dark-first scheme: pale mint on near-black green, with a
+// light mode built to match rather than the other way round.
+//
+// The dark values are taken verbatim from the design this was asked to follow,
+// which is why this is the one palette naming a separate `primary-dark`. Its
+// accent (#74C69D) is a pale mint that carries dark ink beautifully against
+// #0E1512 and looks washed out on white paper, so light mode uses a deeper
+// mint of the same hue that can carry a white label.
+//
+// Still keyed "bright" in storage. The name on screen changed; changing the
+// value would silently reset the choice for anyone already using it.
 @include pickl-palette("bright", (
-  primary:        #45ab55,
-  secondary:      #6d7864,
-  success:        #82c91e,
-  info:           #a3c644,
-  warning:        #fcc419,
-  danger:         #c92a2a,
-  bg:             #fffdf5,
-  fg:             #20261e,
-  muted:          #55604f,
-  tertiary:       #f7f3e3,
-  border:         #ded8bd,
-  link:           #2b7a37,
-  bg-dark:        #171d17,
-  fg-dark:        #eef3e6,
-  tertiary-dark:  #202a20,
-  border-dark:    #3a4a36
+  primary:        #277954,
+  primary-dark:   #74c69d,
+  link-dark:      #95d5b2,
+  secondary:      #5c6f66,
+  success:        #34a06b,
+  info:           #4a9e96,
+  // The design's own warn tone, which works as a fill under either mode.
+  warning:        #e0b15c,
+  // Deliberately NOT the design's soft salmon: that is its dark-mode *text*
+  // colour, and a salmon fill reads as a warning rather than as a danger on
+  // white. The dark-mode emphasis tint of this lands close to it anyway.
+  danger:         #c4453c,
+  bg:             #f7fbf9,
+  fg:             #101a15,
+  muted:          #5c6f66,
+  tertiary:       #ecf4ef,
+  border:         #c6d9ce,
+  link:           #1e6b4c,
+  bg-dark:        #0e1512,
+  fg-dark:        #e6ede8,
+  tertiary-dark:  #1a241f,
+  border-dark:    #26332c,
+  nav-bg:         #0b120f,
+  nav-ink:        #dce7e0
 ));
 
 // "Golden Hour" — amber on warm paper.
@@ -705,7 +792,9 @@ $navbar-dark-active-color: $white;
   bg-dark:        #191510,
   fg-dark:        #f2ead9,
   tertiary-dark:  #241e16,
-  border-dark:    #493d2b
+  border-dark:    #493d2b,
+  nav-bg:         #3b2a0c,
+  nav-ink:        #f8efd9
 ));
 
 // "Brick" — terracotta and warm clay.
@@ -725,7 +814,9 @@ $navbar-dark-active-color: $white;
   bg-dark:        #1a1412,
   fg-dark:        #f5e8e3,
   tertiary-dark:  #261b18,
-  border-dark:    #4d3a34
+  border-dark:    #4d3a34,
+  nav-bg:         #3a211a,
+  nav-ink:        #f8e9e3
 ));
 
 // "Slate" — cool indigo on near-white.
@@ -745,7 +836,9 @@ $navbar-dark-active-color: $white;
   bg-dark:        #10141c,
   fg-dark:        #e6ecf7,
   tertiary-dark:  #1a2029,
-  border-dark:    #333d4d
+  border-dark:    #333d4d,
+  nav-bg:         #151b2e,
+  nav-ink:        #e6ecf7
 ));
 
 // "Graphite" — near-neutral, with colour kept for the things that mean
@@ -766,5 +859,7 @@ $navbar-dark-active-color: $white;
   bg-dark:        #121417,
   fg-dark:        #e8ebee,
   tertiary-dark:  #1c1f24,
-  border-dark:    #363c44
+  border-dark:    #363c44,
+  nav-bg:         #1c2026,
+  nav-ink:        #e8ebee
 ));

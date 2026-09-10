@@ -60,6 +60,37 @@ export default function AppearanceSettingsPanel({
     return () => window.removeEventListener(PALETTE_CHANGE_EVENT, read);
   }, []);
 
+  // Which mode is actually showing, as opposed to which is preferred —
+  // "system" resolves to either. Read off the attribute the app already
+  // stamps on <html> rather than recomputed here, so there is one answer.
+  //
+  // Only the swatches use it. They need both attributes to match a palette's
+  // surface rules, which are declared on
+  // [data-pickl-palette=x][data-bs-theme=y]; with only the palette attribute
+  // they match nothing and silently preview the page's own colours instead.
+  //
+  // Starts at "light" so server and first client render agree, then the
+  // effect corrects it — same reasoning as the two states above.
+  const [mode, setMode] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    const read = () =>
+      setMode(
+        document.documentElement.getAttribute("data-bs-theme") === "dark"
+          ? "dark"
+          : "light"
+      );
+    read();
+    window.addEventListener(THEME_CHANGE_EVENT, read);
+    // "system" follows the OS, which can change with nobody touching the app.
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    media.addEventListener("change", read);
+    return () => {
+      window.removeEventListener(THEME_CHANGE_EVENT, read);
+      media.removeEventListener("change", read);
+    };
+  }, []);
+
   function choosePalette(next: Palette) {
     setPaletteState(next);
     setPalette(next);
@@ -127,16 +158,22 @@ export default function AppearanceSettingsPanel({
                 <>
                   <span className="d-inline-flex align-items-center gap-2">
                     {/*
-                      The swatch carries the palette's own attributes, so the
+                      The swatch carries the palette's own attribute, so the
                       three dots below resolve their colours from the palette's
                       real CSS rather than from a copy of its hexes kept here.
                       Nothing to keep in step, and a new palette gets a correct
                       swatch for free.
+
+                      data-bs-theme is the mode actually showing, not a fixed
+                      "light": a palette designed dark would otherwise advertise
+                      itself with the colours it only uses on paper. It has to
+                      be set rather than inherited, because a palette's surface
+                      rules are keyed on both attributes together.
                     */}
                     <span
                       className="pickl-swatch"
                       data-pickl-palette={option.value}
-                      data-bs-theme="light"
+                      data-bs-theme={mode}
                       aria-hidden="true"
                     >
                       <i style={{ background: "var(--bs-body-bg)" }} />

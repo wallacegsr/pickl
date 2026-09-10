@@ -51,9 +51,11 @@ export const PALETTES: { value: Palette; label: string; description: string }[] 
     description: "Deep green and mustard. The original Pickl look.",
   },
   {
+    // Still keyed "bright": the scheme was renamed, not replaced, and changing
+    // the stored value would silently reset the choice for anyone using it.
     value: "bright",
-    label: "Fresh & Sunny",
-    description: "Warm cream paper, vivid leaf green and sunny yellow.",
+    label: "Fresh & Crisp",
+    description: "Pale mint on near-black green. Designed dark, and dressed for light.",
   },
   {
     value: "golden",

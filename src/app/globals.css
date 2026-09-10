@@ -433,6 +433,7 @@ body.pickl-col-resizing {
   --pickl-topbar-h: 3.25rem;
   --pickl-sidebar-w: 15rem;
   --pickl-sidebar-w-collapsed: 3.75rem;
+
 }
 
 /* The width is driven by an attribute stamped on <html> BEFORE hydration by
@@ -458,8 +459,21 @@ html[data-pickl-sidebar="collapsed"] {
      in a browser tab and on every device without an inset. */
   height: calc(var(--pickl-topbar-h) + env(safe-area-inset-top, 0px));
   padding-top: env(safe-area-inset-top, 0px);
-  background: var(--bs-dark);
-  color: var(--bs-light);
+  /* Each palette sets these (see the pickl-palette mixin); the fallback is the
+     jar-and-brine bar, which is what the default palette gets since it defines
+     no palette block of its own.
+
+     The fallback lives here rather than as a `:root` default on purpose. A
+     `:root` declaration and `[data-pickl-palette="x"]` have the same
+     specificity, and this file is imported after the stylesheet — so a default
+     declared there would win over every palette, and the bar would stay green
+     under all of them. It did, until it was measured.
+
+     Deliberately one bar for both light and dark: the header reads as chrome
+     rather than as page, and a header that inverts with the theme stops being
+     the fixed landmark at the top of every screen. */
+  background: var(--pickl-topbar-bg, var(--bs-dark));
+  color: var(--pickl-topbar-ink, var(--bs-light));
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
 }
 
@@ -474,7 +488,7 @@ html[data-pickl-sidebar="collapsed"] {
 .pickl-brand {
   font-weight: 700;
   font-size: 1.125rem;
-  color: var(--bs-light);
+  color: var(--pickl-topbar-ink, var(--bs-light));
   text-decoration: none;
 }
 

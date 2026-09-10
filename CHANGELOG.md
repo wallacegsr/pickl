@@ -17,8 +17,11 @@ changes with it — the two must never disagree about what is running.
   (terracotta and warm clay), **Slate** (cool indigo on near-white) and
   **Graphite** (near-neutral, with colour kept for the things that mean
   something). Each works in light and dark, same as the two before them.
+- The header follows the colour scheme instead of being the same dark green
+  under all of them. One bar for both light and dark, deliberately: it reads as
+  chrome rather than as page.
 - The colour scheme picker shows a swatch of each palette's actual paper,
-  button and link colours.
+  button and link colours, in whichever mode is currently showing.
 - `node scripts/check-palettes.mjs` checks every palette's contrast — body,
   muted and link text, borders, and each button's label against its own fill,
   in both modes. It reads the colours out of the stylesheet rather than keeping
@@ -29,6 +32,13 @@ changes with it — the two must never disagree about what is running.
 
 ### Changed
 
+- **Fresh & Sunny is now Fresh & Crisp**, and looks nothing like it did: pale
+  mint on a near-black green, with a light mode built to match rather than the
+  other way round. It was close enough to Jar & Brine to be hard to tell apart.
+  If you had it selected you keep it — only the name and the colours changed.
+- A palette may name a different accent for dark mode. Most do not need to, but
+  one designed around a dark ground does: a pale mint that carries dark ink
+  beautifully at #0E1512 is a washed-out button on white paper.
 - A palette is now defined by sixteen colours passed to a mixin, rather than
   163 lines of hand-written rules. Hover, active and disabled states, button
   label colours and every dark-mode accent are derived from those sixteen by
