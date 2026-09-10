@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import PicklMark from "@/components/brand/PicklMark";
 
 export const metadata: Metadata = { title: "Offline · Pickl" };
 
@@ -27,7 +28,13 @@ export default function OfflinePage() {
       }}
     >
       <div style={{ maxWidth: "26rem" }}>
-        <p style={{ fontSize: "3rem", margin: 0 }}>🥒</p>
+        {/* The pickle is a hole, so it shows the page behind it — which is
+            the point of the mark, and works here because this page owns its
+            own background. Colour set inline like everything else here: this
+            page has to render when nothing but the cache is available. */}
+        <div style={{ color: "#3a7d44" }}>
+          <PicklMark size={72} />
+        </div>
         <h1 style={{ fontSize: "1.5rem", marginTop: "0.5rem" }}>No connection</h1>
         <p style={{ color: "#5c6b57" }}>
           Pickl keeps your plan on your own server, so it needs to reach it to

@@ -8,6 +8,7 @@ import UserMenu from "./UserMenu";
 import { useSidebarCollapsed } from "./sidebarState";
 import { APP_VERSION } from "@/lib/version";
 import { ChevronsLeftIcon, ChevronsRightIcon } from "./icons";
+import PicklMark from "@/components/brand/PicklMark";
 
 /**
  * The two-surface app chrome: a slim top bar (wordmark + avatar menu) and a
@@ -37,7 +38,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <header className="pickl-topbar">
         <div className="pickl-topbar-inner">
           <Link href="/plan" className="pickl-brand">
-            🥒 Pickl
+            {/* The mark takes currentColor, so it is the header ink and the
+                pickle hole shows the bar behind it. The bar is dark under
+                both themes, so this needs no light/dark handling. */}
+            <PicklMark size={22} />
+            Pickl
           </Link>
 
           <div className="ms-auto d-flex align-items-center">

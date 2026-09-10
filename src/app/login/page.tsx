@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import PicklMark from "@/components/brand/PicklMark";
 import { signIn } from "next-auth/react";
 import {
   Alert,
@@ -105,7 +106,10 @@ function LoginForm() {
         <Col xs={12} sm={8} md={6} lg={4}>
           <Card className="shadow-sm">
             <Card.Body className="p-4">
-              <h3 className="mb-1 text-center">🥒 Pickl</h3>
+              <h3 className="mb-1 text-center d-flex align-items-center justify-content-center gap-2">
+                <PicklMark size={26} />
+                Pickl
+              </h3>
               <p className="text-center text-muted small mb-3">
                 Out of the pickle, onto the plate.
               </p>

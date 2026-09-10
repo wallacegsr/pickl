@@ -13,6 +13,14 @@ changes with it — the two must never disagree about what is running.
 
 ### Added
 
+- **Pickl has a logo.** A rounded box with the pickle punched out of it, so
+  whatever is behind shows through — in the header, on the sign-in and sign-up
+  cards, and on the offline page. It replaces the 🥒 emoji, which was never
+  really a mark.
+- The favicon, the home-screen icons and the Android launcher icon are the same
+  drawing. Those are painted rather than punched: they land on a tab strip or a
+  wallpaper this app does not control, and a transparent pickle can sink into
+  one.
 - Four more colour schemes: **Golden Hour** (amber on warm paper), **Brick**
   (terracotta and warm clay), **Slate** (cool indigo on near-white) and
   **Graphite** (near-neutral, with colour kept for the things that mean

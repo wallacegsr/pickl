@@ -23,7 +23,7 @@
  */
 
 // Bump to invalidate everything. Old caches are deleted on activate.
-const CACHE = "pickl-shell-v1";
+const CACHE = "pickl-shell-v2";
 const OFFLINE_URL = "/offline";
 
 const PRECACHE = [OFFLINE_URL, "/manifest.webmanifest", "/icon-192.png"];
@@ -64,7 +64,7 @@ function isBuildAsset(url) {
 function isPublicAsset(url) {
   return (
     url.origin === self.location.origin &&
-    /^\/(manifest\.webmanifest|icon-|apple-touch-icon)/.test(url.pathname)
+    /^\/(manifest\.webmanifest|icon|apple-touch-icon)/.test(url.pathname)
   );
 }
 

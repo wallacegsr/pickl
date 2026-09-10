@@ -486,6 +486,9 @@ html[data-pickl-sidebar="collapsed"] {
 }
 
 .pickl-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   font-weight: 700;
   font-size: 1.125rem;
   color: var(--pickl-topbar-ink, var(--bs-light));
