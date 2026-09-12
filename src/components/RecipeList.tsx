@@ -119,13 +119,31 @@ export default function RecipeList({
           />
         </Col>
         <Col xs={12} md={6} className="text-md-end mt-2 mt-md-0">
-          {(tab === "mine" || isAdmin) && (
-            <Link href="/recipes/new" passHref legacyBehavior>
-              <Button as="a" variant="primary">
-                + Add Recipe
+          <div className="d-flex gap-2 justify-content-md-end flex-wrap">
+            {/* A plain link, not a fetch-and-blob: a blob: URL never reaches
+                the Android shell's DownloadListener, so the in-browser version
+                of this would silently do nothing inside the app. Same
+                reasoning as the shopping-list export. */}
+            <a
+              href="/api/recipes/export"
+              className="btn btn-outline-secondary"
+              title="Download the recipes you can see, in the shape the importer takes."
+            >
+              Export
+            </a>
+            <Link href="/recipes/import" passHref legacyBehavior>
+              <Button as="a" variant="outline-secondary">
+                Import
               </Button>
             </Link>
-          )}
+            {(tab === "mine" || isAdmin) && (
+              <Link href="/recipes/new" passHref legacyBehavior>
+                <Button as="a" variant="primary">
+                  + Add Recipe
+                </Button>
+              </Link>
+            )}
+          </div>
         </Col>
       </Row>
 

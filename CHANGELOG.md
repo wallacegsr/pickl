@@ -11,6 +11,22 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+### Added
+
+- **Paste a recipe in.** Recipes → Import → Paste, and Pickl pulls out the
+  name, ingredients, method, times and servings from a block of text off a
+  note, an email or a web page. It shows you what it worked out in the normal
+  recipe form so you can fix anything it got wrong before saving — splitting a
+  recipe apart is guesswork, and the guess is yours to check.
+- **Import a file of recipes.** A list in Pickl's own shape, imported in one
+  go, reporting on every row: what went in, what was already here, and what
+  could not be read and why. Recipes already in the jar are matched by source
+  URL and skipped unless you say otherwise.
+- **Export recipes**, from the button on the recipe list. What comes out goes
+  straight back in, so it is a backup and a way to move recipes between
+  households rather than a report. It carries the recipes you can see — the
+  shared pool plus your own private ones — and nothing about where they lived.
+
 ## [2.1.0] - 2026-09-10
 
 ### Added

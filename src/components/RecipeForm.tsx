@@ -58,11 +58,23 @@ function recipeToFormValues(recipe?: RecipeWithTags | null, isAdmin?: boolean): 
 export default function RecipeForm({
   recipe,
   recipeId,
+  draft,
   isAdmin = false,
   existingTags = [],
 }: {
   recipe?: RecipeWithTags | null;
   recipeId?: string;
+  /**
+   * Seeds the form with values that are not a saved recipe — today, the
+   * result of parsing a pasted one.
+   *
+   * Separate from `recipe` because a draft is not a RecipeWithTags: it has no
+   * id, no household and no timestamps, and inventing them so it could be
+   * passed as one would mean a half-real recipe object floating around. Merged
+   * over the defaults, so a field the parser could not work out keeps whatever
+   * the form would otherwise have shown.
+   */
+  draft?: Partial<RecipeFormValues>;
   isAdmin?: boolean;
   /**
    * Tag names this user may see, for the autocomplete. Passed in from the page
@@ -72,9 +84,10 @@ export default function RecipeForm({
   existingTags?: string[];
 }) {
   const router = useRouter();
-  const [values, setValues] = useState<RecipeFormValues>(
-    recipeToFormValues(recipe, isAdmin)
-  );
+  const [values, setValues] = useState<RecipeFormValues>(() => ({
+    ...recipeToFormValues(recipe, isAdmin),
+    ...draft,
+  }));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

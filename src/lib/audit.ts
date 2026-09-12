@@ -9,6 +9,11 @@ export type AuditAction =
   | "manual_set"
   | "manual_clear"
   | "recipe_create"
+  // A bulk import writes one row for the batch rather than one per recipe.
+  // Forty recipe_create rows from a single action bury the log; each recipe
+  // still carries its own createdByUserId and createdAt, which is where a
+  // single recipe's provenance belongs anyway.
+  | "recipe_import"
   | "recipe_update"
   | "recipe_delete"
   | "permission_change"
