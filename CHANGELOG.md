@@ -35,6 +35,10 @@ changes with it — the two must never disagree about what is running.
 
 ### Changed
 
+- **Choosing tags to shake from is a search box now**, not a button for every
+  tag. Focus it for the most-used tags, or type to find one; chosen tags
+  become chips you can remove, and each shows how many recipes for the ticked
+  meals carry it. Arrow keys and Enter work, and Backspace removes the last.
 - **The Recipes page loads one page at a time.** Searching, filtering, sorting
   and paging now happen on the server, 50 recipes at a time, so a jar of
   thousands opens as fast as a jar of ten. The list view pages; tiles offer

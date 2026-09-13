@@ -1,6 +1,7 @@
 "use client";
 
-import { Alert, Button, ButtonGroup, Form } from "react-bootstrap";
+import { Alert, Button, Form } from "react-bootstrap";
+import SpinTagPicker from "./SpinTagPicker";
 import type { MealType } from "@/db/schema";
 import JarShake from "@/components/JarShake";
 import PickleCrunch from "@/components/PickleCrunch";
@@ -56,9 +57,6 @@ export default function ShakeControlsWidget() {
     spinTagOptions,
   } = usePlanContext();
 
-  const toggleTag = (tag: string) =>
-    setSpinTags(spinTags.includes(tag) ? spinTags.filter((t) => t !== tag) : [...spinTags, tag]);
-
   if (!isEditable) {
     return (
       <Alert variant="secondary" className="py-2 mb-0">
@@ -96,8 +94,8 @@ export default function ShakeControlsWidget() {
           inline
         />
       </div>
-      <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
-        <strong className="me-2">Only from:</strong>
+      <div className="d-flex flex-wrap align-items-start gap-2 mb-3">
+        <strong className="me-2 pt-1">Only from:</strong>
         <Form.Check
           type="checkbox"
           id="spin-favorites"
@@ -108,50 +106,13 @@ export default function ShakeControlsWidget() {
           inline
         />
         {spinTagOptions.length > 0 && (
-          // Inline toggles rather than a dropdown: the dashboard grid positions
-          // widgets with transforms, which throws a floating menu off its button.
-          <div
-            className="d-flex flex-wrap gap-1"
-            role="group"
-            aria-label="Tags a pick must carry"
-            style={{ maxHeight: "5.5rem", overflowY: "auto" }}
-          >
-            {spinTagOptions.map((tag) => {
-              const on = spinTags.includes(tag);
-              return (
-                <Button
-                  key={tag}
-                  size="sm"
-                  variant={on ? "secondary" : "outline-secondary"}
-                  aria-pressed={on}
-                  className="py-0"
-                  onClick={() => toggleTag(tag)}
-                >
-                  {tag}
-                </Button>
-              );
-            })}
-          </div>
-        )}
-        {spinTags.length >= 2 && (
-          <ButtonGroup size="sm" aria-label="How tags combine">
-            <Button
-              variant={spinTagMatch === "all" ? "secondary" : "outline-secondary"}
-              aria-pressed={spinTagMatch === "all"}
-              title="A pick must carry every selected tag"
-              onClick={() => setSpinTagMatch("all")}
-            >
-              All
-            </Button>
-            <Button
-              variant={spinTagMatch === "any" ? "secondary" : "outline-secondary"}
-              aria-pressed={spinTagMatch === "any"}
-              title="A pick needs at least one selected tag"
-              onClick={() => setSpinTagMatch("any")}
-            >
-              Any
-            </Button>
-          </ButtonGroup>
+          <SpinTagPicker
+            options={spinTagOptions}
+            selected={spinTags}
+            onChange={setSpinTags}
+            match={spinTagMatch}
+            onMatchChange={setSpinTagMatch}
+          />
         )}
       </div>
       <div className="d-flex flex-wrap gap-2 align-items-center">

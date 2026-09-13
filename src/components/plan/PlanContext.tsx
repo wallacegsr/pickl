@@ -73,7 +73,8 @@ export interface PlanContextValue {
   /** Only the viewer's own starred recipes. */
   spinFavoritesOnly: boolean;
   setSpinFavoritesOnly: (value: boolean) => void;
-  spinTagOptions: string[];
+  /** Tags on recipes the jar could pick for the ticked meals, with counts. */
+  spinTagOptions: { name: string; count: number }[];
   crunchingToday: boolean;
   shakingWeek: boolean;
   onCrunchToday: () => void;

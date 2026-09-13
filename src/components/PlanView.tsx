@@ -221,12 +221,22 @@ export default function PlanView({
   // Offered tags come from the recipes the jar could actually pick, so a tag
   // no eligible recipe carries is never on the menu.
   const spinTagOptions = useMemo(() => {
-    const byKey = new Map<string, string>();
-    for (const pool of Object.values(recipePoolByMeal))
-      for (const r of pool)
-        for (const t of r.tags) if (!byKey.has(t.toLowerCase())) byKey.set(t.toLowerCase(), t);
-    return [...byKey.values()].sort((a, b) => a.localeCompare(b));
-  }, [recipePoolByMeal]);
+    // Counted per recipe across the meals ticked, so a recipe in both the
+    // lunch and dinner pools counts once.
+    const recipesByKey = new Map<string, { name: string; ids: Set<string> }>();
+    const meals = selectedMeals.length ? selectedMeals : (Object.keys(recipePoolByMeal) as MealType[]);
+    for (const meal of meals)
+      for (const r of recipePoolByMeal[meal] ?? [])
+        for (const t of r.tags) {
+          const key = t.toLowerCase();
+          const entry = recipesByKey.get(key) ?? { name: t, ids: new Set<string>() };
+          entry.ids.add(r.id);
+          recipesByKey.set(key, entry);
+        }
+    return [...recipesByKey.values()]
+      .map((e) => ({ name: e.name, count: e.ids.size }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [recipePoolByMeal, selectedMeals]);
 
   const [crunchingToday, setCrunchingToday] = useState(false);
   const [shakingWeek, setShakingWeek] = useState(false);
