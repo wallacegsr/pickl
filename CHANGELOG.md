@@ -13,6 +13,9 @@ changes with it — the two must never disagree about what is running.
 
 ### Added
 
+- **Filter the Tags page.** Type to narrow the list, or switch on Unused only
+  to find tags nothing carries. Select All and bulk delete follow the filter,
+  so a selection never includes a tag you have filtered out of view.
 - **Filters on the Recipes page.** A sidebar (a drawer on phones) narrows the
   jar by meal type, tags, your favorites, and "ready in 30 minutes or less",
   each showing how many recipes it would leave. Ticking two tags offers All or

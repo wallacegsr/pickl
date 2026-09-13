@@ -65,17 +65,28 @@ export default function TagManager({
   const [bulkPreview, setBulkPreview] = useState<TagBulkSummary | null>(null);
   const [bulkRunning, setBulkRunning] = useState(false);
 
-  // A tag that no longer exists cannot stay selected: after a delete, or when
-  // the list is refreshed, the selection is trimmed to what is on screen.
+  const [filter, setFilter] = useState("");
+  const [unusedOnly, setUnusedOnly] = useState(false);
+  /** The tags on screen: the whole list, narrowed by the filter box. */
+  const shown = useMemo(() => {
+    const needle = tagKey(filter);
+    return tags.filter(
+      (t) => (!needle || tagKey(t.name).includes(needle)) && (!unusedOnly || t.usage.total === 0)
+    );
+  }, [tags, filter, unusedOnly]);
+
+  // A selection only holds tags on screen: after a delete, a refresh, or when
+  // the filter hides some. Same rule as the recipe list — Delete must never
+  // reach a tag the person cannot see.
   useEffect(() => {
     setSelected((prev) => {
-      const present = new Set(tags.map((t) => t.id));
+      const present = new Set(shown.map((t) => t.id));
       const kept = [...prev].filter((id) => present.has(id));
       return kept.length === prev.size ? prev : new Set(kept);
     });
-  }, [tags]);
+  }, [shown]);
 
-  const allSelected = tags.length > 0 && tags.every((t) => selected.has(t.id));
+  const allSelected = shown.length > 0 && shown.every((t) => selected.has(t.id));
   const someSelected = selected.size > 0 && !allSelected;
 
   function toggleTag(id: string) {
@@ -323,10 +334,34 @@ export default function TagManager({
         </p>
       ) : (
         <>
+        <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
+          <Form.Control
+            type="search"
+            placeholder="Filter tags…"
+            aria-label="Filter tags"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            style={{ maxWidth: "20rem" }}
+          />
+          <Form.Check
+            type="switch"
+            id="tags-unused-only"
+            className="mb-0"
+            label="Unused only"
+            title="Tags no recipe carries — the usual candidates for a tidy-up"
+            checked={unusedOnly}
+            onChange={(e) => setUnusedOnly(e.target.checked)}
+          />
+          <span className="small text-body-secondary" aria-live="polite">
+            {shown.length === tags.length
+              ? `${tags.length} tag${tags.length === 1 ? "" : "s"}`
+              : `${shown.length} of ${tags.length} tags`}
+          </span>
+        </div>
         {selected.size > 0 && (
           <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
             <span className="small fw-semibold">
-              {selected.size} of {tags.length} selected
+              {selected.size} of {shown.length} selected
             </span>
             <Button size="sm" variant="outline-danger" onClick={openBulkDelete}>
               Delete {selected.size === 1 ? "tag" : `${selected.size} tags`}
@@ -350,7 +385,7 @@ export default function TagManager({
                       if (el) el.indeterminate = someSelected;
                     }}
                     onChange={() =>
-                      setSelected(allSelected ? new Set() : new Set(tags.map((t) => t.id)))
+                      setSelected(allSelected ? new Set() : new Set(shown.map((t) => t.id)))
                     }
                     aria-label={allSelected ? "Deselect all tags" : "Select all tags"}
                   />
@@ -363,7 +398,7 @@ export default function TagManager({
               </tr>
             </thead>
             <tbody>
-              {tags.map((tag) => (
+              {shown.map((tag) => (
                 <tr key={tag.id} className={selected.has(tag.id) ? "table-active" : undefined}>
                   <td>
                     <Form.Check
@@ -441,6 +476,21 @@ export default function TagManager({
             </tbody>
           </Table>
         </div>
+        {shown.length === 0 && (
+          <p className="text-muted">
+            No tags match.{" "}
+            <Button
+              variant="link"
+              className="p-0 align-baseline"
+              onClick={() => {
+                setFilter("");
+                setUnusedOnly(false);
+              }}
+            >
+              Show all tags
+            </Button>
+          </p>
+        )}
         </>
       )}
 
