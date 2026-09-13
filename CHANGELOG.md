@@ -13,6 +13,13 @@ changes with it — the two must never disagree about what is running.
 
 ### Added
 
+- **Export all, or export what you found.** Export on the Recipes page is now
+  a menu: "Export all recipes" takes everything you can see, and "Export N
+  matching" takes whatever the current tab, search and filters find, on every
+  page rather than only the one on screen.
+- **Show all recipes at once.** A "Show 50 / 100 / 250 / all" choice beside
+  the sort, and a "Show all" button next to "Show more" on tiles. The choice
+  sticks while you change filters.
 - **Filter the Tags page.** Type to narrow the list, or switch on Unused only
   to find tags nothing carries. Select All and bulk delete follow the filter,
   so a selection never includes a tag you have filtered out of view.

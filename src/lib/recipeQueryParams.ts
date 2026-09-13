@@ -22,7 +22,9 @@ export const FILTER_MEAL_TYPES = ["breakfast", "lunch", "dinner", "dessert", "an
 
 export const PAGE_SIZE = 50;
 /** Tiles grow by "Show more"; this is as far as one request will go. */
-export const MAX_LIMIT = 500;
+export const MAX_LIMIT = 5000;
+/** Page sizes offered on the Recipes page. MAX_LIMIT is "All". */
+export const PAGE_SIZES = [50, 100, 250, MAX_LIMIT] as const;
 /** "Select all matching" resolves to at most this many recipes. */
 export const MAX_MATCHING = 5000;
 

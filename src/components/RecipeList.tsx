@@ -8,6 +8,7 @@ import {
   Button,
   ButtonGroup,
   Col,
+  Dropdown,
   Form,
   Nav,
   Offcanvas,
@@ -24,6 +25,7 @@ import type { BulkSummary } from "@/lib/recipeBulk";
 import {
   MAX_LIMIT,
   PAGE_SIZE,
+  PAGE_SIZES,
   RECIPE_SORTS,
   recipeQueryToParams,
   type RecipeListRow,
@@ -71,11 +73,12 @@ export default function RecipeList({
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
 
-  /** Navigates to the query with `patch` applied. Filters reset to page 1. */
+  /**
+   * Navigates to the query with `patch` applied. Filters reset to page 1; the
+   * chosen page size carries over, so "All" stays all while filtering.
+   */
   function update(patch: Partial<RecipeQuery>) {
     const next: RecipeQuery = { ...query, page: 1, ...patch };
-    // Growing the tile list is only for the view it was grown in.
-    if (!("limit" in patch)) next.limit = PAGE_SIZE;
     const qs = recipeQueryToParams(next).toString();
     startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
   }
@@ -335,13 +338,28 @@ export default function RecipeList({
                 </Button>
                 {/* A plain link, not a fetch-and-blob: a blob: URL never reaches
                     the Android shell's DownloadListener. */}
-                <a
-                  href="/api/recipes/export"
-                  className="btn btn-outline-secondary"
-                  title="Download the recipes you can see, in the shape the importer takes."
-                >
-                  Export
-                </a>
+                <Dropdown>
+                  <Dropdown.Toggle variant="outline-secondary" id="recipe-export">
+                    Export
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu>
+                    {/* Plain links, not fetch-and-blob: a blob: URL never
+                        reaches the Android shell's DownloadListener. */}
+                    <Dropdown.Item
+                      href="/api/recipes/export"
+                      title="Every recipe you can see — the House Jar and your Secret Stash — in the shape the importer takes."
+                    >
+                      Export all recipes
+                    </Dropdown.Item>
+                    <Dropdown.Item
+                      href={`/api/recipes/export?matching=1${matchingQuery ? `&${matchingQuery}` : ""}`}
+                      disabled={data.total === 0}
+                      title="What this tab, search and these filters find, on every page — not just the page on screen."
+                    >
+                      Export {data.total.toLocaleString()} matching
+                    </Dropdown.Item>
+                  </Dropdown.Menu>
+                </Dropdown>
                 <Link href="/recipes/import" passHref legacyBehavior>
                   <Button as="a" variant="outline-secondary">
                     Import
@@ -376,6 +394,22 @@ export default function RecipeList({
             <Form.Select
               size="sm"
               className="ms-auto w-auto"
+              aria-label="Recipes per page"
+              value={PAGE_SIZES.includes(data.limit as (typeof PAGE_SIZES)[number]) ? data.limit : ""}
+              onChange={(e) => update({ limit: Number(e.target.value) })}
+            >
+              {!PAGE_SIZES.includes(data.limit as (typeof PAGE_SIZES)[number]) && (
+                <option value="">Show {data.limit}</option>
+              )}
+              {PAGE_SIZES.map((n) => (
+                <option key={n} value={n}>
+                  {n === MAX_LIMIT ? "Show all" : `Show ${n}`}
+                </option>
+              ))}
+            </Form.Select>
+            <Form.Select
+              size="sm"
+              className="w-auto"
               aria-label="Sort recipes"
               value={query.sort}
               onChange={(e) => update({ sort: e.target.value as RecipeSort })}
@@ -527,6 +561,16 @@ export default function RecipeList({
               >
                 Show {Math.min(PAGE_SIZE, data.total - rows.length)} more
               </Button>
+              {data.total - rows.length > PAGE_SIZE && (
+                <Button
+                  variant="link"
+                  className="ms-2"
+                  disabled={pending}
+                  onClick={() => update({ limit: MAX_LIMIT })}
+                >
+                  Show all {data.total.toLocaleString()}
+                </Button>
+              )}
             </div>
           ) : (
             pageCount > 1 && (

@@ -5,6 +5,10 @@ import { listVisibleRecipes } from "@/lib/recipes";
 import { getTagsForRecipes } from "@/lib/tags";
 import { parseRecipeMealTypes } from "@/db/schema";
 import { APP_VERSION } from "@/lib/version";
+import { db } from "@/db";
+import { recipes as recipesTable } from "@/db/schema";
+import { inArray } from "drizzle-orm";
+import { matchingRecipeIds, parseRecipeQuery } from "@/lib/recipeQuery";
 
 /**
  * Exports the household's recipes in the shape the importer takes.
@@ -20,6 +24,12 @@ import { APP_VERSION } from "@/lib/version";
  *
  * Scoped to what the reader can see: the shared pool plus their own private
  * recipes. Another member's private recipes are not theirs to take a copy of.
+ *
+ * With no parameters it exports all of that — both tabs, every page. With
+ * `?matching=1` plus the Recipes page's own query parameters (tab, q, tag,
+ * meal…) it exports just what that search finds, resolved by the same
+ * function the list uses, so it is the list's results on every page and not
+ * only the page on screen.
  */
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -35,7 +45,20 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const rows = listVisibleRecipes(householdId, session.user.id);
+  const search = req.nextUrl.searchParams;
+  const matching = search.get("matching") === "1";
+  let rows = listVisibleRecipes(householdId, session.user.id);
+  if (matching) {
+    const params: Record<string, string[]> = {};
+    search.forEach((value, key) => {
+      (params[key] ??= []).push(value);
+    });
+    const ids = matchingRecipeIds(householdId, session.user.id, parseRecipeQuery(params));
+    rows = ids.length
+      ? db.select().from(recipesTable).where(inArray(recipesTable.id, ids)).all()
+      : [];
+    rows.sort((a, b) => a.name.localeCompare(b.name));
+  }
   const tags = getTagsForRecipes(
     householdId,
     rows.map((r) => r.id)
@@ -72,7 +95,7 @@ export async function GET(req: NextRequest) {
       // Served as a download rather than rendered: a blob: URL never reaches
       // the Android shell's DownloadListener, so the shell would silently do
       // nothing. Same reasoning as the shopping-list export.
-      "Content-Disposition": `attachment; filename="pickl-recipes-${stamp}.json"`,
+      "Content-Disposition": `attachment; filename="pickl-recipes-${matching ? "filtered-" : ""}${stamp}.json"`,
       "Cache-Control": "no-store",
     },
   });
