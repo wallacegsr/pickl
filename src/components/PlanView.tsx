@@ -62,6 +62,8 @@ export interface RecipeOption {
   /** Tag names, attached server-side by src/lib/tags.ts. */
   tags: string[];
   ingredients: string;
+  /** Stored comma-separated meal types, so the picker can search by them. */
+  mealType: string;
 }
 
 /**

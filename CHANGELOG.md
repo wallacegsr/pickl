@@ -27,6 +27,16 @@ changes with it — the two must never disagree about what is running.
   households rather than a report. It carries the recipes you can see — the
   shared pool plus your own private ones — and nothing about where they lived.
 
+### Fixed
+
+- Searching recipes by a meal type — "dinner", "dessert", "breakfast" — found
+  nothing, even though meal types show up as badges right beside the tags that
+  search did find. They are stored separately from tags, so the search never
+  looked at them. They now count as tags, in the recipe list, the plan page's
+  recipe picker and the quick look alike. A search matches what the badge
+  says: a recipe marked "Any meal" is not returned for "dinner", even though it
+  can be planned for one.
+
 ## [2.1.0] - 2026-09-10
 
 ### Added

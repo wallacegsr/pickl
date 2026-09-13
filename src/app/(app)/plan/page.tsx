@@ -88,6 +88,7 @@ export default async function PlanPage({
         name: r.name,
         tags: poolTags.get(r.id) ?? [],
         ingredients: r.ingredients,
+        mealType: r.mealType,
       })),
     ])
   ) as Record<MealType, RecipeOption[]>;
