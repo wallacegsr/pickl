@@ -88,6 +88,25 @@ export default function ShoppingListPanel({
     setDays(initialDays);
   }, [initialDays, scope, requestedUserId, week]);
 
+  // And once more from the API on arrival. Next's client router can hand back
+  // a cached render of a page visited earlier, whose ticks are from then — so
+  // ticking something on /plan and returning to /shopping showed the old
+  // state. The server's ticks are the truth; ask for them.
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams({ week, scope });
+    if (scope === "private") params.set("userId", requestedUserId);
+    fetch(`/api/shopping-list?${params.toString()}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { days?: ShoppingListDayData[] } | null) => {
+        if (!cancelled && data?.days) setDays(data.days);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [scope, requestedUserId, week]);
+
   const todayDay = days.find((d) => d.date === today) ?? null;
   const visibleDays = mode === "today" ? (todayDay ? [todayDay] : []) : days;
 

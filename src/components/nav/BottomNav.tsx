@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { SIDEBAR_ITEMS, isItemActive } from "./navItems";
+import { usePathname, useSearchParams } from "next/navigation";
+import { isItemActive, itemHref, SIDEBAR_ITEMS } from "./navItems";
 
 /**
  * Phone navigation: the primary destinations as a fixed bar along the bottom.
@@ -17,6 +17,7 @@ import { SIDEBAR_ITEMS, isItemActive } from "./navItems";
  */
 export default function BottomNav() {
   const pathname = usePathname();
+  const search = useSearchParams();
 
   return (
     <nav className="pickl-bottomnav" aria-label="Primary">
@@ -26,7 +27,7 @@ export default function BottomNav() {
         return (
           <Link
             key={item.href}
-            href={item.href}
+            href={itemHref(item, pathname, search)}
             className={`pickl-bottomnav-item${active ? " active" : ""}`}
             // The bar is the only nav on a phone, so the current page needs to
             // be announced, not just coloured.

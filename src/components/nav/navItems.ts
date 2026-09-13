@@ -79,6 +79,33 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
 ];
 
 /** Whether `pathname` should highlight `item`. */
+/**
+ * Pages that show one plan — which week, household or private, whose. Moving
+ * between them keeps that choice, so the shopping list you open from your
+ * private plan is your private plan's list, not the household's.
+ */
+const PLAN_CONTEXT_PATHS = ["/plan", "/shopping"];
+const PLAN_CONTEXT_PARAMS = ["week", "scope", "userId"];
+
+/** An item's link, carrying the plan context across when both ends have one. */
+export function itemHref(
+  item: SidebarItem,
+  pathname: string | null,
+  search: URLSearchParams | null
+): string {
+  if (!pathname || !search) return item.href;
+  if (!PLAN_CONTEXT_PATHS.includes(item.href) || !PLAN_CONTEXT_PATHS.includes(pathname)) {
+    return item.href;
+  }
+  const carried = new URLSearchParams();
+  for (const key of PLAN_CONTEXT_PARAMS) {
+    const value = search.get(key);
+    if (value) carried.set(key, value);
+  }
+  const qs = carried.toString();
+  return qs ? `${item.href}?${qs}` : item.href;
+}
+
 export function isItemActive(item: SidebarItem, pathname: string | null) {
   if (!pathname) return false;
   return item.matchPrefix ? pathname.startsWith(item.href) : pathname === item.href;

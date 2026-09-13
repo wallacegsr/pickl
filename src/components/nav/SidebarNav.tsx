@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { isItemActive, SIDEBAR_ITEMS } from "./navItems";
+import { usePathname, useSearchParams } from "next/navigation";
+import { isItemActive, itemHref, SIDEBAR_ITEMS } from "./navItems";
 
 /**
  * The list of primary destinations, shared by the fixed desktop sidebar and
@@ -22,6 +22,7 @@ export default function SidebarNav({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const search = useSearchParams();
 
   return (
     <ul className="pickl-sidebar-list list-unstyled mb-0">
@@ -30,7 +31,7 @@ export default function SidebarNav({
         return (
           <li key={item.href}>
             <Link
-              href={item.href}
+              href={itemHref(item, pathname, search)}
               className={`pickl-sidebar-link${active ? " active" : ""}`}
               aria-current={active ? "page" : undefined}
               title={item.description ? `${item.label} — ${item.description}` : item.label}

@@ -6,6 +6,7 @@ import { resolvePlanContext } from "@/lib/planContext";
 import { buildShoppingListWeek } from "@/lib/shoppingList";
 import { todayDateString } from "@/lib/dates";
 import ShoppingListPanel from "@/components/ShoppingListPanel";
+import { Nav, NavItem } from "react-bootstrap";
 
 export const metadata = { title: "Shopping List · Pickl" };
 
@@ -70,6 +71,28 @@ export default async function ShoppingPage({
         that is remembered per recipe, so two dishes sharing an ingredient keep
         their own lines.
       </p>
+      {/* Which plan's list: the same choice the Plan page offers, carried
+          between the two by the sidebar links. */}
+      <Nav variant="tabs" className="mb-3" activeKey={scope}>
+        <NavItem>
+          <Link
+            href={`/shopping?${new URLSearchParams({ week, scope: "shared" })}`}
+            className={`nav-link${scope === "shared" ? " active" : ""}`}
+            aria-current={scope === "shared" ? "page" : undefined}
+          >
+            Household
+          </Link>
+        </NavItem>
+        <NavItem>
+          <Link
+            href={`/shopping?${new URLSearchParams({ week, scope: "private", userId: session.user.id })}`}
+            className={`nav-link${scope === "private" ? " active" : ""}`}
+            aria-current={scope === "private" ? "page" : undefined}
+          >
+            My Private Plan
+          </Link>
+        </NavItem>
+      </Nav>
       <ShoppingListPanel
         week={week}
         scope={scope}

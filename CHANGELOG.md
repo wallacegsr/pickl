@@ -62,6 +62,12 @@ changes with it — the two must never disagree about what is running.
 
 ### Fixed
 
+- **Ticks on the shopping list now match between the Plan page and the
+  Shopping List page.** Two causes: the sidebar's Shopping List link always
+  opened the household list, even from your private plan; and returning to a
+  page could show a cached copy with old ticks. The links now keep which plan
+  and week you are on, the list re-reads its ticks each time it opens, and the
+  Shopping List page has Household and My Private Plan tabs.
 - **Connecting Google Calendar could "succeed" and then fail** with "Could
   not load your Google calendars (HTTP 403) … insufficient authentication
   scopes". Google lists each permission as its own checkbox and lets people
