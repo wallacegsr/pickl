@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Badge, Button, Card, Col, Form, Row } from "react-bootstrap";
-import type { RecipeWithTags } from "@/db/schema";
+import type { RecipeListRow } from "@/lib/recipeQueryParams";
 import {
   StackedBody,
   StackedCell,
@@ -18,17 +18,17 @@ import {
  * both. Switching view changes where things sit and nothing else.
  */
 export interface RecipeViewProps {
-  recipes: RecipeWithTags[];
+  recipes: RecipeListRow[];
   selected: Set<string>;
   onToggle: (id: string) => void;
-  canEdit: (recipe: RecipeWithTags) => boolean;
+  canEdit: (recipe: RecipeListRow) => boolean;
   /** Where this recipe may be copied, or null when it may not be copied. */
-  copyTarget: (recipe: RecipeWithTags) => "private" | "shared" | null;
-  onCopy: (recipe: RecipeWithTags, target: "private" | "shared") => void;
-  onDelete: (recipe: RecipeWithTags) => void;
+  copyTarget: (recipe: RecipeListRow) => "private" | "shared" | null;
+  onCopy: (recipe: RecipeListRow, target: "private" | "shared") => void;
+  onDelete: (recipe: RecipeListRow) => void;
   /** The viewer's own star on this recipe. */
-  isFavorite: (recipe: RecipeWithTags) => boolean;
-  onToggleFavorite: (recipe: RecipeWithTags) => void;
+  isFavorite: (recipe: RecipeListRow) => boolean;
+  onToggleFavorite: (recipe: RecipeListRow) => void;
 }
 
 /**
@@ -41,9 +41,9 @@ function Star({
   on,
   onToggle,
 }: {
-  recipe: RecipeWithTags;
+  recipe: RecipeListRow;
   on: boolean;
-  onToggle: (recipe: RecipeWithTags) => void;
+  onToggle: (recipe: RecipeListRow) => void;
 }) {
   return (
     <button
@@ -60,7 +60,7 @@ function Star({
   );
 }
 
-function mealTypesOf(recipe: RecipeWithTags): string[] {
+function mealTypesOf(recipe: RecipeListRow): string[] {
   return recipe.mealType
     .split(",")
     .map((t) => t.trim())
@@ -84,7 +84,7 @@ function SelectBox({
   checked,
   onToggle,
 }: {
-  recipe: RecipeWithTags;
+  recipe: RecipeListRow;
   checked: boolean;
   onToggle: (id: string) => void;
 }) {
@@ -108,7 +108,7 @@ function Actions({
   onDelete,
   compact,
 }: {
-  recipe: RecipeWithTags;
+  recipe: RecipeListRow;
   canEdit: boolean;
   copyTarget: "private" | "shared" | null;
   onCopy: RecipeViewProps["onCopy"];
@@ -211,7 +211,7 @@ export function RecipeCards(props: RecipeViewProps) {
                     WebkitBoxOrient: "vertical",
                   }}
                 >
-                  {recipe.instructions}
+                  {recipe.snippet}
                 </Card.Text>
                 <div className="mt-2">
                   <Actions
@@ -255,6 +255,7 @@ export function RecipeTable(props: RecipeViewProps) {
           <StackedHeader>Tags</StackedHeader>
           <StackedHeader>Time</StackedHeader>
           <StackedHeader>Serves</StackedHeader>
+          <StackedHeader>Last planned</StackedHeader>
           <StackedHeader className="text-end">Actions</StackedHeader>
         </StackedRow>
       </StackedHead>
@@ -308,6 +309,15 @@ export function RecipeTable(props: RecipeViewProps) {
               <StackedCell label="Time">{time || <span className="text-muted">—</span>}</StackedCell>
               <StackedCell label="Serves">
                 {recipe.servings ?? <span className="text-muted">—</span>}
+              </StackedCell>
+              <StackedCell label="Last planned">
+                {recipe.lastPlanned ? (
+                  <span title={`Planned ${recipe.timesPlanned} time${recipe.timesPlanned === 1 ? "" : "s"}`}>
+                    {recipe.lastPlanned}
+                  </span>
+                ) : (
+                  <span className="text-muted">Never</span>
+                )}
               </StackedCell>
               <StackedCell label="Actions" className="text-end">
                 <Actions

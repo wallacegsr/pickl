@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, ButtonGroup, Form, Modal } from "react-bootstrap";
 import TagAutocompleteField from "@/components/TagAutocompleteField";
 import { parseTagInput, tagKey } from "@/lib/tagNames";
-import type { RecipeWithTags } from "@/db/schema";
 
 /**
  * Chooses what a bulk tag change does, before its confirmation.
@@ -23,14 +22,17 @@ import type { RecipeWithTags } from "@/db/schema";
  */
 export default function RecipeTagPicker({
   show,
-  recipes,
+  count: n,
+  present: presentTags,
   suggestions,
   onCancel,
   onContinue,
 }: {
   show: boolean;
-  /** The selected recipes. */
-  recipes: RecipeWithTags[];
+  /** How many recipes are selected. */
+  count: number;
+  /** Tags on the selection, with how many of the selected carry each. */
+  present: { name: string; count: number }[];
   suggestions: string[];
   onCancel: () => void;
   onContinue: (mode: "add" | "remove", tags: string[]) => void;
@@ -49,26 +51,18 @@ export default function RecipeTagPicker({
     }
   }, [show]);
 
-  /** Tags present on the selection, with how many of the selected carry each. */
-  const present = useMemo(() => {
-    const counts = new Map<string, { name: string; count: number }>();
-    for (const recipe of recipes) {
-      for (const name of recipe.tags) {
-        const key = tagKey(name);
-        const entry = counts.get(key) ?? { name, count: 0 };
-        entry.count += 1;
-        counts.set(key, entry);
-      }
-    }
-    return [...counts.entries()]
-      .map(([key, v]) => ({ key, ...v }))
-      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-  }, [recipes]);
+  const present = useMemo(
+    () =>
+      presentTags
+        .filter((p) => p.count > 0)
+        .map((p) => ({ key: tagKey(p.name), ...p }))
+        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
+    [presentTags]
+  );
 
   const addTags = parseTagInput(addValue);
   const removeTags = present.filter((p) => removeKeys.has(p.key)).map((p) => p.name);
   const chosen = mode === "add" ? addTags : removeTags;
-  const n = recipes.length;
 
   return (
     <Modal show={show} onHide={onCancel} centered>

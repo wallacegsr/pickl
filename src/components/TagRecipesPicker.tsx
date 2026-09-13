@@ -1,18 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Button, Form, Modal, Spinner } from "react-bootstrap";
-import type { RecipeWithTags } from "@/db/schema";
 import { tagKey } from "@/lib/tagNames";
 import type { BulkSummary } from "@/lib/recipeBulk";
+import type { RecipePage, RecipeTab } from "@/lib/recipeQueryParams";
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 /**
- * "Edit recipes…" for one tag: every recipe you can see, ticked where it
- * carries the tag. Tick to add, untick to remove, save once.
+ * "Recipes…" for one tag: search the jar, tick to add the tag, untick to
+ * remove it, save once.
  *
  * The tag-first counterpart to the recipe list's "Tag…" button. Both send the
  * same bulk "tag" action, add and remove only, so the permission rule — a tag
  * change reaches only recipes you may edit — is enforced in one place.
+ *
+ * It searches and pages through the server (GET /api/recipes/search) rather
+ * than loading the whole jar. Ticks are remembered as changes, so they survive
+ * searching for something else and paging.
  *
  * Recipes you cannot edit are listed but disabled, rather than hidden. Hiding
  * them would make "Weeknight is on 3 recipes" and a picker showing 1 ticked
@@ -32,48 +38,63 @@ export default function TagRecipesPicker({
   onClose: () => void;
   onSaved: (message: string) => void;
 }) {
-  const [recipes, setRecipes] = useState<RecipeWithTags[] | null>(null);
-  const [ticked, setTicked] = useState<Set<string>>(new Set());
-  const [original, setOriginal] = useState<Set<string>>(new Set());
+  const [tab, setTab] = useState<RecipeTab>("shared");
   const [query, setQuery] = useState("");
+  const [sent, setSent] = useState("");
+  const [onlyTagged, setOnlyTagged] = useState(false);
+  const [page, setPage] = useState(1);
+  const [data, setData] = useState<RecipePage | null>(null);
+  /** Recipe id → { had the tag, has it now }. Only recipes that were toggled. */
+  const [changes, setChanges] = useState<Map<string, { was: boolean; now: boolean }>>(new Map());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Fresh for each tag.
   useEffect(() => {
-    setRecipes(null);
-    setError(null);
+    setTab("shared");
     setQuery("");
+    setSent("");
+    setOnlyTagged(false);
+    setPage(1);
+    setChanges(new Map());
+    setError(null);
+  }, [tagName]);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setSent(query);
+      setPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(t);
+  }, [query]);
+
+  useEffect(() => {
     if (!tagName) return;
     let cancelled = false;
+    const params = new URLSearchParams({ sort: "name", page: String(page), in: "name" });
+    if (tab === "mine") params.set("tab", "mine");
+    if (sent.trim()) params.set("q", sent);
+    if (onlyTagged) params.set("tag", tagName);
+    setData(null);
     (async () => {
-      const res = await fetch("/api/recipes");
-      const list = res.ok ? ((await res.json()) as RecipeWithTags[]) : null;
+      const res = await fetch(`/api/recipes/search?${params}`);
+      const body = res.ok ? ((await res.json()) as RecipePage) : null;
       if (cancelled) return;
-      if (!list) {
-        setError("Could not load recipes.");
-        return;
-      }
-      const key = tagKey(tagName);
-      const carrying = new Set(list.filter((r) => r.tags.some((t) => tagKey(t) === key)).map((r) => r.id));
-      setRecipes([...list].sort((a, b) => a.name.localeCompare(b.name)));
-      setOriginal(carrying);
-      setTicked(new Set(carrying));
+      if (!body) setError("Could not load recipes.");
+      else setData(body);
     })();
     return () => {
       cancelled = true;
     };
-  }, [tagName]);
+  }, [tagName, tab, sent, onlyTagged, page]);
 
-  const canEdit = (r: RecipeWithTags) =>
+  const key = tagName ? tagKey(tagName) : "";
+  const canEdit = (r: RecipePage["rows"][number]) =>
     r.visibility === "shared" ? isAdmin : r.ownerUserId === currentUserId;
 
-  const shown = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return (recipes ?? []).filter((r) => !q || r.name.toLowerCase().includes(q));
-  }, [recipes, query]);
-
-  const toAdd = [...ticked].filter((id) => !original.has(id));
-  const toRemove = [...original].filter((id) => !ticked.has(id));
+  const toAdd = [...changes].filter(([, c]) => !c.was && c.now).map(([id]) => id);
+  const toRemove = [...changes].filter(([, c]) => c.was && !c.now).map(([id]) => id);
+  const pageCount = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
 
   async function save() {
     if (!tagName) return;
@@ -117,34 +138,64 @@ export default function TagRecipesPicker({
       </Modal.Header>
       <Modal.Body>
         {error && <Alert variant="danger">{error}</Alert>}
-        {!recipes && !error && (
+        <div className="d-flex flex-wrap gap-2 mb-2">
+          <Form.Select
+            size="sm"
+            className="w-auto"
+            aria-label="Which recipes"
+            value={tab}
+            onChange={(e) => {
+              setTab(e.target.value === "mine" ? "mine" : "shared");
+              setPage(1);
+            }}
+          >
+            <option value="shared">The House Jar</option>
+            <option value="mine">My Secret Stash</option>
+          </Form.Select>
+          <Form.Check
+            type="switch"
+            id="tag-picker-only-tagged"
+            className="mb-0 align-self-center"
+            label="Only ones with this tag"
+            checked={onlyTagged}
+            onChange={(e) => {
+              setOnlyTagged(e.target.checked);
+              setPage(1);
+            }}
+          />
+        </div>
+        <Form.Control
+          className="mb-2"
+          placeholder="Find a recipe by name…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          aria-label="Find a recipe by name"
+        />
+        {!data && !error && (
           <div className="d-flex align-items-center gap-2 text-muted">
             <Spinner animation="border" size="sm" /> Loading recipes…
           </div>
         )}
-        {recipes && (
+        {data && (
           <>
-            <Form.Control
-              className="mb-2"
-              placeholder="Filter recipes…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              aria-label="Filter recipes"
-            />
-            {shown.map((r) => {
+            {data.rows.map((r) => {
               const editable = canEdit(r);
+              const had = r.tags.some((t) => tagKey(t) === key);
+              const checked = changes.get(r.id)?.now ?? had;
               return (
                 <Form.Check
                   key={r.id}
                   type="checkbox"
                   id={`tag-recipe-${r.id}`}
-                  checked={ticked.has(r.id)}
+                  checked={checked}
                   disabled={!editable}
                   onChange={() =>
-                    setTicked((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(r.id)) next.delete(r.id);
-                      else next.add(r.id);
+                    setChanges((prev) => {
+                      const next = new Map(prev);
+                      const was = prev.get(r.id)?.was ?? had;
+                      const now = !checked;
+                      if (now === was) next.delete(r.id);
+                      else next.set(r.id, { was, now });
                       return next;
                     })
                   }
@@ -158,7 +209,25 @@ export default function TagRecipesPicker({
                 />
               );
             })}
-            {shown.length === 0 && <p className="text-muted mb-0">No recipes match.</p>}
+            {data.rows.length === 0 && <p className="text-muted mb-0">No recipes match.</p>}
+            {pageCount > 1 && (
+              <div className="d-flex justify-content-between align-items-center mt-2 small">
+                <Button size="sm" variant="outline-secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+                  Previous
+                </Button>
+                <span className="text-muted">
+                  Page {data.page} of {pageCount} · {data.total.toLocaleString()} recipes
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline-secondary"
+                  disabled={page >= pageCount}
+                  onClick={() => setPage(page + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </>
         )}
       </Modal.Body>

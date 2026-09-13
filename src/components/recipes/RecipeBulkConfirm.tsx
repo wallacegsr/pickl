@@ -4,10 +4,16 @@ import { useEffect, useState } from "react";
 import { Alert, Button, Modal, Spinner } from "react-bootstrap";
 import type { BulkSummary } from "@/lib/recipeBulk";
 
+/**
+ * Which recipes: explicit ids, or `matching` — a Recipes page query meaning
+ * every recipe it finds ("Select all 312 matching").
+ */
+type Selection = { ids: string[]; matching?: undefined } | { ids?: undefined; matching: string };
+
 export type BulkRequest =
-  | { action: "delete"; ids: string[] }
-  | { action: "copy"; ids: string[]; target: "private" | "shared" }
-  | { action: "tag"; ids: string[]; tags: string[]; mode: "add" | "remove" };
+  | ({ action: "delete" } & Selection)
+  | ({ action: "copy"; target: "private" | "shared" } & Selection)
+  | ({ action: "tag"; tags: string[]; mode: "add" | "remove" } & Selection);
 
 /**
  * Confirmation for a bulk recipe action — and for single ones, which are just
@@ -67,10 +73,17 @@ export default function RecipeBulkConfirm({
     if (!request) return;
     setRunning(true);
     setError(null);
+    // A "matching" selection is sent as the ids the preview found, not as the
+    // query again: what runs is exactly the list the person just agreed to,
+    // even if someone added a recipe that matches in the meantime.
+    const payload =
+      request.matching !== undefined && preview
+        ? { ...request, matching: undefined, ids: preview.rows.map((r) => r.id) }
+        : request;
     const res = await fetch("/api/recipes/bulk", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(request),
+      body: JSON.stringify(payload),
     });
     const body = await res.json().catch(() => null);
     setRunning(false);
@@ -92,13 +105,17 @@ export default function RecipeBulkConfirm({
         : "the House Jar"
       : "";
 
+  // Until a "matching" preview arrives, the count is not known yet.
+  const selectionSize = request?.ids?.length ?? preview?.rows.length;
+  const countLabel = selectionSize === undefined ? "the matching recipes" : plural(selectionSize, "recipe");
+
   const title = !request
     ? ""
     : isDelete
-      ? `Delete ${plural(request.ids.length, "recipe")}?`
+      ? `Delete ${countLabel}?`
       : isTag
         ? `${tagMode === "add" ? "Add" : "Remove"} ${request.action === "tag" && request.tags.length === 1 ? "a tag" : "tags"}?`
-        : `Copy ${plural(request.ids.length, "recipe")} to ${destination}?`;
+        : `Copy ${countLabel} to ${destination}?`;
 
   const refused = preview?.rows.filter((r) => r.status !== "ok") ?? [];
 

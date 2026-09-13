@@ -11,6 +11,30 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+### Added
+
+- **Filters on the Recipes page.** A sidebar (a drawer on phones) narrows the
+  jar by meal type, tags, your favorites, and "ready in 30 minutes or less",
+  each showing how many recipes it would leave. Ticking two tags offers All or
+  Any.
+- **Sort recipes** by name, newest, recently planned, not planned lately, or
+  most planned. The list view gains a "Last planned" column.
+- **Select all matching.** Select a page, then widen to every recipe the
+  search and filters find, across all pages, for copying, tagging or deleting.
+  The confirmation still shows exactly what will happen before anything does.
+
+### Changed
+
+- **The Recipes page loads one page at a time.** Searching, filtering, sorting
+  and paging now happen on the server, 50 recipes at a time, so a jar of
+  thousands opens as fast as a jar of ten. The list view pages; tiles offer
+  "Show more". Search, filters, sort and page are in the address, so a
+  filtered view survives a refresh and the back button and can be bookmarked.
+- A jar of more than 200 recipes opens in the list view unless you have chosen
+  a layout on that device.
+- The Tags page's **Recipes…** dialog searches and pages through the jar
+  instead of loading all of it, and remembers your ticks across pages.
+
 ## [2.2.0] - 2026-09-12
 
 ### Added
