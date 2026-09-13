@@ -28,7 +28,7 @@ export default async function TagsPage() {
           ? "Your edits reach the shared household pool and your own private recipes; nobody's private recipes but their owner's can be touched."
           : "Your edits reach your own private recipes only — shared household recipes keep their tags unless an admin changes them."}
       </p>
-      <TagManager initialTags={tags} isAdmin={admin} />
+      <TagManager initialTags={tags} isAdmin={admin} currentUserId={session.user.id} />
     </div>
   );
 }

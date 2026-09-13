@@ -19,6 +19,7 @@ export type AuditAction =
   // says "deleted 6" leaves nobody able to find out which six.
   | "recipe_bulk_delete"
   | "recipe_copy"
+  | "recipe_bulk_tag"
   | "recipe_update"
   | "recipe_delete"
   | "permission_change"

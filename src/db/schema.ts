@@ -278,6 +278,40 @@ export const recipeTags = sqliteTable(
   })
 );
 
+/**
+ * A person's starred recipes.
+ *
+ * Per person, not per household. Your favourites are your own: a household
+ * list would let one member unstar another's favourite, and spinning
+ * "favourites only" would mean nothing in particular to whoever pressed it.
+ * So a spin filtered to favourites uses the stars of the person spinning.
+ *
+ * No household_id, following recipe_tags: this is a join table between two
+ * rows that are already household-scoped, and every read goes through
+ * `recipes` with the household predicate. A copy of the household here would
+ * be a second answer to a question the recipe already answers.
+ *
+ * Cascades from both sides, so deleting a recipe or an account leaves no
+ * stars pointing at nothing.
+ */
+export const recipeFavorites = sqliteTable(
+  "recipe_favorites",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    recipeId: text("recipe_id")
+      .notNull()
+      .references(() => recipes.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    userRecipePair: unique().on(table.userId, table.recipeId),
+  })
+);
+
 export const planEntries = sqliteTable(
   "plan_entries",
   {

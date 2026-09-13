@@ -64,6 +64,16 @@ export interface PlanContextValue {
   setIncludeDessert: (value: boolean) => void;
   overwriteWeek: boolean;
   setOverwriteWeek: (value: boolean) => void;
+  /** Tags a pick must carry; empty means no tag filter. */
+  spinTags: string[];
+  setSpinTags: (value: string[]) => void;
+  /** With two or more tags: every one ("all") or at least one ("any"). */
+  spinTagMatch: "all" | "any";
+  setSpinTagMatch: (value: "all" | "any") => void;
+  /** Only the viewer's own starred recipes. */
+  spinFavoritesOnly: boolean;
+  setSpinFavoritesOnly: (value: boolean) => void;
+  spinTagOptions: string[];
   crunchingToday: boolean;
   shakingWeek: boolean;
   onCrunchToday: () => void;

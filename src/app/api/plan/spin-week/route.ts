@@ -4,6 +4,7 @@ import { getRemainingDaysInWeek, todayDateString } from "@/lib/dates";
 import { dessertSlotFor, getSlotEntries, getRecipePool, setPlanEntry, shuffle } from "@/lib/plan";
 import { spinWeekSchema } from "@/lib/validators";
 import { resolvePlanContext } from "@/lib/planContext";
+import { buildSpinFilter, noDessertsMessage, noMainsMessage } from "@/lib/spinFilter";
 import type { MealType } from "@/db/schema";
 
 export async function POST(req: NextRequest) {
@@ -20,13 +21,25 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-  const { mealTypes, includeDessert, scope, userId, overwriteExisting } = parsed.data;
+  const {
+    mealTypes,
+    includeDessert,
+    scope,
+    userId,
+    overwriteExisting,
+    tags,
+    tagMatch,
+    favoritesOnly,
+  } = parsed.data;
 
   const resolved = resolvePlanContext(session.user, scope, userId, "write");
   if (!resolved.ok) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
   const { householdId, scope: ctxScope, userId: ctxUserId } = resolved.context;
+
+  // Same filter for mains and desserts; see spin-today for why.
+  const spin = buildSpinFilter(session.user, householdId, { tags, tagMatch, favoritesOnly });
 
   const today = todayDateString();
   const remainingDays = getRemainingDaysInWeek(today);
@@ -46,17 +59,19 @@ export async function POST(req: NextRequest) {
       return getSlotEntries(householdId, day.date, ctxScope, ctxUserId, mealType).length === 0;
     });
 
-    const pool = shuffle(getRecipePool(householdId, ctxScope, ctxUserId, mealType, "main"));
+    const pool = shuffle(
+      getRecipePool(householdId, ctxScope, ctxUserId, mealType, "main", spin.filter)
+    );
     // Reshuffled per day below, so a week of desserts is not one repeated pick.
     const dessertPool =
       mealType === dessertSlot
-        ? getRecipePool(householdId, ctxScope, ctxUserId, mealType, "dessert")
+        ? getRecipePool(householdId, ctxScope, ctxUserId, mealType, "dessert", spin.filter)
         : [];
     if (mealType === dessertSlot && dessertPool.length === 0) {
-      notes.push("No recipes are tagged as desserts yet.");
+      notes.push(noDessertsMessage(spin));
     }
     if (pool.length === 0 && daysToFill.length > 0) {
-      notes.push(`No eligible recipes for ${mealType}.`);
+      notes.push(noMainsMessage(mealType, spin));
       unfilledCount += daysToFill.length;
       continue;
     }

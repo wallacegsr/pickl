@@ -13,6 +13,7 @@ import {
 } from "@/lib/recipeSearch";
 import { RecipeCards, RecipeTable } from "@/components/recipes/recipeViews";
 import RecipeBulkConfirm, { type BulkRequest } from "@/components/recipes/RecipeBulkConfirm";
+import RecipeTagPicker from "@/components/recipes/RecipeTagPicker";
 import type { BulkSummary } from "@/lib/recipeBulk";
 
 type Tab = "shared" | "mine";
@@ -30,10 +31,16 @@ export default function RecipeList({
   currentUserId,
   isAdmin,
   initialTagFilter,
+  existingTags = [],
+  initialFavoriteIds = [],
 }: {
   initialRecipes: RecipeWithTags[];
   currentUserId: string;
   isAdmin: boolean;
+  /** Tag names this person may see, for the bulk "Tag…" autocomplete. */
+  existingTags?: string[];
+  /** Recipes this person has starred. Stars are per person. */
+  initialFavoriteIds?: string[];
   /**
    * A tag to filter by on arrival, from `?tag=` — the Tags page links its
    * recipe counts here. Search is narrowed to tags only, so following the "3"
@@ -74,6 +81,35 @@ export default function RecipeList({
     }
   }
 
+  const [favorites, setFavorites] = useState<Set<string>>(new Set(initialFavoriteIds));
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [tagPickerOpen, setTagPickerOpen] = useState(false);
+
+  /**
+   * Stars or unstars one recipe, optimistically. Reverted if the server says
+   * no, so the star never claims a state that was not saved.
+   */
+  async function toggleFavorite(recipe: RecipeWithTags) {
+    const next = !favorites.has(recipe.id);
+    const apply = (on: boolean) =>
+      setFavorites((prev) => {
+        const s = new Set(prev);
+        if (on) s.add(recipe.id);
+        else s.delete(recipe.id);
+        return s;
+      });
+    apply(next);
+    const res = await fetch(`/api/recipes/${recipe.id}/favorite`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ favorite: next }),
+    });
+    if (!res.ok) {
+      apply(!next);
+      setNotice({ variant: "danger", text: "Could not save that star." });
+    }
+  }
+
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [request, setRequest] = useState<BulkRequest | null>(null);
   const [notice, setNotice] = useState<{ variant: string; text: string } | null>(null);
@@ -111,8 +147,13 @@ export default function RecipeList({
   );
 
   const filtered = useMemo(
-    () => tabRecipes.filter((r) => matchesRecipeSearch(r, search, searchFields)),
-    [tabRecipes, search, searchFields]
+    () =>
+      tabRecipes.filter(
+        (r) =>
+          (!favoritesOnly || favorites.has(r.id)) &&
+          matchesRecipeSearch(r, search, searchFields)
+      ),
+    [tabRecipes, search, searchFields, favoritesOnly, favorites]
   );
 
   // A selection only ever holds recipes currently on screen. Switching tab
@@ -169,6 +210,15 @@ export default function RecipeList({
             ? ` ${summary.skipped + summary.failed} left alone.`
             : ""),
       });
+    } else if (done.action === "tag") {
+      const verb = done.mode === "add" ? "Added" : "Removed";
+      setNotice({
+        variant: "success",
+        text:
+          `${verb} ${done.tags.join(", ")} ${done.mode === "add" ? "to" : "from"} ${summary.ok} recipe${summary.ok === 1 ? "" : "s"}.` +
+          (summary.newTags?.length ? ` New tag${summary.newTags.length === 1 ? "" : "s"}: ${summary.newTags.join(", ")}.` : "") +
+          (summary.skipped + summary.failed > 0 ? ` ${summary.skipped + summary.failed} left alone.` : ""),
+      });
     } else {
       setSelected(new Set());
       const where = done.target === "private" ? "your Secret Stash" : "the House Jar";
@@ -191,6 +241,8 @@ export default function RecipeList({
     onToggle: toggle,
     canEdit,
     copyTarget,
+    isFavorite: (recipe: RecipeWithTags) => favorites.has(recipe.id),
+    onToggleFavorite: toggleFavorite,
     onCopy: (recipe: RecipeWithTags, target: "private" | "shared") => {
       setNotice(null);
       setRequest({ action: "copy", ids: [recipe.id], target });
@@ -308,6 +360,16 @@ export default function RecipeList({
                   {bulkCopyTarget === "private" ? "Copy to my Secret Stash" : "Copy to the House Jar"}
                 </Button>
               )}
+              <Button
+                size="sm"
+                variant="outline-secondary"
+                onClick={() => {
+                  setNotice(null);
+                  setTagPickerOpen(true);
+                }}
+              >
+                Tag…
+              </Button>
               {anyDeletable && (
                 <Button
                   size="sm"
@@ -326,7 +388,15 @@ export default function RecipeList({
             </>
           )}
 
-          <ButtonGroup size="sm" className="ms-auto" aria-label="Layout">
+          <Form.Check
+            type="switch"
+            id="favorites-only"
+            className="mb-0 ms-auto"
+            label="★ Favorites only"
+            checked={favoritesOnly}
+            onChange={(e) => setFavoritesOnly(e.target.checked)}
+          />
+          <ButtonGroup size="sm" aria-label="Layout">
             <Button
               variant={view === "cards" ? "secondary" : "outline-secondary"}
               aria-pressed={view === "cards"}
@@ -345,7 +415,16 @@ export default function RecipeList({
         </div>
       )}
 
-      {filtered.length === 0 && (
+      {filtered.length === 0 && favoritesOnly && tabRecipes.length > 0 && (
+        <p className="text-muted">
+          No starred recipes here{search.trim() ? " match that search" : " yet"}.{" "}
+          <Button variant="link" className="p-0 align-baseline" onClick={() => setFavoritesOnly(false)}>
+            Show everything
+          </Button>
+        </p>
+      )}
+
+      {filtered.length === 0 && !(favoritesOnly && tabRecipes.length > 0) && (
         <p className="text-muted">
           {search.trim()
             ? "Nothing in the jar matches that search."
@@ -357,6 +436,17 @@ export default function RecipeList({
 
       {filtered.length > 0 &&
         (view === "cards" ? <RecipeCards {...viewProps} /> : <RecipeTable {...viewProps} />)}
+
+      <RecipeTagPicker
+        show={tagPickerOpen}
+        recipes={filtered.filter((r) => selected.has(r.id))}
+        suggestions={existingTags}
+        onCancel={() => setTagPickerOpen(false)}
+        onContinue={(mode, tags) => {
+          setTagPickerOpen(false);
+          setRequest({ action: "tag", ids: selectedIds, tags, mode });
+        }}
+      />
 
       <RecipeBulkConfirm
         request={request}

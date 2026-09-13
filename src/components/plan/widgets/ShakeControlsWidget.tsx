@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, Button, Form } from "react-bootstrap";
+import { Alert, Button, ButtonGroup, Form } from "react-bootstrap";
 import type { MealType } from "@/db/schema";
 import JarShake from "@/components/JarShake";
 import PickleCrunch from "@/components/PickleCrunch";
@@ -47,7 +47,17 @@ export default function ShakeControlsWidget() {
     onCrunchToday,
     onShakeWeek,
     scope,
+    spinTags,
+    setSpinTags,
+    spinTagMatch,
+    setSpinTagMatch,
+    spinFavoritesOnly,
+    setSpinFavoritesOnly,
+    spinTagOptions,
   } = usePlanContext();
+
+  const toggleTag = (tag: string) =>
+    setSpinTags(spinTags.includes(tag) ? spinTags.filter((t) => t !== tag) : [...spinTags, tag]);
 
   if (!isEditable) {
     return (
@@ -85,6 +95,64 @@ export default function ShakeControlsWidget() {
           title="Also pick a dessert, added to the last meal ticked above"
           inline
         />
+      </div>
+      <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <strong className="me-2">Only from:</strong>
+        <Form.Check
+          type="checkbox"
+          id="spin-favorites"
+          label="★ My favorites"
+          title="Pick only recipes you have starred"
+          checked={spinFavoritesOnly}
+          onChange={(e) => setSpinFavoritesOnly(e.target.checked)}
+          inline
+        />
+        {spinTagOptions.length > 0 && (
+          // Inline toggles rather than a dropdown: the dashboard grid positions
+          // widgets with transforms, which throws a floating menu off its button.
+          <div
+            className="d-flex flex-wrap gap-1"
+            role="group"
+            aria-label="Tags a pick must carry"
+            style={{ maxHeight: "5.5rem", overflowY: "auto" }}
+          >
+            {spinTagOptions.map((tag) => {
+              const on = spinTags.includes(tag);
+              return (
+                <Button
+                  key={tag}
+                  size="sm"
+                  variant={on ? "secondary" : "outline-secondary"}
+                  aria-pressed={on}
+                  className="py-0"
+                  onClick={() => toggleTag(tag)}
+                >
+                  {tag}
+                </Button>
+              );
+            })}
+          </div>
+        )}
+        {spinTags.length >= 2 && (
+          <ButtonGroup size="sm" aria-label="How tags combine">
+            <Button
+              variant={spinTagMatch === "all" ? "secondary" : "outline-secondary"}
+              aria-pressed={spinTagMatch === "all"}
+              title="A pick must carry every selected tag"
+              onClick={() => setSpinTagMatch("all")}
+            >
+              All
+            </Button>
+            <Button
+              variant={spinTagMatch === "any" ? "secondary" : "outline-secondary"}
+              aria-pressed={spinTagMatch === "any"}
+              title="A pick needs at least one selected tag"
+              onClick={() => setSpinTagMatch("any")}
+            >
+              Any
+            </Button>
+          </ButtonGroup>
+        )}
       </div>
       <div className="d-flex flex-wrap gap-2 align-items-center">
         {/* Two different actions, two different animations: today's pick

@@ -6,7 +6,8 @@ import type { BulkSummary } from "@/lib/recipeBulk";
 
 export type BulkRequest =
   | { action: "delete"; ids: string[] }
-  | { action: "copy"; ids: string[]; target: "private" | "shared" };
+  | { action: "copy"; ids: string[]; target: "private" | "shared" }
+  | { action: "tag"; ids: string[]; tags: string[]; mode: "add" | "remove" };
 
 /**
  * Confirmation for a bulk recipe action — and for single ones, which are just
@@ -81,6 +82,9 @@ export default function RecipeBulkConfirm({
   }
 
   const isDelete = request?.action === "delete";
+  const isTag = request?.action === "tag";
+  const tagList = request?.action === "tag" ? request.tags.join(", ") : "";
+  const tagMode = request?.action === "tag" ? request.mode : null;
   const destination =
     request?.action === "copy"
       ? request.target === "private"
@@ -92,7 +96,9 @@ export default function RecipeBulkConfirm({
     ? ""
     : isDelete
       ? `Delete ${plural(request.ids.length, "recipe")}?`
-      : `Copy ${plural(request.ids.length, "recipe")} to ${destination}?`;
+      : isTag
+        ? `${tagMode === "add" ? "Add" : "Remove"} ${request.action === "tag" && request.tags.length === 1 ? "a tag" : "tags"}?`
+        : `Copy ${plural(request.ids.length, "recipe")} to ${destination}?`;
 
   const refused = preview?.rows.filter((r) => r.status !== "ok") ?? [];
 
@@ -117,7 +123,18 @@ export default function RecipeBulkConfirm({
           <>
             {preview.ok === 0 ? (
               <p className="mb-2">
-                <strong>Nothing here can be {isDelete ? "deleted" : "copied"}.</strong>
+                <strong>
+                  {isTag
+                    ? "Nothing here would change."
+                    : `Nothing here can be ${isDelete ? "deleted" : "copied"}.`}
+                </strong>
+              </p>
+            ) : isTag ? (
+              <p>
+                <strong>{tagList}</strong> will be{" "}
+                {tagMode === "add" ? "added to" : "removed from"}{" "}
+                <strong>{plural(preview.ok, "recipe")}</strong>. Their other tags
+                stay exactly as they are.
               </p>
             ) : isDelete ? (
               <p>
@@ -130,6 +147,16 @@ export default function RecipeBulkConfirm({
                 {destination}. The originals stay exactly where they are, so you
                 can change the copies without touching them.
               </p>
+            )}
+
+            {isTag && (preview.newTags?.length ?? 0) > 0 && (
+              // Shown so a typo reads as what it is. "Comfrot" in a list of
+              // existing tags is easy to miss; flagged as brand new, it is not.
+              <Alert variant="info">
+                {preview.newTags!.length === 1 ? "This is a new tag" : "These are new tags"}{" "}
+                and will be created: <strong>{preview.newTags!.join(", ")}</strong>.
+                If that&apos;s a typo, go back and fix it.
+              </Alert>
             )}
 
             {isDelete && (preview.plannedMeals ?? 0) > 0 && (
@@ -177,6 +204,8 @@ export default function RecipeBulkConfirm({
             <Spinner animation="border" size="sm" />
           ) : isDelete ? (
             `Delete ${preview ? plural(preview.ok, "recipe") : ""}`.trim()
+          ) : isTag ? (
+            `${tagMode === "add" ? "Add" : "Remove"}`
           ) : (
             `Copy ${preview ? plural(preview.ok, "recipe") : ""}`.trim()
           )}

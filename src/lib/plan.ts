@@ -12,6 +12,8 @@ import {
 } from "@/db/schema";
 import { getWeekDays } from "@/lib/dates";
 import { logAuditEntry, type AuditAction } from "@/lib/audit";
+import { getTagsForRecipes } from "@/lib/tags";
+import { tagKey } from "@/lib/tagNames";
 
 export const MEAL_TYPE_LIST: MealType[] = ["breakfast", "lunch", "dinner"];
 
@@ -98,12 +100,40 @@ export function getAllRecipes(householdId: string): Recipe[] {
  * spin routes pass `course` to narrow that: "main" so shaking for dinner never
  * proposes cake, "dessert" so shaking for dessert proposes nothing else.
  */
+/**
+ * Narrows a recipe pool beyond meal type — what the spin controls' tag and
+ * favourites filters send.
+ *
+ * Every field is optional and an absent one filters nothing, so callers that
+ * pass no filter (the manual slot editor) see exactly the pool they always did.
+ */
+export interface RecipePoolFilter {
+  /** Tag names a recipe must carry. Matched case-insensitively, as tags are. */
+  tags?: string[];
+  /**
+   * "all" (the default): every listed tag. "any": at least one.
+   *
+   * All is the default because the two ways of getting it wrong are not equal.
+   * Too narrow, and the spin says nothing matches — which a person sees and
+   * can fix. Too broad, and "Vegetarian + Gluten-free" quietly serves a meal
+   * that is only one of the two to someone who cannot eat the other.
+   */
+  tagMatch?: "any" | "all";
+  /**
+   * Only recipes in this set — the spinner's favourites. Passed as ids rather
+   * than as a user so this module does not need to know how favourites are
+   * stored.
+   */
+  onlyIds?: Set<string>;
+}
+
 export function getRecipePool(
   householdId: string,
   scope: Scope,
   userId: string,
   mealType: MealType,
-  course: "any" | "main" | "dessert" = "any"
+  course: "any" | "main" | "dessert" = "any",
+  filter: RecipePoolFilter = {}
 ): Recipe[] {
   const all = db
     .select()
@@ -127,12 +157,43 @@ export function getRecipePool(
     const tags = parseRecipeMealTypes(r.mealType);
     return tags.includes(mealType) || tags.includes("any");
   });
+
+  const filtered = applyPoolFilter(householdId, pool, filter);
   // Alphabetical by name, so anything listing the pool is browsable. `numeric`
   // keeps "Chili 2" ahead of "Chili 10"; `base` sensitivity stops capitalised
   // names from sorting into their own block ahead of the lower-case ones.
-  return pool.sort((a, b) =>
+  return filtered.sort((a, b) =>
     a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" })
   );
+}
+
+function applyPoolFilter(
+  householdId: string,
+  pool: Recipe[],
+  filter: RecipePoolFilter
+): Recipe[] {
+  let result = pool;
+
+  if (filter.onlyIds) {
+    const only = filter.onlyIds;
+    result = result.filter((r) => only.has(r.id));
+  }
+
+  const wanted = [...new Set((filter.tags ?? []).map(tagKey).filter(Boolean))];
+  if (wanted.length > 0 && result.length > 0) {
+    // One query for the whole pool, never one per recipe.
+    const byRecipe = getTagsForRecipes(
+      householdId,
+      result.map((r) => r.id)
+    );
+    const matchAll = (filter.tagMatch ?? "all") === "all";
+    result = result.filter((r) => {
+      const has = new Set((byRecipe.get(r.id) ?? []).map(tagKey));
+      return matchAll ? wanted.every((t) => has.has(t)) : wanted.some((t) => has.has(t));
+    });
+  }
+
+  return result;
 }
 
 function emptyMeals(): Record<MealType, PlanMealSlot> {

@@ -13,6 +13,17 @@ changes with it — the two must never disagree about what is running.
 
 ### Added
 
+- **Tag many recipes at once.** Select recipes and choose Tag… to add or
+  remove tags across all of them, or open Recipes… beside a tag on the Tags
+  page and tick the recipes that should carry it. Add and remove only — other
+  tags are never touched — and a brand-new tag name is flagged before saving
+  so a typo does not quietly become a tag.
+- **Favorites.** Star any recipe; stars are your own, not the household's.
+  The recipe list can show only your starred recipes.
+- **Choose what the jar picks from.** Crunch Time and Weekly Picks can be
+  limited to your favorites and/or to recipes carrying chosen tags (all of
+  them, or any), on top of the meal type. Desserts follow the same filter, and
+  when nothing matches Pickl says which filter came up empty.
 - **Paste a recipe in.** Recipes → Import → Paste, and Pickl pulls out the
   name, ingredients, method, times and servings from a block of text off a
   note, an email or a web page. It shows you what it worked out in the normal

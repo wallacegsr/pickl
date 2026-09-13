@@ -26,6 +26,38 @@ export interface RecipeViewProps {
   copyTarget: (recipe: RecipeWithTags) => "private" | "shared" | null;
   onCopy: (recipe: RecipeWithTags, target: "private" | "shared") => void;
   onDelete: (recipe: RecipeWithTags) => void;
+  /** The viewer's own star on this recipe. */
+  isFavorite: (recipe: RecipeWithTags) => boolean;
+  onToggleFavorite: (recipe: RecipeWithTags) => void;
+}
+
+/**
+ * The star. A toggle button with aria-pressed, so it announces as "Favorite,
+ * pressed" rather than as an unexplained glyph, and named after the recipe for
+ * the same reason the checkboxes are.
+ */
+function Star({
+  recipe,
+  on,
+  onToggle,
+}: {
+  recipe: RecipeWithTags;
+  on: boolean;
+  onToggle: (recipe: RecipeWithTags) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="btn btn-link p-0 lh-1 text-decoration-none"
+      style={{ fontSize: "1.25rem", color: on ? "var(--bs-warning)" : "var(--bs-secondary-color)" }}
+      aria-pressed={on}
+      aria-label={`Favorite ${recipe.name}`}
+      title={on ? "Starred — click to unstar" : "Star this recipe"}
+      onClick={() => onToggle(recipe)}
+    >
+      {on ? "★" : "☆"}
+    </button>
+  );
 }
 
 function mealTypesOf(recipe: RecipeWithTags): string[] {
@@ -117,7 +149,7 @@ function Actions({
 // ---------------------------------------------------------------------------
 
 export function RecipeCards(props: RecipeViewProps) {
-  const { recipes, selected, onToggle, canEdit, copyTarget, onCopy, onDelete } = props;
+  const { recipes, selected, onToggle, canEdit, copyTarget, onCopy, onDelete, isFavorite, onToggleFavorite } = props;
 
   return (
     <Row xs={1} md={2} lg={3} className="g-3">
@@ -139,11 +171,14 @@ export function RecipeCards(props: RecipeViewProps) {
                     </div>
                     <Card.Title className="mb-0">{recipe.name}</Card.Title>
                   </div>
-                  {recipe.visibility === "private" && (
-                    <Badge bg="info" text="dark">
-                      Private
-                    </Badge>
-                  )}
+                  <div className="d-flex align-items-center gap-2">
+                    {recipe.visibility === "private" && (
+                      <Badge bg="info" text="dark">
+                        Private
+                      </Badge>
+                    )}
+                    <Star recipe={recipe} on={isFavorite(recipe)} onToggle={onToggleFavorite} />
+                  </div>
                 </div>
                 <div className="my-2 small text-muted">
                   {recipe.prepTimeMinutes != null && (
@@ -206,7 +241,7 @@ export function RecipeCards(props: RecipeViewProps) {
  * treatment the report tables already get.
  */
 export function RecipeTable(props: RecipeViewProps) {
-  const { recipes, selected, onToggle, canEdit, copyTarget, onCopy, onDelete } = props;
+  const { recipes, selected, onToggle, canEdit, copyTarget, onCopy, onDelete, isFavorite, onToggleFavorite } = props;
 
   return (
     <StackedTable hover>
@@ -244,6 +279,7 @@ export function RecipeTable(props: RecipeViewProps) {
                 />
               </StackedCell>
               <StackedCell label="Recipe">
+                <Star recipe={recipe} on={isFavorite(recipe)} onToggle={onToggleFavorite} />{" "}
                 <span className="fw-semibold">{recipe.name}</span>
                 {recipe.visibility === "private" && (
                   <Badge bg="info" text="dark" className="ms-2">

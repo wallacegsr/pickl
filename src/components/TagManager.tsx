@@ -16,6 +16,7 @@ import {
 } from "react-bootstrap";
 import { tagKey, MAX_TAG_LENGTH } from "@/lib/tagNames";
 import type { TagBulkSummary, TagSummary } from "@/lib/tags";
+import TagRecipesPicker from "@/components/TagRecipesPicker";
 
 /**
  * The Tags page.
@@ -36,9 +37,12 @@ import type { TagBulkSummary, TagSummary } from "@/lib/tags";
 export default function TagManager({
   initialTags,
   isAdmin,
+  currentUserId,
 }: {
   initialTags: TagSummary[];
   isAdmin: boolean;
+  /** Needed by the recipe picker to show which recipes this person can change. */
+  currentUserId: string;
 }) {
   const router = useRouter();
   const [tags, setTags] = useState(initialTags);
@@ -53,6 +57,7 @@ export default function TagManager({
   const [busy, setBusy] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState<TagSummary | null>(null);
+  const [recipesFor, setRecipesFor] = useState<string | null>(null);
 
   // --- bulk selection ------------------------------------------------------
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -401,6 +406,18 @@ export default function TagManager({
                     <div className="d-inline-flex flex-wrap gap-2 justify-content-end">
                       <Button
                         size="sm"
+                        variant="outline-secondary"
+                        onClick={() => {
+                          setError(null);
+                          setNotice(null);
+                          setRecipesFor(tag.name);
+                        }}
+                        title="Choose which recipes carry this tag"
+                      >
+                        Recipes…
+                      </Button>
+                      <Button
+                        size="sm"
                         variant="outline-primary"
                         onClick={() => openRename(tag)}
                       >
@@ -498,6 +515,19 @@ export default function TagManager({
           </Button>
         </Modal.Footer>
       </Modal>
+
+      <TagRecipesPicker
+        tagName={recipesFor}
+        isAdmin={isAdmin}
+        currentUserId={currentUserId}
+        onClose={() => setRecipesFor(null)}
+        onSaved={async (message) => {
+          setRecipesFor(null);
+          // Counts changed, so re-read rather than guess the new numbers.
+          const fresh = await fetch("/api/tags").then((r) => (r.ok ? r.json() : null));
+          applyResult({ tags: fresh ?? undefined }, message);
+        }}
+      />
 
       <Modal
         show={bulkOpen}

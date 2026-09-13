@@ -3,12 +3,12 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { householdScope } from "@/lib/permissions";
 import { suspensionError } from "@/lib/households";
-import { bulkCopy, bulkDelete, type BulkSummary } from "@/lib/recipeBulk";
+import { bulkCopy, bulkDelete, bulkTag, type BulkSummary } from "@/lib/recipeBulk";
 import { logAuditEntry } from "@/lib/audit";
 
 /**
- * Bulk recipe actions: delete, and copy between the House Jar and a Secret
- * Stash.
+ * Bulk recipe actions: delete; copy between the House Jar and a Secret Stash;
+ * and add or remove tags.
  *
  * `preview: true` answers "what would happen?" and writes nothing. The
  * confirmation dialog calls that first, shows the answer, and then calls again
@@ -28,6 +28,14 @@ const schema = z.discriminatedUnion("action", [
     action: z.literal("copy"),
     ids: z.array(z.string().min(1)).min(1, "Select at least one recipe.").max(MAX_IDS),
     target: z.enum(["private", "shared"]),
+    preview: z.boolean().optional(),
+  }),
+  z.object({
+    action: z.literal("tag"),
+    ids: z.array(z.string().min(1)).min(1, "Select at least one recipe.").max(MAX_IDS),
+    tags: z.array(z.string().trim().min(1)).min(1, "Name at least one tag.").max(20),
+    // No "replace". See bulkTag in src/lib/recipeBulk.ts for why.
+    mode: z.enum(["add", "remove"]),
     preview: z.boolean().optional(),
   }),
 ]);
@@ -76,6 +84,18 @@ export async function POST(req: NextRequest) {
         notes:
           `Deleted ${summary.ok} recipe(s): ${namesOf(summary)}` +
           (summary.plannedMeals ? `, removing ${summary.plannedMeals} planned meal(s)` : ""),
+      });
+    }
+  } else if (input.action === "tag") {
+    summary = bulkTag(session.user, householdId, input.ids, input.tags, input.mode, preview);
+    if (!preview && summary.ok > 0) {
+      logAuditEntry({
+        userId: session.user.id,
+        action: "recipe_bulk_tag",
+        notes:
+          `${input.mode === "add" ? "Added" : "Removed"} ${input.tags.map((t) => `"${t}"`).join(", ")} ` +
+          `${input.mode === "add" ? "to" : "from"} ${summary.ok} recipe(s): ${namesOf(summary)}` +
+          (summary.newTags?.length ? `. New tags created: ${summary.newTags.join(", ")}` : ""),
       });
     }
   } else {

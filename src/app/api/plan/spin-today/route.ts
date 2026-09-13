@@ -5,6 +5,7 @@ import { todayDateString } from "@/lib/dates";
 import { dessertSlotFor, getSlotEntries, getRecipePool, getWeekPlan, setPlanEntry, shuffle } from "@/lib/plan";
 import { spinTodaySchema } from "@/lib/validators";
 import { resolvePlanContext } from "@/lib/planContext";
+import { buildSpinFilter, noDessertsMessage, noMainsMessage } from "@/lib/spinFilter";
 import { db } from "@/db";
 import { recipes } from "@/db/schema";
 import type { MealType } from "@/db/schema";
@@ -23,13 +24,18 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-  const { mealTypes, includeDessert, scope, userId, force } = parsed.data;
+  const { mealTypes, includeDessert, scope, userId, force, tags, tagMatch, favoritesOnly } =
+    parsed.data;
 
   const resolved = resolvePlanContext(session.user, scope, userId, "write");
   if (!resolved.ok) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
   const { householdId, scope: ctxScope, userId: ctxUserId } = resolved.context;
+
+  // Applied to desserts as well as mains. A tag filter is often a dietary one,
+  // and a Vegetarian spin that adds a dessert nobody checked is not one.
+  const spin = buildSpinFilter(session.user, householdId, { tags, tagMatch, favoritesOnly });
 
   const today = todayDateString();
 
@@ -67,9 +73,9 @@ export async function POST(req: NextRequest) {
 
   for (const mealType of mealTypes) {
     // "main" so shaking for dinner never proposes cake.
-    const pool = getRecipePool(householdId, ctxScope, ctxUserId, mealType, "main");
+    const pool = getRecipePool(householdId, ctxScope, ctxUserId, mealType, "main", spin.filter);
     if (pool.length === 0) {
-      errors.push(`No eligible recipes for ${mealType}.`);
+      errors.push(noMainsMessage(mealType, spin));
       results.push({ mealType, recipe: null });
       continue;
     }
@@ -86,9 +92,16 @@ export async function POST(req: NextRequest) {
     const recipeIds = [picked.id];
 
     if (mealType === dessertSlot) {
-      const dessertPool = getRecipePool(householdId, ctxScope, ctxUserId, mealType, "dessert");
+      const dessertPool = getRecipePool(
+        householdId,
+        ctxScope,
+        ctxUserId,
+        mealType,
+        "dessert",
+        spin.filter
+      );
       if (dessertPool.length === 0) {
-        errors.push("No recipes are tagged as desserts yet.");
+        errors.push(noDessertsMessage(spin));
       } else {
         // Second in the slot, so the main keeps position 0 and the dessert
         // reads as following it.

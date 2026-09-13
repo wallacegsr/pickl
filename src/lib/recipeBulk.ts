@@ -16,6 +16,8 @@ import {
   type SessionUser,
 } from "@/lib/permissions";
 import { createRecipe } from "@/lib/recipes";
+import { ensureTag, findTagByName } from "@/lib/tags";
+import { MAX_TAG_LENGTH, normalizeTagName, tagKey } from "@/lib/tagNames";
 
 /**
  * Bulk operations on recipes: delete, and copy between the House Jar and a
@@ -44,6 +46,8 @@ export interface BulkRowResult {
   reason?: string;
   /** Delete only: planned meals, past and future, that go with this recipe. */
   plannedMeals?: number;
+  /** Tag only: how many of the named tags this recipe gains or loses. */
+  changes?: number;
 }
 
 export interface BulkSummary {
@@ -53,6 +57,14 @@ export interface BulkSummary {
   failed: number;
   /** Delete only: total planned meals the confirmed delete removes. */
   plannedMeals?: number;
+  /**
+   * Tag "add" only: names that are not yet tags in this household and will be
+   * created. Reported so a typo shows up in the confirmation as a new tag
+   * rather than quietly becoming one.
+   */
+  newTags?: string[];
+  /** Tag only: total tag links added or removed across the batch. */
+  changes?: number;
   rows: BulkRowResult[];
 }
 
@@ -348,4 +360,139 @@ function loadTagNames(householdId: string, recipeIds: string[]): Map<string, str
     map.set(row.recipeId, list);
   }
   return map;
+}
+
+// ---------------------------------------------------------------------------
+// Tag
+// ---------------------------------------------------------------------------
+
+export type TagMode = "add" | "remove";
+
+/**
+ * Adds tags to, or removes tags from, many recipes at once.
+ *
+ * Add and remove only — never "replace with". Replacing across thirty recipes
+ * would silently wipe whatever tags each one already had, which is not a
+ * thing a bulk action should be able to do to someone by accident. Add and
+ * remove each change only the tags named, and each undoes the other.
+ *
+ * The permission rule is the Tags page's: a tag change reaches only recipes
+ * this person may edit. A member who selects House Jar recipes has those
+ * refused row by row, shown in the preview, and nothing else is touched.
+ *
+ * Removing a tag from the last recipe that carried it does NOT delete the tag.
+ * An unused tag is legitimate household vocabulary (see setRecipeTags), and
+ * sweeping it away would make this action quietly edit the Tags page too.
+ */
+export function bulkTag(
+  user: SessionUser,
+  householdId: string,
+  ids: string[],
+  rawTags: string[],
+  mode: TagMode,
+  dryRun: boolean
+): BulkSummary {
+  // Normalised and de-duplicated by key, so "Quick" and "quick " are one tag.
+  const byKey = new Map<string, string>();
+  for (const raw of rawTags) {
+    const display = normalizeTagName(raw).slice(0, MAX_TAG_LENGTH);
+    const key = tagKey(display);
+    if (key && !byKey.has(key)) byKey.set(key, display);
+  }
+  const names = [...byKey.values()];
+
+  const unique = [...new Set(ids)];
+  const found = loadRecipes(householdId, unique);
+  const current = loadTagNames(householdId, [...found.keys()]);
+
+  // Resolved once: which named tags already exist in this household.
+  const existing = new Map<string, string>(); // key -> tag id
+  for (const name of names) {
+    const tag = findTagByName(householdId, name);
+    if (tag) existing.set(tagKey(name), tag.id);
+  }
+
+  const rows: BulkRowResult[] = [];
+  const plan: { recipeId: string; names: string[] }[] = [];
+
+  for (const id of unique) {
+    const recipe = found.get(id);
+    if (!recipe || !canSee(user, recipe)) {
+      rows.push({ id, name: null, status: "failed", reason: "Recipe not found." });
+      continue;
+    }
+    if (!canEditRecipe(user, recipe)) {
+      rows.push({
+        id,
+        name: recipe.name,
+        status: "skipped",
+        reason:
+          recipe.visibility === "shared"
+            ? "Only admins can change tags on House Jar recipes."
+            : "Only its owner can change this recipe's tags.",
+      });
+      continue;
+    }
+
+    const has = new Set((current.get(id) ?? []).map(tagKey));
+    const relevant =
+      mode === "add"
+        ? names.filter((n) => !has.has(tagKey(n)))
+        : names.filter((n) => has.has(tagKey(n)));
+
+    if (relevant.length === 0) {
+      rows.push({
+        id,
+        name: recipe.name,
+        status: "skipped",
+        reason: mode === "add" ? "Already has these tags." : "Has none of these tags.",
+      });
+      continue;
+    }
+
+    rows.push({ id, name: recipe.name, status: "ok", changes: relevant.length });
+    plan.push({ recipeId: id, names: relevant });
+  }
+
+  if (!dryRun && plan.length > 0) {
+    if (mode === "add") {
+      // ensureTag matches the household's existing tags case-insensitively and
+      // creates only what is genuinely new — never a second "Weeknight".
+      const tagIds = new Map<string, string>();
+      for (const name of names) {
+        if (plan.some((p) => p.names.includes(name))) {
+          tagIds.set(tagKey(name), ensureTag(householdId, name, user.id).id);
+        }
+      }
+      for (const { recipeId, names: toAdd } of plan) {
+        for (const name of toAdd) {
+          const tagId = tagIds.get(tagKey(name));
+          if (!tagId) continue;
+          db.insert(recipeTags).values({ recipeId, tagId }).onConflictDoNothing().run();
+        }
+      }
+    } else {
+      for (const { recipeId, names: toRemove } of plan) {
+        for (const name of toRemove) {
+          const tagId = existing.get(tagKey(name));
+          if (!tagId) continue;
+          db.delete(recipeTags)
+            .where(and(eq(recipeTags.recipeId, recipeId), eq(recipeTags.tagId, tagId)))
+            .run();
+        }
+      }
+    }
+  }
+
+  const summary = summarise(dryRun, rows);
+  summary.changes = rows.reduce((n, r) => n + (r.changes ?? 0), 0);
+  if (mode === "add") {
+    // Only names that will actually land on a recipe. Worked out from the plan
+    // rather than from the request, or a batch whose every recipe was refused
+    // would still promise to create a tag it never creates.
+    summary.newTags = names.filter(
+      (n) => !existing.has(tagKey(n)) && plan.some((p) => p.names.includes(n))
+    );
+  }
+  return summary;
 }

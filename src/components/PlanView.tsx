@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Alert,
@@ -213,6 +213,20 @@ export default function PlanView({
   // Off by default: a shake should not start proposing cake unless asked.
   const [includeDessert, setIncludeDessert] = useState(false);
   const [overwriteWeek, setOverwriteWeek] = useState(false);
+  // What the jar may pick from, beyond the meal type. Empty tags and no
+  // favorites means "everything", which is how it behaved before these existed.
+  const [spinTags, setSpinTags] = useState<string[]>([]);
+  const [spinTagMatch, setSpinTagMatch] = useState<"all" | "any">("all");
+  const [spinFavoritesOnly, setSpinFavoritesOnly] = useState(false);
+  // Offered tags come from the recipes the jar could actually pick, so a tag
+  // no eligible recipe carries is never on the menu.
+  const spinTagOptions = useMemo(() => {
+    const byKey = new Map<string, string>();
+    for (const pool of Object.values(recipePoolByMeal))
+      for (const r of pool)
+        for (const t of r.tags) if (!byKey.has(t.toLowerCase())) byKey.set(t.toLowerCase(), t);
+    return [...byKey.values()].sort((a, b) => a.localeCompare(b));
+  }, [recipePoolByMeal]);
 
   const [crunchingToday, setCrunchingToday] = useState(false);
   const [shakingWeek, setShakingWeek] = useState(false);
@@ -284,6 +298,9 @@ export default function PlanView({
           scope,
           userId: scope === "private" ? requestedUserId : undefined,
           force,
+          tags: spinTags,
+          tagMatch: spinTagMatch,
+          favoritesOnly: spinFavoritesOnly,
         }),
       });
     } catch {
@@ -349,6 +366,9 @@ export default function PlanView({
           scope,
           userId: scope === "private" ? requestedUserId : undefined,
           overwriteExisting: overwriteWeek,
+          tags: spinTags,
+          tagMatch: spinTagMatch,
+          favoritesOnly: spinFavoritesOnly,
         }),
       });
     } catch {
@@ -498,6 +518,13 @@ export default function PlanView({
         setIncludeDessert,
           overwriteWeek,
           setOverwriteWeek,
+          spinTags,
+          setSpinTags,
+          spinTagMatch,
+          setSpinTagMatch,
+          spinFavoritesOnly,
+          setSpinFavoritesOnly,
+          spinTagOptions,
           crunchingToday,
           shakingWeek,
           onCrunchToday: () => handleCrunchToday(false),

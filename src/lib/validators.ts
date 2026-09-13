@@ -202,6 +202,15 @@ export const spinTodaySchema = z.object({
   scope: scopeSchema.default("shared"),
   userId: z.string().nullable().optional(),
   force: z.boolean().default(false),
+  /**
+   * Narrow what the spin may pick from, beyond meal type. All optional, and
+   * absent means no narrowing — so an older client sending none of these gets
+   * the spin it always got. See RecipePoolFilter in src/lib/plan.ts.
+   */
+  tags: z.array(z.string().trim().min(1).max(100)).max(20).default([]),
+  tagMatch: z.enum(["any", "all"]).default("all"),
+  /** Only the spinner's own starred recipes. */
+  favoritesOnly: z.boolean().default(false),
 });
 
 export const shoppingListStatusSchema = z.object({
@@ -310,6 +319,15 @@ export const spinWeekSchema = z.object({
   scope: scopeSchema.default("shared"),
   userId: z.string().nullable().optional(),
   overwriteExisting: z.boolean().default(false),
+  /**
+   * Narrow what the spin may pick from, beyond meal type. All optional, and
+   * absent means no narrowing — so an older client sending none of these gets
+   * the spin it always got. See RecipePoolFilter in src/lib/plan.ts.
+   */
+  tags: z.array(z.string().trim().min(1).max(100)).max(20).default([]),
+  tagMatch: z.enum(["any", "all"]).default("all"),
+  /** Only the spinner's own starred recipes. */
+  favoritesOnly: z.boolean().default(false),
 });
 
 /**
