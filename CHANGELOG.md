@@ -13,6 +13,13 @@ changes with it — the two must never disagree about what is running.
 
 ### Added
 
+- **A page for each recipe, for cooking from.** Click a recipe tile (or its
+  name in the list view) to open it: meal types and tags, times, servings and
+  source, ingredients, the method as numbered steps, and notes. Tick
+  ingredients off as they go in and tap the step you are on; that is kept for
+  this browser tab only, and "Start over" clears it. Edit and Copy are there
+  when you are allowed to use them.
+- **Recipe quick look links to the recipe.** Its name opens the recipe page.
 - **Click a calendar event for its details.** Events from your own calendar,
   on the plan grid and in the Calendar events widget, open a window with when
   it is, where (with a map link), its notes, and a link to open it in Google

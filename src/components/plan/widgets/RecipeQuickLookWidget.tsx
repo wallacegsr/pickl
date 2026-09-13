@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Badge } from "react-bootstrap";
 import type { MealType } from "@/db/schema";
 import { splitIngredients } from "@/lib/ingredients";
@@ -105,7 +106,13 @@ export default function RecipeQuickLookWidget() {
           </div>
           {/* The pool is scoped to this calendar; if a planned recipe has since
               gone private or been deleted, the plan still carries its name. */}
-          <div className="fw-semibold">{next.planned.recipe.name}</div>
+          <Link
+            href={`/recipes/${next.planned.recipe.id}`}
+            className="fw-semibold link-body-emphasis d-inline-block"
+            title="Open the recipe"
+          >
+            {next.planned.recipe.name} →
+          </Link>
           {recipe && recipe.tags.length > 0 && (
             <div className="mt-1">
               {recipe.tags.map((tag) => (

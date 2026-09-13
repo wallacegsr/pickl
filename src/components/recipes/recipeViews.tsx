@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Badge, Button, Card, Col, Form, Row } from "react-bootstrap";
 import type { RecipeListRow } from "@/lib/recipeQueryParams";
 import {
@@ -149,6 +150,7 @@ function Actions({
 // ---------------------------------------------------------------------------
 
 export function RecipeCards(props: RecipeViewProps) {
+  const router = useRouter();
   const { recipes, selected, onToggle, canEdit, copyTarget, onCopy, onDelete, isFavorite, onToggleFavorite } = props;
 
   return (
@@ -158,10 +160,15 @@ export function RecipeCards(props: RecipeViewProps) {
         return (
           <Col key={recipe.id}>
             <Card
+              // The whole tile opens the recipe, not only its title — except
+              // clicks on its own controls (select, star, Edit, Copy, Delete).
+              onClick={(e) => {
+                if ((e.target as HTMLElement).closest("a, button, input, label")) return;
+                if (window.getSelection()?.toString()) return; // selecting text, not opening
+                router.push(`/recipes/${recipe.id}`);
+              }}
+              style={{ cursor: "pointer", ...(isSelected ? { boxShadow: "0 0 0 2px var(--bs-primary)" } : {}) }}
               className={`h-100 shadow-sm${isSelected ? " border-primary" : ""}`}
-              // A visible ring as well as a ticked box: at a glance across a
-              // grid of tiles, the box is too small to be the only signal.
-              style={isSelected ? { boxShadow: "0 0 0 2px var(--bs-primary)" } : undefined}
             >
               <Card.Body className="d-flex flex-column">
                 <div className="d-flex justify-content-between align-items-start gap-2">
@@ -169,7 +176,11 @@ export function RecipeCards(props: RecipeViewProps) {
                     <div className="pt-1">
                       <SelectBox recipe={recipe} checked={isSelected} onToggle={onToggle} />
                     </div>
-                    <Card.Title className="mb-0">{recipe.name}</Card.Title>
+                    <Card.Title className="mb-0">
+                      <Link href={`/recipes/${recipe.id}`} className="link-body-emphasis text-decoration-none">
+                        {recipe.name}
+                      </Link>
+                    </Card.Title>
                   </div>
                   <div className="d-flex align-items-center gap-2">
                     {recipe.visibility === "private" && (
@@ -281,7 +292,9 @@ export function RecipeTable(props: RecipeViewProps) {
               </StackedCell>
               <StackedCell label="Recipe">
                 <Star recipe={recipe} on={isFavorite(recipe)} onToggle={onToggleFavorite} />{" "}
-                <span className="fw-semibold">{recipe.name}</span>
+                <Link href={`/recipes/${recipe.id}`} className="fw-semibold link-body-emphasis">
+                  {recipe.name}
+                </Link>
                 {recipe.visibility === "private" && (
                   <Badge bg="info" text="dark" className="ms-2">
                     Private
