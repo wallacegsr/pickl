@@ -35,8 +35,11 @@ changes with it — the two must never disagree about what is running.
 
 ### Changed
 
-- **Recipe quick look shows tonight's recipe and nothing else.** Its search
-  box is gone; searching the jar is what the Recipes page is for.
+- **Recipe quick look shows the next planned meal**, not only tonight's
+  dinner: the rest of today, then the coming days of the week, skipping empty
+  slots. A meal counts as past at 10:30 (breakfast), 3pm (lunch) and 9pm
+  (dinner), by your device's clock. Its search box is gone; searching the jar
+  is what the Recipes page is for.
 - **Choosing tags to shake from is a search box now**, not a button for every
   tag. Focus it for the most-used tags, or type to find one; chosen tags
   become chips you can remove, and each shows how many recipes for the ticked
