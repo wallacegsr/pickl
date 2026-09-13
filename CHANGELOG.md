@@ -45,6 +45,16 @@ changes with it — the two must never disagree about what is running.
 - The Tags page's **Recipes…** dialog searches and pages through the jar
   instead of loading all of it, and remembers your ticks across pages.
 
+### Fixed
+
+- **Connecting Google Calendar could "succeed" and then fail** with "Could
+  not load your Google calendars (HTTP 403) … insufficient authentication
+  scopes". Google lists each permission as its own checkbox and lets people
+  untick them; Pickl stored whatever came back without checking. It now
+  refuses a connection missing either calendar permission, explains which
+  boxes to tick, and an existing half-granted connection shows a Reconnect
+  button instead of Google's raw error.
+
 ## [2.2.0] - 2026-09-12
 
 ### Added

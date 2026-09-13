@@ -41,6 +41,27 @@ export const GOOGLE_SCOPES = [
   "email",
 ];
 
+/**
+ * The scopes sync cannot work without. Google's consent screen shows each
+ * permission as its own checkbox and lets people untick them — and a token
+ * missing either of these connects "successfully", then fails with "Request
+ * had insufficient authentication scopes" the first time it is used. So the
+ * callback checks what was actually granted, not what was asked for.
+ */
+export const REQUIRED_GOOGLE_SCOPES = [
+  "https://www.googleapis.com/auth/calendar.events",
+  "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
+];
+
+export const SCOPES_NOT_GRANTED_MESSAGE =
+  "Google didn't give Pickl permission to use your calendars. When you connect, Google lists each permission with its own checkbox — tick both calendar ones (see your calendar list, and view and edit events), then continue.";
+
+/** Required scopes missing from a space-separated granted list. */
+export function missingGoogleScopes(granted: string): string[] {
+  const have = new Set(granted.split(/\s+/).filter(Boolean));
+  return REQUIRED_GOOGLE_SCOPES.filter((s) => !have.has(s));
+}
+
 const TOKEN_REVOKE_URL = "https://oauth2.googleapis.com/revoke";
 const CALENDAR_API_BASE = "https://www.googleapis.com/calendar/v3";
 const USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
@@ -194,6 +215,8 @@ export async function exchangeCodeForTokens(
   return {
     refreshToken: tokens.refresh_token,
     accessToken: tokens.access_token ?? null,
+    // What Google actually granted. Only assume the full request if Google
+    // did not say, which it does on every current token response.
     scopes: tokens.scope ?? GOOGLE_SCOPES.join(" "),
     accountEmail,
   };
@@ -274,6 +297,11 @@ export async function listUserCalendars(
   );
   if (!res.ok) {
     const text = await res.text().catch(() => "");
+    // A connection made before the callback checked scopes, with a box left
+    // unticked. Reconnecting is the fix, so say that instead of Google's JSON.
+    if (res.status === 403 && /insufficient.*scopes|insufficientPermissions/i.test(text)) {
+      throw new ReauthRequiredError(SCOPES_NOT_GRANTED_MESSAGE);
+    }
     throw new Error(
       `Could not load your Google calendars (HTTP ${res.status})${
         text ? `: ${text.slice(0, 300)}` : ""

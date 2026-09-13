@@ -126,6 +126,7 @@ export default function CalendarSettingsPanel({
   const [googleCalendars, setGoogleCalendars] = useState<CalendarOption[] | null>(null);
   const [caldavCalendars, setCaldavCalendars] = useState<CalendarOption[] | null>(null);
   const [calendarsError, setCalendarsError] = useState<string | null>(null);
+  const [calendarsReauth, setCalendarsReauth] = useState(false);
   const [loadingCalendars, setLoadingCalendars] = useState(false);
 
   const [message, setMessage] = useState<string | null>(initialMessage ?? null);
@@ -149,6 +150,7 @@ export default function CalendarSettingsPanel({
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       setCalendarsError(data.error || "Could not load your Google calendars.");
+      setCalendarsReauth(Boolean(data.reauthRequired));
       setGoogleCalendars([]);
       return;
     }
@@ -187,6 +189,7 @@ export default function CalendarSettingsPanel({
   const loadCalendars = useCallback(async () => {
     setLoadingCalendars(true);
     setCalendarsError(null);
+    setCalendarsReauth(false);
     const jobs: Array<Promise<void>> = [];
     if (state.connected) jobs.push(loadGoogleCalendars());
     else setGoogleCalendars(null);
@@ -439,6 +442,8 @@ export default function CalendarSettingsPanel({
               calendars. It won&apos;t read any of your existing events
               unless you switch on &ldquo;show my calendar on the
               plan&rdquo; below — and even then it never stores them.
+              Google shows each permission with its own checkbox: tick both
+              calendar ones, or sync can&apos;t work.
             </div>
           </div>
         )}
@@ -656,6 +661,13 @@ export default function CalendarSettingsPanel({
             {calendarsError && (
               <Alert variant="warning" className="small">
                 {calendarsError}
+                {calendarsReauth && (
+                  <div>
+                    <Button className="mt-2" size="sm" href="/api/calendar/google/connect">
+                      Reconnect Google Calendar
+                    </Button>
+                  </div>
+                )}
               </Alert>
             )}
 

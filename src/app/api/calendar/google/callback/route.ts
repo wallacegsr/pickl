@@ -5,7 +5,10 @@ import { upsertAccount } from "@/lib/calendar/accounts";
 import {
   exchangeCodeForTokens,
   getAppBaseUrl,
+  missingGoogleScopes,
   preferencesCalendarsUrl,
+  revokeRefreshToken,
+  SCOPES_NOT_GRANTED_MESSAGE,
 } from "@/lib/calendar/googleOAuth";
 import { consumeState } from "@/lib/calendar/oauthState";
 
@@ -77,6 +80,16 @@ export async function GET(req: NextRequest) {
 
   try {
     const tokens = await exchangeCodeForTokens(code);
+
+    // Refuse a half-granted connection rather than store one that cannot
+    // sync. The token is revoked so the partial grant doesn't linger in the
+    // person's Google account either.
+    if (missingGoogleScopes(tokens.scopes).length > 0) {
+      await revokeRefreshToken(tokens.refreshToken).catch(() => undefined);
+      return NextResponse.redirect(
+        preferencesCalendarsUrl({ calendarError: SCOPES_NOT_GRANTED_MESSAGE })
+      );
+    }
     const account = upsertAccount({
       userId: session.user.id,
       provider: "google",
