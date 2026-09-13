@@ -210,6 +210,27 @@ $navbar-dark-active-color: $white;
   align-items: baseline;
 }
 
+// The event rows are buttons (they open a detail window). Reset the button
+// look so they draw exactly like the plain rows they replaced.
+.plan-external-event-button {
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  cursor: pointer;
+
+  &:hover {
+    filter: brightness(0.95);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--bs-focus-ring-color, var(--bs-primary));
+    outline-offset: 1px;
+  }
+}
+
 .plan-external-event-time {
   color: var(--bs-secondary-color);
   white-space: nowrap;

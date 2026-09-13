@@ -73,6 +73,15 @@ export interface ExternalEvent {
   allDay: boolean;
   /** True when the event spans more than one calendar day. */
   multiDay: boolean;
+  /**
+   * Shown only in the event's detail window, only to the calendar's owner.
+   * Like the title: fetched per page view, never logged or stored.
+   */
+  location: string | null;
+  /** The event's notes, as the provider gives them (may contain HTML). */
+  description: string | null;
+  /** Where to open the event in the provider's own calendar app. */
+  link: string | null;
 }
 
 export interface ListEventsInput {

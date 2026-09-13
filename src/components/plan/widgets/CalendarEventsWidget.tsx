@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Spinner } from "react-bootstrap";
 import { usePlanContext } from "../PlanContext";
-import { formatEventTime } from "./PlanGridWidget";
+import ExternalEventItem from "../ExternalEventItem";
 
 /**
  * This week's external calendar events as a standalone widget.
@@ -94,25 +94,9 @@ export default function CalendarEventsWidget() {
             {day.dayOfWeek}{" "}
             <span className="text-body-secondary fw-normal">({day.date})</span>
           </div>
-          {(byDate.get(day.date) ?? []).map((event) => {
-            const time = formatEventTime(event);
-            return (
-              <div
-                key={event.id}
-                className="plan-external-event"
-                title={event.summary}
-              >
-                <span className="plan-external-event-time">
-                  {event.allDay
-                    ? event.multiDay
-                      ? "Multi-day"
-                      : "All day"
-                    : time ?? ""}
-                </span>{" "}
-                <span className="plan-external-event-title">{event.summary}</span>
-              </div>
-            );
-          })}
+          {(byDate.get(day.date) ?? []).map((event) => (
+            <ExternalEventItem key={event.id} event={event} />
+          ))}
         </div>
       ))}
     </div>

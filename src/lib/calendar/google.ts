@@ -73,11 +73,17 @@ function describeApiError(status: number, bodyText: string): string {
   return `Google Calendar API error ${status}${detail ? `: ${detail}` : ""}`;
 }
 
+/** Location and notes are cut to this length; a detail window, not a document. */
+const MAX_DETAIL_LENGTH = 4000;
+
 /** Only the fields we ask Google for; see the `fields` mask in listEvents. */
 interface GoogleEventItem {
   id?: string;
   iCalUID?: string;
   summary?: string;
+  location?: string;
+  description?: string;
+  htmlLink?: string;
   status?: string;
   transparency?: string;
   start?: { date?: string; dateTime?: string };
@@ -118,6 +124,13 @@ function toExternalEvents(
   rangeEnd: Date
 ): ExternalEvent[] {
   const summary = (item.summary || "(busy)").trim() || "(busy)";
+  const location = item.location?.trim().slice(0, MAX_DETAIL_LENGTH) || null;
+  const description = item.description?.trim().slice(0, MAX_DETAIL_LENGTH) || null;
+  // Only Google's own https links; this ends up as an href.
+  const link =
+    item.htmlLink && /^https:\/\/(www|calendar)\.google\.com\//.test(item.htmlLink)
+      ? item.htmlLink
+      : null;
   const firstDay = toDateString(rangeStart);
   // rangeEnd is exclusive, so the last renderable day is the day before it.
   const lastDay = toDateString(new Date(rangeEnd.getTime() - 1));
@@ -143,6 +156,9 @@ function toExternalEvents(
         end,
         allDay,
         multiDay,
+        location,
+        description,
+        link,
       });
       cursor = addDays(cursor, 1);
     }
@@ -330,10 +346,12 @@ export class GoogleCalendarProvider implements CalendarProvider {
         orderBy: "startTime",
         showDeleted: "false",
         maxResults: String(MAX_EVENTS),
-        // Only the fields the overlay renders. Descriptions, attendees,
-        // locations and conferencing data are never even transferred.
+        // Only the fields the overlay renders: the grid shows times and
+        // titles, and an event's detail window adds its location, notes and a
+        // link back to Google. Other attendees and conferencing data are
+        // never transferred.
         fields:
-          "items(id,iCalUID,summary,status,start,end,transparency,attendees(self,responseStatus),extendedProperties/private)",
+          "items(id,iCalUID,summary,location,description,htmlLink,status,start,end,transparency,attendees(self,responseStatus),extendedProperties/private)",
       });
 
       const res = await this.request(

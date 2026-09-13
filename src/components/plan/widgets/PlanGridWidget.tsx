@@ -4,7 +4,8 @@ import { Badge, Button, Table } from "react-bootstrap";
 import { useResizableColumns, type ColumnSpec } from "@/components/plan/useResizableColumns";
 import type { MealType } from "@/db/schema";
 import { CakeIcon } from "@/components/nav/icons";
-import { usePlanContext, type ExternalEventView } from "../PlanContext";
+import { usePlanContext } from "../PlanContext";
+import ExternalEventItem from "../ExternalEventItem";
 
 const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner"];
 const MEAL_LABELS: Record<MealType, string> = {
@@ -23,13 +24,6 @@ const SLOT_CHIP_VARIANTS = 3;
 /** How many events a day shows before collapsing the rest behind a count. */
 const OVERLAY_VISIBLE_LIMIT = 3;
 
-/** "6:30 PM", in the viewer's locale. All-day events have no time at all. */
-export function formatEventTime(event: ExternalEventView): string | null {
-  if (event.allDay || !event.start) return null;
-  const d = new Date(event.start);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-}
 
 /**
  * The Sunday–Saturday meal grid, including the external-calendar column.
@@ -240,27 +234,9 @@ export default function PlanGridWidget() {
                         const hidden = events.length - shown.length;
                         return (
                           <>
-                            {shown.map((event) => {
-                              const time = formatEventTime(event);
-                              return (
-                                <div
-                                  key={event.id}
-                                  className="plan-external-event"
-                                  title={event.summary}
-                                >
-                                  <span className="plan-external-event-time" suppressHydrationWarning>
-                                    {event.allDay
-                                      ? event.multiDay
-                                        ? "Multi-day"
-                                        : "All day"
-                                      : time ?? ""}
-                                  </span>{" "}
-                                  <span className="plan-external-event-title">
-                                    {event.summary}
-                                  </span>
-                                </div>
-                              );
-                            })}
+                            {shown.map((event) => (
+                              <ExternalEventItem key={event.id} event={event} />
+                            ))}
                             {hidden > 0 && (
                               <Button
                                 variant="link"

@@ -13,6 +13,12 @@ changes with it — the two must never disagree about what is running.
 
 ### Added
 
+- **Click a calendar event for its details.** Events from your own calendar,
+  on the plan grid and in the Calendar events widget, open a window with when
+  it is, where (with a map link), its notes, and a link to open it in Google
+  Calendar. Only you see them, and like the titles they are fetched with the
+  page and never stored. Notes are shown as plain text, with web addresses as
+  links.
 - **Export all, or export what you found.** Export on the Recipes page is now
   a menu: "Export all recipes" takes everything you can see, and "Export N
   matching" takes whatever the current tab, search and filters find, on every

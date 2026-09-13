@@ -19,6 +19,9 @@ export interface ExternalEventView {
   end: string | null;
   allDay: boolean;
   multiDay: boolean;
+  location: string | null;
+  description: string | null;
+  link: string | null;
 }
 
 export interface OverlayResponse {

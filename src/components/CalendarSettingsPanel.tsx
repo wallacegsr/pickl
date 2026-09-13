@@ -638,8 +638,9 @@ export default function CalendarSettingsPanel({
               included — sees yours.
             </li>
             <li>
-              <strong>Nothing is stored.</strong> Events are fetched when you
-              open the page and thrown away afterwards. They never reach
+              <strong>Nothing is stored.</strong> Events — their times, titles,
+              and the location and notes you see when you click one — are
+              fetched when you open the page and thrown away afterwards. They never reach
               Pickl&apos;s database.
             </li>
             <li>
