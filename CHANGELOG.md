@@ -11,6 +11,8 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-09-12
+
 ### Added
 
 - **Tag many recipes at once.** Select recipes and choose Tag… to add or
@@ -319,7 +321,8 @@ Initial public release: the container image published to
 - Light and dark themes.
 - Docker deployment, with the image published to GHCR.
 
-[Unreleased]: https://github.com/wallacegsr/pickl/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/wallacegsr/pickl/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/wallacegsr/pickl/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/wallacegsr/pickl/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/wallacegsr/pickl/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/wallacegsr/pickl/compare/v1.0.0...v1.1.0
