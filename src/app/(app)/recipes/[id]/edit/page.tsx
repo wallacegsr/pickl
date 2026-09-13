@@ -5,6 +5,7 @@ import { recipes } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { canEditRecipe, householdScope, isAdmin } from "@/lib/permissions";
 import RecipeForm from "@/components/RecipeForm";
+import RecipeCopyButton from "@/components/recipes/RecipeCopyButton";
 import { attachTagsToRecipe, listVisibleTags } from "@/lib/tags";
 
 export default async function EditRecipePage({
@@ -40,13 +41,27 @@ export default async function EditRecipePage({
     ? listVisibleTags(session.user).map((t) => t.name)
     : [];
 
+  // Where this recipe may be copied, by the same rule the list uses: a House
+  // Jar recipe to your stash, your own stash recipe to the jar if you are an
+  // admin. Only a hint for whether to show the button — the server re-checks.
+  const admin = isAdmin(session?.user);
+  const copyTarget =
+    recipe.visibility === "shared"
+      ? ("private" as const)
+      : recipe.ownerUserId === session?.user?.id && admin
+        ? ("shared" as const)
+        : null;
+
   return (
     <div>
-      <h2 className="mb-4">Edit Recipe</h2>
+      <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 className="mb-0">Edit Recipe</h2>
+        {copyTarget && <RecipeCopyButton recipeId={params.id} target={copyTarget} />}
+      </div>
       <RecipeForm
         recipe={attachTagsToRecipe(householdId, recipe)}
         recipeId={params.id}
-        isAdmin={isAdmin(session?.user)}
+        isAdmin={admin}
         existingTags={existingTags}
       />
     </div>

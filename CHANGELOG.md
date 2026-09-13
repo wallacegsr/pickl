@@ -26,6 +26,27 @@ changes with it — the two must never disagree about what is running.
   straight back in, so it is a backup and a way to move recipes between
   households rather than a report. It carries the recipes you can see — the
   shared pool plus your own private ones — and nothing about where they lived.
+- **Select recipes in bulk.** Tick recipes, or Select All, to delete them or
+  copy them in one go. Select All means what is on screen — the current tab,
+  after any search — and narrowing the search drops whatever it hides from the
+  selection, so a bulk action never reaches a recipe you cannot see.
+- **Copy recipes between the House Jar and your Secret Stash**, from the
+  selection bar, from any recipe's tile or row, or from its edit page. Anyone
+  can copy a House Jar recipe into their own stash to change for themselves;
+  copying into the House Jar is for admins, the same as adding a shared recipe
+  by hand. It is always a copy: the original stays where it was, tags come
+  with it, and copying the same recipe twice is caught.
+- **A list view** for recipes, alongside the tiles, remembered per device. On a
+  phone its rows become labelled cards, like the report tables.
+- **Select tags in bulk to delete them**, with the same rules as deleting one:
+  a tag only comes off recipes you can edit, and nothing else is touched.
+
+### Changed
+
+- Deleting a recipe now says how many planned meals go with it. They always
+  did — a recipe's planned meals are removed with it, past ones included, so
+  they also leave Past Preserves — but the confirmation only ever said "this
+  cannot be undone".
 
 ### Fixed
 

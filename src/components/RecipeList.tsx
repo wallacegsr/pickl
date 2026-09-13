@@ -1,27 +1,29 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  Badge,
-  Button,
-  Card,
-  Col,
-  Row,
-  Modal,
-  Nav,
-  Spinner,
-} from "react-bootstrap";
+import { Alert, Button, ButtonGroup, Col, Form, Nav, Row } from "react-bootstrap";
 import { useRouter } from "next/navigation";
-import type { Recipe, RecipeWithTags } from "@/db/schema";
+import type { RecipeWithTags } from "@/db/schema";
 import RecipeSearchBar from "@/components/RecipeSearchBar";
 import {
   DEFAULT_RECIPE_SEARCH_FIELDS,
   matchesRecipeSearch,
   type RecipeSearchFields,
 } from "@/lib/recipeSearch";
+import { RecipeCards, RecipeTable } from "@/components/recipes/recipeViews";
+import RecipeBulkConfirm, { type BulkRequest } from "@/components/recipes/RecipeBulkConfirm";
+import type { BulkSummary } from "@/lib/recipeBulk";
 
 type Tab = "shared" | "mine";
+type View = "cards" | "list";
+
+/**
+ * Per device, like the sidebar's collapsed state: how someone likes a list
+ * laid out is a property of the screen they are looking at, not of their
+ * account. A phone and a desktop can each keep their own.
+ */
+const VIEW_STORAGE_KEY = "pickl-recipe-view-v1";
 
 export default function RecipeList({
   initialRecipes,
@@ -52,12 +54,52 @@ export default function RecipeList({
       ? { name: false, tags: true, ingredients: false }
       : DEFAULT_RECIPE_SEARCH_FIELDS
   );
-  const [deleteTarget, setDeleteTarget] = useState<Recipe | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
-  function canEdit(recipe: Recipe): boolean {
+  // Starts on "cards" so the server render and the first client render agree,
+  // then the effect corrects it from storage — same reasoning as the theme.
+  const [view, setView] = useState<View>("cards");
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(VIEW_STORAGE_KEY) === "list") setView("list");
+    } catch {
+      // Storage unavailable; tiles it is.
+    }
+  }, []);
+  function chooseView(next: View) {
+    setView(next);
+    try {
+      window.localStorage.setItem(VIEW_STORAGE_KEY, next);
+    } catch {
+      // Still applied for this visit.
+    }
+  }
+
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [request, setRequest] = useState<BulkRequest | null>(null);
+  const [notice, setNotice] = useState<{ variant: string; text: string } | null>(null);
+
+  // Keep the server's latest list when it re-renders after an action.
+  useEffect(() => {
+    setRecipes(initialRecipes);
+  }, [initialRecipes]);
+
+  function canEdit(recipe: RecipeWithTags): boolean {
     if (recipe.visibility === "shared") return isAdmin;
     return recipe.ownerUserId === currentUserId;
+  }
+
+  /**
+   * Where a recipe may be copied to, from this person's point of view. Only a
+   * hint for which buttons to show — the server decides, and the confirmation
+   * dialog shows what the server decided.
+   *
+   *   - A House Jar recipe can go to anyone's own stash.
+   *   - Your own stash recipe can go to the House Jar if you are an admin.
+   */
+  function copyTarget(recipe: RecipeWithTags): "private" | "shared" | null {
+    if (recipe.visibility === "shared") return "private";
+    if (recipe.ownerUserId === currentUserId && isAdmin) return "shared";
+    return null;
   }
 
   const tabRecipes = useMemo(
@@ -73,23 +115,102 @@ export default function RecipeList({
     [tabRecipes, search, searchFields]
   );
 
-  async function confirmDelete() {
-    if (!deleteTarget) return;
-    setDeleting(true);
-    const res = await fetch(`/api/recipes/${deleteTarget.id}`, {
-      method: "DELETE",
+  // A selection only ever holds recipes currently on screen. Switching tab
+  // empties it; narrowing the search drops whatever the search hid. The rule
+  // is blunt on purpose: Delete must never reach a recipe the person cannot
+  // see, and "12 selected" must always be the 12 they are looking at.
+  useEffect(() => {
+    setSelected(new Set());
+  }, [tab]);
+  useEffect(() => {
+    setSelected((prev) => {
+      const visible = new Set(filtered.map((r) => r.id));
+      const kept = [...prev].filter((id) => visible.has(id));
+      return kept.length === prev.size ? prev : new Set(kept);
     });
-    setDeleting(false);
-    if (res.ok) {
-      setRecipes((prev) => prev.filter((r) => r.id !== deleteTarget.id));
-      setDeleteTarget(null);
-      router.refresh();
-    }
+  }, [filtered]);
+
+  const allSelected = filtered.length > 0 && filtered.every((r) => selected.has(r.id));
+  const someSelected = selected.size > 0 && !allSelected;
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }
+
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(filtered.map((r) => r.id)));
+  }
+
+  // The bulk bar's copy button follows the tab: House Jar recipes go to your
+  // stash; stash recipes go to the jar, and only for an admin.
+  const bulkCopyTarget: "private" | "shared" | null =
+    tab === "shared" ? "private" : isAdmin ? "shared" : null;
+  const selectedIds = [...selected];
+  const anyDeletable = filtered.some((r) => selected.has(r.id) && canEdit(r));
+
+  function handleDone(summary: BulkSummary, done: BulkRequest) {
+    setRequest(null);
+    if (done.action === "delete") {
+      const gone = new Set(summary.rows.filter((r) => r.status === "ok").map((r) => r.id));
+      setRecipes((prev) => prev.filter((r) => !gone.has(r.id)));
+      setSelected((prev) => new Set([...prev].filter((id) => !gone.has(id))));
+      setNotice({
+        variant: "success",
+        text:
+          `Deleted ${summary.ok} recipe${summary.ok === 1 ? "" : "s"}` +
+          (summary.plannedMeals ? ` and ${summary.plannedMeals} planned meal${summary.plannedMeals === 1 ? "" : "s"}` : "") +
+          "." +
+          (summary.skipped + summary.failed > 0
+            ? ` ${summary.skipped + summary.failed} left alone.`
+            : ""),
+      });
+    } else {
+      setSelected(new Set());
+      const where = done.target === "private" ? "your Secret Stash" : "the House Jar";
+      setNotice({
+        variant: "success",
+        text:
+          `Copied ${summary.ok} recipe${summary.ok === 1 ? "" : "s"} to ${where}.` +
+          (summary.skipped + summary.failed > 0
+            ? ` ${summary.skipped + summary.failed} ${summary.skipped + summary.failed === 1 ? "was" : "were"} already there or could not be copied.`
+            : ""),
+      });
+    }
+    // Copies exist only on the server until it re-renders the list.
+    router.refresh();
+  }
+
+  const viewProps = {
+    recipes: filtered,
+    selected,
+    onToggle: toggle,
+    canEdit,
+    copyTarget,
+    onCopy: (recipe: RecipeWithTags, target: "private" | "shared") => {
+      setNotice(null);
+      setRequest({ action: "copy", ids: [recipe.id], target });
+    },
+    // A single delete is a selection of one, so it gets the same dialog —
+    // including the planned-meals warning the old single-recipe one lacked.
+    onDelete: (recipe: RecipeWithTags) => {
+      setNotice(null);
+      setRequest({ action: "delete", ids: [recipe.id] });
+    },
+  };
 
   return (
     <div>
-      <Nav variant="tabs" activeKey={tab} className="mb-3" onSelect={(k) => setTab((k as Tab) ?? "shared")}>
+      <Nav
+        variant="tabs"
+        activeKey={tab}
+        className="mb-3"
+        onSelect={(k) => setTab((k as Tab) ?? "shared")}
+      >
         <Nav.Item>
           <Nav.Link
             eventKey="shared"
@@ -147,6 +268,83 @@ export default function RecipeList({
         </Col>
       </Row>
 
+      {notice && (
+        <Alert variant={notice.variant} dismissible onClose={() => setNotice(null)}>
+          {notice.text}
+        </Alert>
+      )}
+
+      {filtered.length > 0 && (
+        <div className="pickl-bulk-bar d-flex flex-wrap align-items-center gap-2 mb-3">
+          <Form.Check
+            type="checkbox"
+            id="select-all-recipes"
+            className="mb-0 me-1"
+            checked={allSelected}
+            // Indeterminate is a DOM property with no attribute, so it has to
+            // be set on the element itself.
+            ref={(el: HTMLInputElement | null) => {
+              if (el) el.indeterminate = someSelected;
+            }}
+            onChange={toggleAll}
+            label={
+              selected.size === 0
+                ? `Select all ${filtered.length}`
+                : `${selected.size} of ${filtered.length} selected`
+            }
+          />
+
+          {selected.size > 0 && (
+            <>
+              {bulkCopyTarget && (
+                <Button
+                  size="sm"
+                  variant="outline-secondary"
+                  onClick={() => {
+                    setNotice(null);
+                    setRequest({ action: "copy", ids: selectedIds, target: bulkCopyTarget });
+                  }}
+                >
+                  {bulkCopyTarget === "private" ? "Copy to my Secret Stash" : "Copy to the House Jar"}
+                </Button>
+              )}
+              {anyDeletable && (
+                <Button
+                  size="sm"
+                  variant="outline-danger"
+                  onClick={() => {
+                    setNotice(null);
+                    setRequest({ action: "delete", ids: selectedIds });
+                  }}
+                >
+                  Delete
+                </Button>
+              )}
+              <Button size="sm" variant="link" onClick={() => setSelected(new Set())}>
+                Clear
+              </Button>
+            </>
+          )}
+
+          <ButtonGroup size="sm" className="ms-auto" aria-label="Layout">
+            <Button
+              variant={view === "cards" ? "secondary" : "outline-secondary"}
+              aria-pressed={view === "cards"}
+              onClick={() => chooseView("cards")}
+            >
+              Tiles
+            </Button>
+            <Button
+              variant={view === "list" ? "secondary" : "outline-secondary"}
+              aria-pressed={view === "list"}
+              onClick={() => chooseView("list")}
+            >
+              List
+            </Button>
+          </ButtonGroup>
+        </div>
+      )}
+
       {filtered.length === 0 && (
         <p className="text-muted">
           {search.trim()
@@ -157,111 +355,14 @@ export default function RecipeList({
         </p>
       )}
 
-      <Row xs={1} md={2} lg={3} className="g-3">
-        {filtered.map((recipe) => {
-          const mealTags = recipe.mealType
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean);
-          return (
-            <Col key={recipe.id}>
-              <Card className="h-100 shadow-sm">
-                <Card.Body className="d-flex flex-column">
-                  <div className="d-flex justify-content-between align-items-start">
-                    <Card.Title>{recipe.name}</Card.Title>
-                    {recipe.visibility === "private" && (
-                      <Badge bg="info" text="dark">
-                        Private
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="mb-2 small text-muted">
-                    {recipe.prepTimeMinutes != null && (
-                      <span className="me-2">
-                        Prep: {recipe.prepTimeMinutes}m
-                      </span>
-                    )}
-                    {recipe.cookTimeMinutes != null && (
-                      <span className="me-2">
-                        Cook: {recipe.cookTimeMinutes}m
-                      </span>
-                    )}
-                    {recipe.servings != null && (
-                      <span>Serves: {recipe.servings}</span>
-                    )}
-                  </div>
-                  <div className="mb-2">
-                    {mealTags.map((tag) => (
-                      <Badge key={tag} bg="dark" className="recipe-tag-badge me-1">
-                        {tag}
-                      </Badge>
-                    ))}
-                    {recipe.tags.map((tag) => (
-                      <Badge
-                        key={tag}
-                        bg="secondary"
-                        className="recipe-tag-badge"
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                  <Card.Text
-                    className="flex-grow-1"
-                    style={{
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      display: "-webkit-box",
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: "vertical",
-                    }}
-                  >
-                    {recipe.instructions}
-                  </Card.Text>
-                  {canEdit(recipe) && (
-                    <div className="d-flex gap-2 mt-2">
-                      <Link
-                        href={`/recipes/${recipe.id}/edit`}
-                        passHref
-                        legacyBehavior
-                      >
-                        <Button as="a" size="sm" variant="outline-primary">
-                          Edit
-                        </Button>
-                      </Link>
-                      <Button
-                        size="sm"
-                        variant="outline-danger"
-                        onClick={() => setDeleteTarget(recipe)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  )}
-                </Card.Body>
-              </Card>
-            </Col>
-          );
-        })}
-      </Row>
+      {filtered.length > 0 &&
+        (view === "cards" ? <RecipeCards {...viewProps} /> : <RecipeTable {...viewProps} />)}
 
-      <Modal show={Boolean(deleteTarget)} onHide={() => setDeleteTarget(null)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Delete recipe?</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          Are you sure you want to delete <strong>{deleteTarget?.name}</strong>
-          ? This cannot be undone.
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={confirmDelete} disabled={deleting}>
-            {deleting ? <Spinner animation="border" size="sm" /> : "Delete"}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      <RecipeBulkConfirm
+        request={request}
+        onClose={() => setRequest(null)}
+        onDone={handleDone}
+      />
     </div>
   );
 }

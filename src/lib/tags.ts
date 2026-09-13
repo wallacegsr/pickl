@@ -173,6 +173,34 @@ export interface TagSummary {
   usage: TagUsage;
 }
 
+/** One tag's outcome in a bulk delete (see /api/tags/bulk). */
+export interface TagBulkRow {
+  id: string;
+  name: string | null;
+  status: "ok" | "skipped" | "failed";
+  reason?: string;
+  /** Recipes this delete takes the tag off. */
+  removedFrom?: number;
+  /** Recipes out of this person's reach that keep it — so the tag survives. */
+  keptOn?: number;
+  /**
+   * Whether it survives somewhere this person can see it. False for a tag left
+   * only on other people's private recipes: not deleted, but gone from their
+   * list. See tagStaysVisibleAfterDelete.
+   */
+  staysVisible?: boolean;
+}
+
+export interface TagBulkSummary {
+  dryRun: boolean;
+  ok: number;
+  skipped: number;
+  failed: number;
+  /** Total taggings removed across every tag in the batch. */
+  removedFrom: number;
+  rows: TagBulkRow[];
+}
+
 /**
  * The household whose tags this user may touch, or null.
  *
@@ -235,6 +263,40 @@ export function getTagUsage(user: SessionUser, tagId: string): TagUsage {
     .all().length;
   const editable = editableRecipeIdsForTag(user, tagId).length;
   return { editable, locked: total - editable, total };
+}
+
+/**
+ * Whether a tag would still be on this user's Tags page after they delete it.
+ *
+ * A delete only takes a tag off recipes the person can edit, so it can
+ * survive on the rest — but "survives" and "you will still see it" are not
+ * the same thing. The Tags page lists a tag only while it sits on a recipe
+ * the reader can SEE. What is left behind after a delete is recipes they can
+ * see but not edit (a member's view of the House Jar), or recipes they cannot
+ * see at all (another member's private stash).
+ *
+ * Only the first kind keeps it on their list. An admin can edit every House
+ * Jar recipe, so anything left is someone's private recipe, and the tag drops
+ * out of the admin's list even though it is not deleted — which the
+ * confirmation has to say, or it reads as a promise the page then breaks.
+ */
+export function tagStaysVisibleAfterDelete(user: SessionUser, tagId: string): boolean {
+  const householdId = scopeOf(user);
+  if (!householdId) return false;
+  const editable = new Set(editableRecipeIdsForTag(user, tagId));
+  const visibleCarriers = db
+    .select({ id: recipes.id })
+    .from(recipeTags)
+    .innerJoin(recipes, eq(recipes.id, recipeTags.recipeId))
+    .where(
+      and(
+        eq(recipeTags.tagId, tagId),
+        eq(recipes.householdId, householdId),
+        or(eq(recipes.visibility, "shared"), eq(recipes.ownerUserId, user.id))
+      )
+    )
+    .all();
+  return visibleCarriers.some((r) => !editable.has(r.id));
 }
 
 /**

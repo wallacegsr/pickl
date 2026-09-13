@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -15,7 +15,7 @@ import {
   Table,
 } from "react-bootstrap";
 import { tagKey, MAX_TAG_LENGTH } from "@/lib/tagNames";
-import type { TagSummary } from "@/lib/tags";
+import type { TagBulkSummary, TagSummary } from "@/lib/tags";
 
 /**
  * The Tags page.
@@ -53,6 +53,86 @@ export default function TagManager({
   const [busy, setBusy] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState<TagSummary | null>(null);
+
+  // --- bulk selection ------------------------------------------------------
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkPreview, setBulkPreview] = useState<TagBulkSummary | null>(null);
+  const [bulkRunning, setBulkRunning] = useState(false);
+
+  // A tag that no longer exists cannot stay selected: after a delete, or when
+  // the list is refreshed, the selection is trimmed to what is on screen.
+  useEffect(() => {
+    setSelected((prev) => {
+      const present = new Set(tags.map((t) => t.id));
+      const kept = [...prev].filter((id) => present.has(id));
+      return kept.length === prev.size ? prev : new Set(kept);
+    });
+  }, [tags]);
+
+  const allSelected = tags.length > 0 && tags.every((t) => selected.has(t.id));
+  const someSelected = selected.size > 0 && !allSelected;
+
+  function toggleTag(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  /**
+   * Opens the bulk-delete confirmation and asks the server what it would do
+   * before showing anything, so the numbers in the dialog are the ones the
+   * delete will actually produce — including tags that survive because they
+   * are still on recipes out of this person's reach.
+   */
+  async function openBulkDelete() {
+    setError(null);
+    setNotice(null);
+    setBulkPreview(null);
+    setBulkOpen(true);
+    const res = await fetch("/api/tags/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: [...selected], preview: true }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      setBulkOpen(false);
+      setError(data?.error ?? "Could not work out what that would do.");
+      return;
+    }
+    setBulkPreview(data as TagBulkSummary);
+  }
+
+  async function confirmBulkDelete() {
+    setBulkRunning(true);
+    const res = await fetch("/api/tags/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: [...selected] }),
+    });
+    const data = (await res.json().catch(() => null)) as TagBulkSummary | null;
+    setBulkRunning(false);
+    setBulkOpen(false);
+    if (!res.ok || !data) {
+      setError((data as { error?: string } | null)?.error ?? "Could not delete those tags.");
+      return;
+    }
+
+    // Re-read the list rather than dropping rows locally: a tag still carried
+    // by recipes out of reach survives the delete with a smaller count, and
+    // only the server knows the new one.
+    const fresh = await fetch("/api/tags").then((r) => (r.ok ? r.json() : null));
+    applyResult(
+      { tags: fresh ?? undefined },
+      `Deleted ${data.ok} tag${data.ok === 1 ? "" : "s"}, taking ${data.removedFrom === 1 ? "one tagging" : `${data.removedFrom} taggings`} off recipes. No recipes were deleted.` +
+        (data.skipped + data.failed > 0 ? ` ${data.skipped + data.failed} left alone.` : "")
+    );
+    setSelected(new Set());
+  }
 
   /** The tag the rename would collide with, if any — drives the merge copy. */
   const mergeInto = useMemo(() => {
@@ -237,10 +317,39 @@ export default function TagManager({
           show up here.
         </p>
       ) : (
+        <>
+        {selected.size > 0 && (
+          <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <span className="small fw-semibold">
+              {selected.size} of {tags.length} selected
+            </span>
+            <Button size="sm" variant="outline-danger" onClick={openBulkDelete}>
+              Delete {selected.size === 1 ? "tag" : `${selected.size} tags`}
+            </Button>
+            <Button size="sm" variant="link" onClick={() => setSelected(new Set())}>
+              Clear
+            </Button>
+          </div>
+        )}
         <div className="table-responsive">
           <Table hover className="align-middle">
             <thead>
               <tr>
+                <th scope="col" style={{ width: "2.5rem" }}>
+                  <Form.Check
+                    type="checkbox"
+                    id="select-all-tags"
+                    className="mb-0"
+                    checked={allSelected}
+                    ref={(el: HTMLInputElement | null) => {
+                      if (el) el.indeterminate = someSelected;
+                    }}
+                    onChange={() =>
+                      setSelected(allSelected ? new Set() : new Set(tags.map((t) => t.id)))
+                    }
+                    aria-label={allSelected ? "Deselect all tags" : "Select all tags"}
+                  />
+                </th>
                 <th scope="col">Tag</th>
                 <th scope="col">Recipes</th>
                 <th scope="col" className="text-end">
@@ -250,7 +359,17 @@ export default function TagManager({
             </thead>
             <tbody>
               {tags.map((tag) => (
-                <tr key={tag.id}>
+                <tr key={tag.id} className={selected.has(tag.id) ? "table-active" : undefined}>
+                  <td>
+                    <Form.Check
+                      type="checkbox"
+                      id={`select-tag-${tag.id}`}
+                      className="mb-0"
+                      checked={selected.has(tag.id)}
+                      onChange={() => toggleTag(tag.id)}
+                      aria-label={`Select ${tag.name}`}
+                    />
+                  </td>
                   <td>
                     <Badge bg="secondary" className="recipe-tag-badge">
                       {tag.name}
@@ -305,6 +424,7 @@ export default function TagManager({
             </tbody>
           </Table>
         </div>
+        </>
       )}
 
       <Modal show={Boolean(renameTarget)} onHide={() => setRenameTarget(null)}>
@@ -374,6 +494,119 @@ export default function TagManager({
               "Merge"
             ) : (
               "Rename"
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal
+        show={bulkOpen}
+        onHide={bulkRunning ? undefined : () => setBulkOpen(false)}
+        centered
+      >
+        <Modal.Header closeButton={!bulkRunning}>
+          <Modal.Title>
+            Delete {selected.size === 1 ? "this tag" : `${selected.size} tags`}?
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {!bulkPreview ? (
+            <div className="d-flex align-items-center gap-2 text-muted">
+              <Spinner animation="border" size="sm" /> Checking what that would do…
+            </div>
+          ) : (
+            <>
+              <p>
+                {bulkPreview.ok === 0 ? (
+                  <strong>None of these can be deleted.</strong>
+                ) : (
+                  <>
+                    <strong>
+                      {bulkPreview.ok} tag{bulkPreview.ok === 1 ? "" : "s"}
+                    </strong>{" "}
+                    will be taken off{" "}
+                    {bulkPreview.removedFrom === 1
+                      ? "one recipe"
+                      : `${bulkPreview.removedFrom} recipe taggings`}
+                    . <strong>No recipe is deleted</strong> — they stay exactly
+                    where they are, just without these tags.
+                  </>
+                )}
+              </p>
+
+              {/*
+                Two different outcomes for a tag that survives, told apart
+                because they look opposite from here. One stays on this
+                person's list with a smaller count; the other remains only on
+                other people's private recipes, so it leaves their list
+                entirely — and a message saying "it will still exist" would read
+                as a broken promise the moment the row disappears.
+              */}
+              {(() => {
+                const survivors = bulkPreview.rows.filter(
+                  (r) => r.status === "ok" && (r.keptOn ?? 0) > 0
+                );
+                const stay = survivors.filter((r) => r.staysVisible);
+                const hide = survivors.filter((r) => !r.staysVisible);
+                if (survivors.length === 0) return null;
+                return (
+                  <Alert variant="warning">
+                    {stay.length > 0 && (
+                      <p className={hide.length > 0 ? "mb-2" : "mb-0"}>
+                        <strong>{stay.map((r) => r.name).join(", ")}</strong>{" "}
+                        {stay.length === 1 ? "is" : "are"} also on recipes you
+                        can&apos;t edit, which keep {stay.length === 1 ? "it" : "them"}.{" "}
+                        {stay.length === 1 ? "It stays" : "They stay"} on your
+                        list, on fewer recipes.
+                      </p>
+                    )}
+                    {hide.length > 0 && (
+                      <p className="mb-0">
+                        <strong>{hide.map((r) => r.name).join(", ")}</strong>{" "}
+                        {hide.length === 1 ? "is" : "are"} also on other
+                        people&apos;s private recipes. Those keep{" "}
+                        {hide.length === 1 ? "it" : "them"}, so{" "}
+                        {hide.length === 1 ? "it isn't" : "they aren't"} really
+                        deleted — but {hide.length === 1 ? "it" : "they"} will
+                        disappear from your list, since you can&apos;t see those
+                        recipes.
+                      </p>
+                    )}
+                  </Alert>
+                );
+              })()}
+
+              {bulkPreview.rows.some((r) => r.status !== "ok") && (
+                <>
+                  <p className="mb-1 small fw-semibold">Left alone:</p>
+                  <ul className="small mb-0 ps-3">
+                    {bulkPreview.rows
+                      .filter((r) => r.status !== "ok")
+                      .map((r) => (
+                        <li key={r.id}>
+                          {r.name ?? <em>a tag</em>}{" "}
+                          <span className="text-muted">— {r.reason}</span>
+                        </li>
+                      ))}
+                  </ul>
+                </>
+              )}
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setBulkOpen(false)} disabled={bulkRunning}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            onClick={confirmBulkDelete}
+            disabled={bulkRunning || !bulkPreview || bulkPreview.ok === 0}
+          >
+            {bulkRunning ? (
+              <Spinner animation="border" size="sm" />
+            ) : (
+              `Delete ${bulkPreview?.ok === 1 ? "tag" : `${bulkPreview?.ok ?? ""} tags`}`
             )}
           </Button>
         </Modal.Footer>

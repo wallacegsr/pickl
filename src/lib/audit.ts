@@ -14,6 +14,11 @@ export type AuditAction =
   // still carries its own createdByUserId and createdAt, which is where a
   // single recipe's provenance belongs anyway.
   | "recipe_import"
+  // Bulk actions from the recipe list, one row per batch for the same reason
+  // as recipe_import. `notes` names the recipes, since a batch row that only
+  // says "deleted 6" leaves nobody able to find out which six.
+  | "recipe_bulk_delete"
+  | "recipe_copy"
   | "recipe_update"
   | "recipe_delete"
   | "permission_change"
@@ -24,6 +29,7 @@ export type AuditAction =
   | "tag_rename"
   | "tag_merge"
   | "tag_delete"
+  | "tag_bulk_delete"
   // Per-user calendar connection lifecycle. `userId` and `targetUserId`
   // are always the same person — these are self-service actions, and no
   // admin has any path to another user's calendar connection. `notes`
