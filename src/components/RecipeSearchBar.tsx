@@ -21,9 +21,8 @@ export default function RecipeSearchBar({
   placeholder?: string;
   size?: "sm";
   /**
-   * Namespace for the three checkbox ids. Since the dashboard can show the
-   * quick-look widget and the slot-editor modal at the same time, two of
-   * these can be mounted together — and duplicate ids would make each
+   * Namespace for the three checkbox ids. Wherever two of these can be mounted
+   * at the same time — and duplicate ids would make each
    * checkbox's label point at whichever copy rendered first. Defaults to the
    * original value so existing call sites keep their ids.
    */

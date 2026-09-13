@@ -1,15 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Badge, Form, ListGroup } from "react-bootstrap";
+import { useMemo } from "react";
+import { Badge } from "react-bootstrap";
 import type { MealType } from "@/db/schema";
-import RecipeSearchBar from "@/components/RecipeSearchBar";
 import { splitIngredients } from "@/lib/ingredients";
-import {
-  DEFAULT_RECIPE_SEARCH_FIELDS,
-  matchesRecipeSearch,
-  type RecipeSearchFields,
-} from "@/lib/recipeSearch";
 import type { RecipeOption } from "@/components/PlanView";
 import { usePlanContext } from "../PlanContext";
 
@@ -20,28 +14,16 @@ const MEAL_LABELS: Record<MealType, string> = {
 };
 
 /**
- * A glance, not a second /recipes page.
+ * A glance at tonight's recipe: what is planned for dinner, its tags and its
+ * ingredients. Nothing else — searching the jar is the Recipes page's job.
  *
- * Two things only: what is planned for tonight (with its ingredients), and a
- * search box for rummaging in the jar. Deliberately capped at a handful of
- * results with no detail view, no editing and no links out of the flow — the
- * moment this grows a "show more" it stops being something you can fit in a
- * quarter of the board.
- *
- * It adds no server round-trip of its own. Both halves are computed from
- * data /plan already loads: `days` for what is planned, and
- * `recipePoolByMeal` — the pool the manual slot editor already uses — for
- * the ingredient text. Matching goes through matchesRecipeSearch so this box
- * filters identically to the recipes list and the slot picker.
+ * It adds no server round-trip of its own: `days` says what is planned, and
+ * `recipePoolByMeal` — the pool the manual slot editor already uses — has
+ * the ingredient text.
  */
-const MAX_RESULTS = 6;
 
 export default function RecipeQuickLookWidget() {
   const { days, today, recipePoolByMeal } = usePlanContext();
-  const [query, setQuery] = useState("");
-  const [fields, setFields] = useState<RecipeSearchFields>(
-    DEFAULT_RECIPE_SEARCH_FIELDS
-  );
 
   /** Every recipe eligible for any meal on this calendar, deduped by id. */
   const allRecipes = useMemo(() => {
@@ -66,20 +48,9 @@ export default function RecipeQuickLookWidget() {
   // itself carries rather than showing nothing.
   const tonightName = tonightPlanned?.recipe.name ?? null;
 
-  const trimmed = query.trim();
-  const results = useMemo(() => {
-    if (!trimmed) return [];
-    return allRecipes
-      .filter((r) => matchesRecipeSearch(r, trimmed, fields))
-      .slice(0, MAX_RESULTS);
-  }, [allRecipes, trimmed, fields]);
-
-  const matchCount = trimmed
-    ? allRecipes.filter((r) => matchesRecipeSearch(r, trimmed, fields)).length
-    : 0;
 
   return (
-    <div className="d-flex flex-column gap-3">
+    <div>
       <section aria-label="Tonight's dinner">
         <div className="text-uppercase small text-body-secondary fw-semibold">
           Tonight — {MEAL_LABELS.dinner}
@@ -115,55 +86,6 @@ export default function RecipeQuickLookWidget() {
         ) : (
           <div className="text-muted fst-italic">
             Nothing planned for dinner yet — the jar&apos;s still shut.
-          </div>
-        )}
-      </section>
-
-      <section aria-label="Search the jar">
-        <Form.Label
-          htmlFor="quick-look-search"
-          className="text-uppercase small text-body-secondary fw-semibold mb-1"
-        >
-          Search the jar
-        </Form.Label>
-        <RecipeSearchBar
-          controlId="quick-look-search"
-          idPrefix="quick-look"
-          query={query}
-          onQueryChange={setQuery}
-          fields={fields}
-          onFieldsChange={setFields}
-          placeholder="Name, tag, or ingredient..."
-          size="sm"
-        />
-        {trimmed && (
-          <div className="mt-2">
-            {results.length === 0 ? (
-              <div className="small text-body-secondary">
-                Nothing in the jar matches that.
-              </div>
-            ) : (
-              <>
-                <ListGroup variant="flush" className="small">
-                  {results.map((recipe) => (
-                    <ListGroup.Item key={recipe.id} className="px-0 py-1">
-                      <span className="fw-semibold">{recipe.name}</span>
-                      {recipe.tags.length > 0 && (
-                        <span className="text-body-secondary">
-                          {" "}
-                          · {recipe.tags.join(", ")}
-                        </span>
-                      )}
-                    </ListGroup.Item>
-                  ))}
-                </ListGroup>
-                {matchCount > results.length && (
-                  <div className="small text-body-secondary mt-1">
-                    +{matchCount - results.length} more match — narrow the search.
-                  </div>
-                )}
-              </>
-            )}
           </div>
         )}
       </section>

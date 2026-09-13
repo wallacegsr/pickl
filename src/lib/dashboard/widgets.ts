@@ -110,7 +110,7 @@ export const WIDGET_REGISTRY: Record<WidgetId, WidgetMeta> = {
   "recipe-quick-look": {
     id: "recipe-quick-look",
     title: "Recipe quick look",
-    description: "Search the jar and see tonight's recipe at a glance.",
+    description: "Tonight's recipe at a glance: its tags and ingredients.",
     minW: 3,
     minH: 5,
     // 8 rows = 432px, against ~381px of content.
