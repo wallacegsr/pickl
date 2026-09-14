@@ -55,6 +55,16 @@ export async function PUT(req: NextRequest) {
 
   const { date, recipeIds, scope, mealType, userId } = parsed.data;
 
+  // A day that has passed is history, and history is what the reports read.
+  // Changing it now would rewrite what the household actually ate, so past
+  // slots are read-only here — the one place a person edits a slot by hand.
+  if (date < todayDateString()) {
+    return NextResponse.json(
+      { error: "That day has already passed, so its meals can't be changed." },
+      { status: 409 }
+    );
+  }
+
   const resolved = resolvePlanContext(session.user, scope, userId, "write");
   if (!resolved.ok) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });

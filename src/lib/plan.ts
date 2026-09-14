@@ -10,7 +10,7 @@ import {
   type MealType,
   type Scope,
 } from "@/db/schema";
-import { getWeekDays } from "@/lib/dates";
+import { getWeekDays, todayDateString } from "@/lib/dates";
 import { logAuditEntry, type AuditAction } from "@/lib/audit";
 import { getTagsForRecipes } from "@/lib/tags";
 import { tagKey } from "@/lib/tagNames";
@@ -348,6 +348,11 @@ export interface SetPlanEntryInput {
  * ticked-off ingredient on days where nothing actually changed.
  */
 export function setPlanEntry(input: SetPlanEntryInput) {
+  // Every write path checks this before calling; this is the backstop, so a
+  // new caller can't quietly rewrite a day the reports already count.
+  if (input.date < todayDateString()) {
+    throw new Error(`Refusing to change a past day's plan (${input.date}).`);
+  }
   const owner = ownerKey(input.scope, input.userId);
   const existing = getSlotEntries(
     input.householdId,

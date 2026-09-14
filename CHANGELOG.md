@@ -54,6 +54,10 @@ changes with it — the two must never disagree about what is running.
 
 ### Changed
 
+- **Days that have passed are read-only on the planner.** They are dimmed,
+  their slots no longer open for editing, and the server refuses changes to
+  them, so reports reflect what was actually planned. Their recipes still
+  open. Crunch Time and Weekly Picks already only touch today onward.
 - **Recipe quick look shows the next planned meal**, not only tonight's
   dinner: the rest of today, then the coming days of the week, skipping empty
   slots. A meal counts as past at 10:30 (breakfast), 3pm (lunch) and 9pm

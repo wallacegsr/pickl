@@ -145,8 +145,16 @@ export default function PlanGridWidget() {
         <tbody>
           {days.map((day) => {
             const isToday = day.date === today;
+            // Days gone by are history: dimmed, and their slots can't be
+            // opened for editing. Their recipes still link to the recipe.
+            const isPast = day.date < today;
+            const slotEditable = isEditable && !isPast;
             return (
-              <tr key={day.date} className={isToday ? "table-warning" : undefined}>
+              <tr
+                key={day.date}
+                className={isToday ? "table-warning" : isPast ? "pickl-plan-past" : undefined}
+                title={isPast ? "This day has passed, so its meals can't be changed." : undefined}
+              >
                 <td className="pickl-plan-daycell">
                   <div className="fw-semibold">
                     {day.dayOfWeek}
@@ -167,9 +175,9 @@ export default function PlanGridWidget() {
                       // and each cell becomes its own line on a phone.
                       data-label={MEAL_LABELS[mt]}
                       className="pickl-plan-slotcell"
-                      role={isEditable ? "button" : undefined}
+                      role={slotEditable ? "button" : undefined}
                       onClick={() => openSlotEditor(day, mt)}
-                      style={{ cursor: isEditable ? "pointer" : "default" }}
+                      style={{ cursor: slotEditable ? "pointer" : "default" }}
                     >
                       {slot.recipes.length > 0 ? (
                         <div className="pickl-slot-chips">

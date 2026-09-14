@@ -866,6 +866,15 @@ html[data-pickl-sidebar="collapsed"] .pickl-sidebar-toggle {
   gap: 0.25rem;
 }
 
+/* Days that have passed: still readable, clearly not the week ahead. */
+.pickl-plan-past > td {
+  opacity: 0.55;
+}
+.pickl-plan-past > td:hover,
+.pickl-plan-past > td:focus-within {
+  opacity: 0.8;
+}
+
 .pickl-slot-chip {
   display: inline-block;
   /* Chips are links to the recipe; they keep the cell's text colour. */

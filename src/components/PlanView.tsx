@@ -411,6 +411,8 @@ export default function PlanView({
 
   function openSlotEditor(day: PlanDayData, mealType: MealType) {
     if (!isEditable) return;
+    // Past days are read-only; the server refuses too.
+    if (day.date < today) return;
     setSlotSearch("");
     setSlotSearchFields(DEFAULT_RECIPE_SEARCH_FIELDS);
     setEditingSlot({
