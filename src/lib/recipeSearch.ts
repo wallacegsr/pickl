@@ -56,15 +56,30 @@ function mealTypeTerms(stored: string): string[] {
  * it is eligible for a dinner slot. The search box is for finding what you can
  * see; working out eligibility is the plan page's job, and it already does.
  */
+/**
+ * A search box's text as separate terms: split on commas and semicolons,
+ * trimmed, blanks dropped. "chicken thighs, orzo" is two terms, and a recipe
+ * has to match both.
+ */
+export function splitSearchTerms(query: string): string[] {
+  return query
+    .split(/[,;]/)
+    .map((term) => term.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 export function matchesRecipeSearch(
   recipe: SearchableRecipe,
   query: string,
   fields: RecipeSearchFields
 ): boolean {
-  const q = query.trim().toLowerCase();
-  if (!q) return true;
+  const terms = splitSearchTerms(query);
+  if (terms.length === 0) return true;
   if (!fields.name && !fields.tags && !fields.ingredients) return true;
+  return terms.every((term) => matchesTerm(recipe, term, fields));
+}
 
+function matchesTerm(recipe: SearchableRecipe, q: string, fields: RecipeSearchFields): boolean {
   if (fields.name && recipe.name.toLowerCase().includes(q)) return true;
   if (
     fields.tags &&

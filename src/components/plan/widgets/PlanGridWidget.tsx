@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Badge, Button, Table } from "react-bootstrap";
 import { useResizableColumns, type ColumnSpec } from "@/components/plan/useResizableColumns";
 import type { MealType } from "@/db/schema";
@@ -183,14 +184,15 @@ export default function PlanGridWidget() {
                                 ? "dessert"
                                 : (mainIndex++ % SLOT_CHIP_VARIANTS) + 1;
                               return (
-                                <span
+                                // The recipe opens its page; the rest of the
+                                // cell still opens the slot editor, so the
+                                // click stops here rather than doing both.
+                                <Link
                                   key={planned.entryId}
+                                  href={`/recipes/${planned.recipe.id}`}
+                                  onClick={(e) => e.stopPropagation()}
                                   className={`pickl-slot-chip pickl-slot-chip-${variant}`}
-                                  title={
-                                    planned.isDessert
-                                      ? `${planned.recipe.name} (dessert)`
-                                      : undefined
-                                  }
+                                  title={`Open ${planned.recipe.name}${planned.isDessert ? " (dessert)" : ""}`}
                                 >
                                   {planned.isDessert && (
                                     // Colour is never the only signal: the
@@ -202,7 +204,7 @@ export default function PlanGridWidget() {
                                     />
                                   )}
                                   {planned.recipe.name}
-                                </span>
+                                </Link>
                               );
                             });
                           })()}

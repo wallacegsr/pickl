@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, or, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { planEntries, recipeFavorites, recipes, recipeTags, tags } from "@/db/schema";
 import { tagKey } from "@/lib/tagNames";
+import { splitSearchTerms } from "@/lib/recipeSearch";
 
 /**
  * The recipe list's search, filters, sort and paging — done in the database.
@@ -54,16 +55,25 @@ function tabCondition(householdId: string, userId: string, tab: RecipeTab): SQL 
       )!;
 }
 
+/**
+ * The search box. Several terms separated by commas or semicolons must ALL
+ * match — "chicken thighs, orzo" finds recipes with both — each in any of the
+ * ticked fields. Within a term, words are matched together as typed.
+ */
 function searchCondition(q: RecipeQuery): SQL | undefined {
-  const text = q.q.trim();
-  if (!text) return undefined;
+  const terms = splitSearchTerms(q.q);
+  if (terms.length === 0) return undefined;
   const { name, tags: inTags, ingredients } = q.fields;
   if (!name && !inTags && !ingredients) return undefined;
-  const pat = likePattern(text);
+  return and(...terms.map((term) => termCondition(term, q.fields)));
+}
+
+function termCondition(term: string, fields: RecipeQuery["fields"]): SQL {
+  const pat = likePattern(term);
   const parts: SQL[] = [];
-  if (name) parts.push(sql`lower(${recipes.name}) LIKE ${pat} ESCAPE '\\'`);
-  if (ingredients) parts.push(sql`lower(${recipes.ingredients}) LIKE ${pat} ESCAPE '\\'`);
-  if (inTags) {
+  if (fields.name) parts.push(sql`lower(${recipes.name}) LIKE ${pat} ESCAPE '\\'`);
+  if (fields.ingredients) parts.push(sql`lower(${recipes.ingredients}) LIKE ${pat} ESCAPE '\\'`);
+  if (fields.tags) {
     parts.push(
       sql`EXISTS (SELECT 1 FROM ${recipeTags} JOIN ${tags} ON ${tags.id} = ${recipeTags.tagId}
           WHERE ${recipeTags.recipeId} = ${recipes.id} AND ${tags.nameKey} LIKE ${pat} ESCAPE '\\')`
@@ -72,7 +82,7 @@ function searchCondition(q: RecipeQuery): SQL | undefined {
     // matchesRecipeSearch. "any" also answers to "any meal".
     parts.push(sql`lower(replace(${recipes.mealType}, 'any', 'any meal')) LIKE ${pat} ESCAPE '\\'`);
   }
-  return or(...parts);
+  return or(...parts)!;
 }
 
 function tagCondition(names: string[], match: "all" | "any"): SQL | undefined {

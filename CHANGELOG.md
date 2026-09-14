@@ -13,6 +13,12 @@ changes with it — the two must never disagree about what is running.
 
 ### Added
 
+- **Recipes in the planner open their recipe page.** Click a recipe's name
+  in a slot; click anywhere else in the slot to choose recipes as before.
+- **Search for several things at once.** Separate terms with commas or
+  semicolons and a recipe has to match all of them: "chicken thighs, orzo"
+  finds recipes with both. Works on the Recipes page and in the planner's
+  recipe picker.
 - **A page for each recipe, for cooking from.** Click a recipe tile (or its
   name in the list view) to open it: meal types and tags, times, servings and
   source, ingredients, the method as numbered steps, and notes. Tick
@@ -69,6 +75,14 @@ changes with it — the two must never disagree about what is running.
 
 ### Fixed
 
+- **Clearing or replacing a planned meal failed with "Could not update this
+  slot"** once that meal had been sent to a connected calendar. The link Pickl
+  keeps to the calendar event blocked the meal from being removed. It no
+  longer does, and the event is still removed from your calendar. Needs the
+  database migration that runs on startup.
+- **The recipe search box dropped letters** when results arrived while you
+  were still typing — typing "orzo" could leave "or". What you type now
+  stays put.
 - **Ticks on the shopping list now match between the Plan page and the
   Shopping List page.** Two causes: the sidebar's Shopping List link always
   opened the household list, even from your private plan; and returning to a

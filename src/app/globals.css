@@ -868,6 +868,9 @@ html[data-pickl-sidebar="collapsed"] .pickl-sidebar-toggle {
 
 .pickl-slot-chip {
   display: inline-block;
+  /* Chips are links to the recipe; they keep the cell's text colour. */
+  color: inherit;
+  text-decoration: none;
   padding: 0.1rem 0.4rem;
   border-left: 3px solid transparent;
   border-radius: 0.25rem;
@@ -877,6 +880,11 @@ html[data-pickl-sidebar="collapsed"] .pickl-sidebar-toggle {
 
 /* A slot holding exactly one recipe gets no tint at all: the overwhelmingly
    common case should look like plain text, not like a tagged thing. */
+a.pickl-slot-chip:hover,
+a.pickl-slot-chip:focus-visible {
+  text-decoration: underline;
+}
+
 .pickl-slot-chips:has(> :only-child) .pickl-slot-chip {
   padding-left: 0;
   border-left-color: transparent;

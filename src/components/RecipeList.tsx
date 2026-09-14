@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   Alert,
@@ -84,11 +84,32 @@ export default function RecipeList({
   }
 
   // --- Search box: typed locally, sent after a pause ---
+  // The box is the source of truth while someone is typing. Results for an
+  // earlier search ("or") can arrive after they have typed on ("orzo"); if the
+  // URL coming back were copied into the box, it would wipe out the letters
+  // typed since. So the URL only updates the box when it changed for another
+  // reason — back/forward, "Show everything" — never when it is merely the
+  // echo of something this box sent.
   const [search, setSearch] = useState(query.q);
-  useEffect(() => setSearch(query.q), [query.q]);
+  const sentRef = useRef<Set<string>>(new Set([query.q]));
+  useEffect(() => {
+    // Caught up with the box: forget the in-between searches, so a later
+    // back/forward to one of them does update the box.
+    if (query.q === search) {
+      sentRef.current = new Set([query.q]);
+      return;
+    }
+    if (sentRef.current.has(query.q)) return;
+    sentRef.current = new Set([query.q]);
+    setSearch(query.q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query.q]);
   useEffect(() => {
     if (search === query.q) return;
-    const t = window.setTimeout(() => update({ q: search }), SEARCH_DEBOUNCE_MS);
+    const t = window.setTimeout(() => {
+      sentRef.current.add(search);
+      update({ q: search });
+    }, SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);

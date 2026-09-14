@@ -631,8 +631,14 @@ export const calendarEventLinks = sqliteTable(
     // The planned recipe this event represents. Nullable so rows written
     // before this column existed are still readable; the sync path treats a
     // null as "legacy link" and re-keys it on the next push.
+    //
+    // SET NULL, not cascade: when a recipe leaves a slot its entry row is
+    // deleted first and the calendar push runs afterwards, and that push can
+    // only delete the event if the link is still there to find. (The column
+    // was first added with no delete rule at all, which made clearing or
+    // replacing any slot that had been synced to a calendar fail outright.)
     planEntryId: text("plan_entry_id").references(() => planEntries.id, {
-      onDelete: "cascade",
+      onDelete: "set null",
     }),
     // Kept alongside planEntryId rather than replaced by it: the delete path
     // needs to know which slot an event belonged to after its entry row is
