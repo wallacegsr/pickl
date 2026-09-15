@@ -6,6 +6,7 @@ import { users } from "@/db/schema";
 import Providers from "@/components/Providers";
 import AppShell from "@/components/nav/AppShell";
 import ThemeSync from "@/components/ThemeSync";
+import TimeZoneSync from "@/components/TimeZoneSync";
 
 export default async function AppLayout({
   children,
@@ -29,6 +30,9 @@ export default async function AppLayout({
 
   return (
     <Providers>
+      {/* Before AppShell, so the sidebar state it restores is in place when
+          the sidebar reads it. */}
+      <TimeZoneSync />
       <ThemeSync userId={session.user.id} savedPreference={themePreference} />
       <AppShell>{children}</AppShell>
     </Providers>

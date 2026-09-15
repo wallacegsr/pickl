@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { logAuditEntry } from "@/lib/audit";
 import { getTargetForUserScope } from "@/lib/calendar/accounts";
 import { resyncWeek } from "@/lib/calendar/sync";
-import { todayDateString } from "@/lib/dates";
+import { viewerToday } from "@/lib/viewerToday";
 import { calendarSyncNowSchema } from "@/lib/validators";
 
 /**
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const week = parsed.data.week || todayDateString();
+  const week = parsed.data.week || viewerToday();
   const result = await resyncWeek(target, week);
 
   logAuditEntry({

@@ -1,6 +1,6 @@
 import { getRecipePool, getWeekPlan, MEAL_TYPE_LIST } from "@/lib/plan";
 import { buildShoppingListWeek } from "@/lib/shoppingList";
-import { todayDateString } from "@/lib/dates";
+import { viewerToday } from "@/lib/viewerToday";
 import { auth } from "@/lib/auth";
 import { canEditSharedCalendar, householdScope, isAdmin } from "@/lib/permissions";
 import { resolvePlanContext } from "@/lib/planContext";
@@ -22,7 +22,8 @@ export default async function PlanPage({
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const week = searchParams.week || todayDateString();
+  const today = viewerToday();
+  const week = searchParams.week || today;
 
   // Handled before the resolver, and NOT with a redirect. A platform operator
   // belongs to no household, so no query string gets them a calendar —
@@ -115,6 +116,9 @@ export default async function PlanPage({
     <div>
       <PlanView
         week={week}
+        // Today where the viewer is, decided once on the server and used by
+        // the browser as-is, so both draw the same days.
+        today={today}
         scope={scope}
         targetUserId={effectiveUserId}
         requestedUserId={requestedUserId}

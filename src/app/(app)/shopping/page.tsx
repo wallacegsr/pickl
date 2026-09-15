@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { householdScope } from "@/lib/permissions";
 import { resolvePlanContext } from "@/lib/planContext";
 import { buildShoppingListWeek } from "@/lib/shoppingList";
-import { todayDateString } from "@/lib/dates";
+import { viewerToday } from "@/lib/viewerToday";
 import ShoppingListPanel from "@/components/ShoppingListPanel";
 import { Nav, NavItem } from "react-bootstrap";
 
@@ -27,7 +27,8 @@ export default async function ShoppingPage({
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const week = searchParams.week || todayDateString();
+  const today = viewerToday();
+  const week = searchParams.week || today;
 
   if (!householdScope(session.user)) {
     return (
@@ -95,6 +96,7 @@ export default async function ShoppingPage({
       </Nav>
       <ShoppingListPanel
         week={week}
+        today={today}
         scope={scope}
         requestedUserId={searchParams.userId || session.user.id}
         initialDays={days}

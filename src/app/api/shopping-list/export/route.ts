@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { todayDateString } from "@/lib/dates";
+import { viewerToday } from "@/lib/viewerToday";
 import { buildShoppingListWeek } from "@/lib/shoppingList";
 import { resolvePlanContext } from "@/lib/planContext";
 import {
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   }
 
   const params = req.nextUrl.searchParams;
-  const week = params.get("week") || todayDateString();
+  const week = params.get("week") || viewerToday();
 
   const modeParam = params.get("mode") || "week";
   if (modeParam !== "today" && modeParam !== "week") {
@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
 
   // Mirrors the panel's `visibleDays`: "today" narrows to the current date,
   // and falls back to an empty list when today is outside the requested week.
-  const today = todayDateString();
+  const today = viewerToday();
   const days =
     modeParam === "today" ? allDays.filter((day) => day.date === today) : allDays;
 

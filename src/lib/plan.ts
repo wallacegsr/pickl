@@ -10,7 +10,7 @@ import {
   type MealType,
   type Scope,
 } from "@/db/schema";
-import { getWeekDays, todayDateString } from "@/lib/dates";
+import { getWeekDays } from "@/lib/dates";
 import { logAuditEntry, type AuditAction } from "@/lib/audit";
 import { getTagsForRecipes } from "@/lib/tags";
 import { tagKey } from "@/lib/tagNames";
@@ -318,6 +318,11 @@ export interface SetPlanEntryInput {
   /** Required, so the compiler finds any write that forgot to scope itself. */
   householdId: string;
   date: string;
+  /**
+   * Today for the person making the change (see src/lib/viewerToday.ts).
+   * Days before it are history and refused.
+   */
+  today: string;
   scope: Scope;
   userId: string; // owner of the calendar (private) — ignored for shared
   mealType: MealType;
@@ -350,7 +355,7 @@ export interface SetPlanEntryInput {
 export function setPlanEntry(input: SetPlanEntryInput) {
   // Every write path checks this before calling; this is the backstop, so a
   // new caller can't quietly rewrite a day the reports already count.
-  if (input.date < todayDateString()) {
+  if (input.date < input.today) {
     throw new Error(`Refusing to change a past day's plan (${input.date}).`);
   }
   const owner = ownerKey(input.scope, input.userId);

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { todayDateString } from "@/lib/dates";
+import { viewerToday } from "@/lib/viewerToday";
 import { dessertSlotFor, getSlotEntries, getRecipePool, getWeekPlan, setPlanEntry, shuffle } from "@/lib/plan";
 import { spinTodaySchema } from "@/lib/validators";
 import { resolvePlanContext } from "@/lib/planContext";
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   // and a Vegetarian spin that adds a dessert nobody checked is not one.
   const spin = buildSpinFilter(session.user, householdId, { tags, tagMatch, favoritesOnly });
 
-  const today = todayDateString();
+  const today = viewerToday();
 
   if (!force) {
     // A slot can hold several recipes, so a conflict names all of them.
@@ -111,6 +111,7 @@ export async function POST(req: NextRequest) {
 
     setPlanEntry({
       householdId,
+      today,
       date: today,
       scope: ctxScope,
       userId: ctxUserId,

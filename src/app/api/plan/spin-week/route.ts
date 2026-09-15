@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getRemainingDaysInWeek, todayDateString } from "@/lib/dates";
+import { getRemainingDaysInWeek } from "@/lib/dates";
+import { viewerToday } from "@/lib/viewerToday";
 import { dessertSlotFor, getSlotEntries, getRecipePool, setPlanEntry, shuffle } from "@/lib/plan";
 import { spinWeekSchema } from "@/lib/validators";
 import { resolvePlanContext } from "@/lib/planContext";
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
   // Same filter for mains and desserts; see spin-today for why.
   const spin = buildSpinFilter(session.user, householdId, { tags, tagMatch, favoritesOnly });
 
-  const today = todayDateString();
+  const today = viewerToday();
   const remainingDays = getRemainingDaysInWeek(today);
 
   const filledDates: { mealType: MealType; date: string }[] = [];
@@ -85,6 +86,7 @@ export async function POST(req: NextRequest) {
 
       setPlanEntry({
         householdId,
+        today,
         date: day.date,
         scope: ctxScope,
         userId: ctxUserId,

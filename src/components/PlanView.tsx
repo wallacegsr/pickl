@@ -12,7 +12,6 @@ import {
   Nav,
   Spinner,
 } from "react-bootstrap";
-import { todayDateString } from "@/lib/dates";
 import type { MealType, Scope } from "@/db/schema";
 import RecipeSearchBar from "@/components/RecipeSearchBar";
 import { minAnimationElapsed } from "@/lib/shakeMotion";
@@ -87,6 +86,7 @@ export interface RecipeOption {
  */
 export default function PlanView({
   week,
+  today,
   scope,
   targetUserId,
   requestedUserId,
@@ -101,6 +101,8 @@ export default function PlanView({
   dashboardLayout,
 }: {
   week: string;
+  /** Today where the viewer is, from the server (see src/lib/viewerToday.ts). */
+  today: string;
   scope: Scope;
   targetUserId: string;
   requestedUserId: string;
@@ -126,7 +128,6 @@ export default function PlanView({
   dashboardLayout: DashboardLayout;
 }) {
   const router = useRouter();
-  const today = todayDateString();
 
   const isEditable = scope === "shared" ? canEditShared : true;
 

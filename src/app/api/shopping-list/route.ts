@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { todayDateString } from "@/lib/dates";
+import { viewerToday } from "@/lib/viewerToday";
 import { shoppingListStatusSchema } from "@/lib/validators";
 import { buildShoppingListWeek, setOnHand } from "@/lib/shoppingList";
 import { resolvePlanContext } from "@/lib/planContext";
@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const week = req.nextUrl.searchParams.get("week") || todayDateString();
+  const week = req.nextUrl.searchParams.get("week") || viewerToday();
   const scopeParam = req.nextUrl.searchParams.get("scope");
   const targetUserId = req.nextUrl.searchParams.get("userId");
 

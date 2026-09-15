@@ -11,7 +11,8 @@ import {
   type Scope,
 } from "@/db/schema";
 import { householdScope, isAdmin, type SessionUser } from "@/lib/permissions";
-import { parseDateString, todayDateString, getSundayOfWeek, toDateString } from "@/lib/dates";
+import { parseDateString, getSundayOfWeek, toDateString } from "@/lib/dates";
+import { viewerToday } from "@/lib/viewerToday";
 import { getTagsForRecipes } from "@/lib/tags";
 import { tagKey } from "@/lib/tagNames";
 
@@ -221,7 +222,7 @@ export function getRecipeFrequency(
     if (!seen || row.date > seen) lastEver.set(row.recipeId, row.date);
   }
 
-  const today = todayDateString();
+  const today = viewerToday();
 
   // The span the rate is measured over: the requested range when given,
   // otherwise the range the data itself covers.

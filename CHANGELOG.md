@@ -79,6 +79,15 @@ changes with it — the two must never disagree about what is running.
 
 ### Fixed
 
+- **"Today" is now today where you are, not where the server is.** A server
+  on UTC is already on tomorrow during a US evening, which caused two bugs:
+  tonight's meals were refused as "already passed" (and Crunch Time aimed at
+  tomorrow), and the Plan page drew different dates on the server than in
+  the browser, making it redraw and **drop your colour scheme and collapsed
+  sidebar** on reload. Your browser now tells the server its time zone, and
+  the planner, spins, shopping list, exports and reports all use your date.
+  The colour scheme and sidebar are also re-applied after the page loads, so
+  a redraw can't reset them again.
 - **Clearing or replacing a planned meal failed with "Could not update this
   slot"** once that meal had been sent to a connected calendar. The link Pickl
   keeps to the calendar event blocked the meal from being removed. It no

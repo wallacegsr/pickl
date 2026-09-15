@@ -10,7 +10,6 @@ import {
   Table,
   ToggleButton,
 } from "react-bootstrap";
-import { todayDateString } from "@/lib/dates";
 import type { MealType, Scope } from "@/db/schema";
 // Download now goes through /api/shopping-list/export; only the clipboard
 // path still formats in the browser.
@@ -47,12 +46,15 @@ type ViewMode = "today" | "week";
 
 export default function ShoppingListPanel({
   week,
+  today,
   scope,
   requestedUserId,
   initialDays,
   bare = false,
 }: {
   week: string;
+  /** Today where the viewer is, from the server (see src/lib/viewerToday.ts). */
+  today: string;
   scope: Scope;
   requestedUserId: string;
   initialDays: ShoppingListDayData[];
@@ -65,7 +67,6 @@ export default function ShoppingListPanel({
    */
   bare?: boolean;
 }) {
-  const today = todayDateString();
   const [days, setDays] = useState<ShoppingListDayData[]>(initialDays);
   const [mode, setMode] = useState<ViewMode>("today");
   const [error, setError] = useState<string | null>(null);

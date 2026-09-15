@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { recipes } from "@/db/schema";
 import { planEntrySchema } from "@/lib/validators";
 import { getWeekPlan, setPlanEntry } from "@/lib/plan";
-import { todayDateString } from "@/lib/dates";
+import { viewerToday } from "@/lib/viewerToday";
 import { resolvePlanContext } from "@/lib/planContext";
 
 export async function GET(req: NextRequest) {
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const week = req.nextUrl.searchParams.get("week") || todayDateString();
+  const week = req.nextUrl.searchParams.get("week") || viewerToday();
   const scopeParam = req.nextUrl.searchParams.get("scope");
   const targetUserId = req.nextUrl.searchParams.get("userId");
 
@@ -58,7 +58,8 @@ export async function PUT(req: NextRequest) {
   // A day that has passed is history, and history is what the reports read.
   // Changing it now would rewrite what the household actually ate, so past
   // slots are read-only here — the one place a person edits a slot by hand.
-  if (date < todayDateString()) {
+  const today = viewerToday();
+  if (date < today) {
     return NextResponse.json(
       { error: "That day has already passed, so its meals can't be changed." },
       { status: 409 }
@@ -91,6 +92,7 @@ export async function PUT(req: NextRequest) {
   const updated = setPlanEntry({
     householdId: resolved.context.householdId,
     date,
+    today,
     scope: resolved.context.scope,
     userId: resolved.context.userId,
     mealType,

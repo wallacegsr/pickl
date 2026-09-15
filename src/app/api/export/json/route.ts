@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getWeekPlan, MEAL_TYPE_LIST } from "@/lib/plan";
-import { todayDateString } from "@/lib/dates";
+import { viewerToday } from "@/lib/viewerToday";
 import { resolvePlanContext } from "@/lib/planContext";
 import { getTagsForRecipes } from "@/lib/tags";
 
@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const week = req.nextUrl.searchParams.get("week") || todayDateString();
+  const week = req.nextUrl.searchParams.get("week") || viewerToday();
   const scopeParam = req.nextUrl.searchParams.get("scope");
   const targetUserId = req.nextUrl.searchParams.get("userId");
 

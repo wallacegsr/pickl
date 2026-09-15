@@ -13,11 +13,12 @@ import { usePlanContext } from "../PlanContext";
  * here.
  */
 export default function ShoppingListWidget() {
-  const { week, scope, requestedUserId, shoppingListDays } = usePlanContext();
+  const { week, today, scope, requestedUserId, shoppingListDays } = usePlanContext();
   return (
     <ShoppingListPanel
       bare
       week={week}
+      today={today}
       scope={scope}
       requestedUserId={requestedUserId}
       initialDays={shoppingListDays}

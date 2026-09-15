@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getOverlayEvents } from "@/lib/calendar/read";
-import { todayDateString } from "@/lib/dates";
+import { viewerToday } from "@/lib/viewerToday";
 import type { Scope } from "@/db/schema";
 
 /**
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const week = req.nextUrl.searchParams.get("week") || todayDateString();
+  const week = req.nextUrl.searchParams.get("week") || viewerToday();
   const scope: Scope =
     req.nextUrl.searchParams.get("scope") === "private" ? "private" : "shared";
   const planOwnerUserId =
