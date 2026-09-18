@@ -18,7 +18,7 @@ export default function ListRow({
   disabled = false,
   trailing,
   onClick,
-  as = "button",
+  as,
   href,
 }: {
   title: ReactNode;
@@ -28,7 +28,8 @@ export default function ListRow({
   /** Replaces the tick — a chevron, a count, nothing. */
   trailing?: ReactNode;
   onClick?: () => void;
-  as?: "button" | "a";
+  /** Defaults to a button when it does something, plain text when it doesn't. */
+  as?: "button" | "a" | "div";
   href?: string;
 }) {
   const className = `pickl-row${selected ? " pickl-row-selected" : ""}`;
@@ -44,12 +45,17 @@ export default function ListRow({
     </>
   );
 
-  if (as === "a") {
+  const kind = as ?? (href ? "a" : onClick ? "button" : "div");
+
+  if (kind === "a") {
     return (
       <a className={className} href={href}>
         {inner}
       </a>
     );
+  }
+  if (kind === "div") {
+    return <div className={className}>{inner}</div>;
   }
   return (
     <button

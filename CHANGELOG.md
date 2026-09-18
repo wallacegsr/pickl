@@ -64,6 +64,12 @@ changes with it — the two must never disagree about what is running.
 
 ### Changed
 
+- **The rest of the app follows the same rules.** A recipe page leads with
+  its name and one line of facts, with tags and source as links. Planned
+  meals in the week grid share one quiet surface instead of three rotating
+  colours (desserts keep their tint and cake glyph). Settings panels dropped
+  the card around them and the title that repeated the tab. Import results
+  read as rows rather than a table.
 - **The bulk confirmation and the recipe filters are sheets too.** The
   confirmation now says each thing once — the title names the action, the
   button carries the count, the body explains the consequence — and the phone

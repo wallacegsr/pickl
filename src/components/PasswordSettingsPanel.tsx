@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, Button, Card, Form, Spinner } from "react-bootstrap";
+import { Alert, Button, Form, Spinner } from "react-bootstrap";
 
 export default function PasswordSettingsPanel() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -37,14 +37,14 @@ export default function PasswordSettingsPanel() {
   }
 
   return (
-    <Card>
-      <Card.Body>
-        <Card.Title>Password</Card.Title>
-        <Card.Text className="text-muted small">
+    // A plain section: this sits inside the settings page's own tabs, so a
+    // card would be a box in a box and its title would repeat the tab.
+    <section className="pickl-settings-section">
+        <p className="text-muted small">
           Choose a new password of at least 8 characters. You&apos;ll stay
           signed in here; other devices will need the new password next time
           they sign in.
-        </Card.Text>
+        </p>
 
         {error && (
           <Alert variant="danger" dismissible onClose={() => setError(null)}>
@@ -94,7 +94,6 @@ export default function PasswordSettingsPanel() {
             {saving ? <Spinner animation="border" size="sm" /> : "Change password"}
           </Button>
         </Form>
-      </Card.Body>
-    </Card>
+    </section>
   );
 }

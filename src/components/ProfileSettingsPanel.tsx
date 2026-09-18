@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { Alert, Button, Card, Form, Spinner } from "react-bootstrap";
+import { Alert, Button, Form, Spinner } from "react-bootstrap";
 
 export interface ProfileSettingsInitial {
   name: string;
@@ -109,9 +109,9 @@ export default function ProfileSettingsPanel({
   }
 
   return (
-    <Card>
-      <Card.Body>
-        <Card.Title>Profile</Card.Title>
+    // A plain section: this sits inside the settings page's own tabs, so a
+    // card would be a box in a box and its title would repeat the tab.
+    <section className="pickl-settings-section">
 
         <Form onSubmit={handleSaveName} className="mb-4">
           {nameError && (
@@ -217,7 +217,6 @@ export default function ProfileSettingsPanel({
             </Button>
           </Form>
         )}
-      </Card.Body>
-    </Card>
+    </section>
   );
 }

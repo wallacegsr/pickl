@@ -76,50 +76,55 @@ export default async function RecipePage({ params }: { params: { id: string } })
       <h2 className="mb-2 text-break">
         {recipe.name}
         {recipe.visibility === "private" && (
-          <span className="badge text-bg-info align-middle ms-2 fs-6">Private</span>
+          <span className="text-body-secondary fs-6 ms-2">Private</span>
         )}
       </h2>
 
-      <div className="mb-3">
-        {parseRecipeMealTypes(recipe.mealType).map((m) => (
-          <span key={m} className="badge text-bg-dark recipe-tag-badge me-1">
-            {MEAL_LABELS[m] ?? m}
-          </span>
-        ))}
-        {withTags.tags.map((t) => (
-          <Link
-            key={t}
-            href={`/recipes?tag=${encodeURIComponent(t)}${recipe.visibility === "private" ? "&tab=mine" : ""}`}
-            className="badge text-bg-secondary recipe-tag-badge me-1 text-decoration-none"
-            title={`More recipes tagged ${t}`}
-          >
-            {t}
-          </Link>
-        ))}
-      </div>
+      {/* One quiet line of facts, then the tags as links. A row of badges and
+          a row of labelled figures said the same things twice as loudly. */}
+      <p className="text-body-secondary mb-2">
+        {[
+          parseRecipeMealTypes(recipe.mealType)
+            .map((m) => MEAL_LABELS[m] ?? m)
+            .join(", "),
+          recipe.prepTimeMinutes != null ? `${recipe.prepTimeMinutes} min prep` : null,
+          recipe.cookTimeMinutes != null ? `${recipe.cookTimeMinutes} min cook` : null,
+          totalMinutes != null && recipe.prepTimeMinutes != null && recipe.cookTimeMinutes != null
+            ? `${totalMinutes} min total`
+            : null,
+          recipe.servings != null ? `serves ${recipe.servings}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+      </p>
 
-      <dl className="d-flex flex-wrap gap-4 mb-4">
-        {recipe.prepTimeMinutes != null && <Fact label="Prep" value={`${recipe.prepTimeMinutes} min`} />}
-        {recipe.cookTimeMinutes != null && <Fact label="Cook" value={`${recipe.cookTimeMinutes} min`} />}
-        {totalMinutes != null && recipe.prepTimeMinutes != null && recipe.cookTimeMinutes != null && (
-          <Fact label="Total" value={`${totalMinutes} min`} />
-        )}
-        {recipe.servings != null && <Fact label="Serves" value={String(recipe.servings)} />}
-        {recipe.sourceUrl && (
-          <Fact
-            label="Source"
-            value={
-              sourceIsLink ? (
+      {(withTags.tags.length > 0 || recipe.sourceUrl) && (
+        <p className="small mb-4">
+          {withTags.tags.map((t, i) => (
+            <span key={t}>
+              {i > 0 && <span className="text-body-secondary"> · </span>}
+              <Link
+                href={`/recipes?tag=${encodeURIComponent(t)}${recipe.visibility === "private" ? "&tab=mine" : ""}`}
+                title={`More recipes tagged ${t}`}
+              >
+                {t}
+              </Link>
+            </span>
+          ))}
+          {recipe.sourceUrl && (
+            <span>
+              {withTags.tags.length > 0 && <span className="text-body-secondary"> · </span>}
+              {sourceIsLink ? (
                 <a href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-break">
-                  {hostOf(recipe.sourceUrl!)} ↗
+                  {hostOf(recipe.sourceUrl)} ↗
                 </a>
               ) : (
-                recipe.sourceUrl
-              )
-            }
-          />
-        )}
-      </dl>
+                <span className="text-body-secondary">{recipe.sourceUrl}</span>
+              )}
+            </span>
+          )}
+        </p>
+      )}
 
       <RecipeCookingView
         recipeId={recipe.id}
@@ -146,15 +151,6 @@ function hostOf(url: string): string {
   } catch {
     return url;
   }
-}
-
-function Fact({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div>
-      <dt className="small text-body-secondary fw-semibold">{label}</dt>
-      <dd className="mb-0">{value}</dd>
-    </div>
-  );
 }
 
 /**

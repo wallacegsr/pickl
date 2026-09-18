@@ -1,15 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  Alert,
-  Badge,
-  Button,
-  Card,
-  Form,
-  Modal,
-  Spinner,
-} from "react-bootstrap";
+import { Alert, Badge, Button, Form, Modal, Spinner } from "react-bootstrap";
 import type {
   CalendarPanelState,
   CalendarTargetState,
@@ -391,17 +383,17 @@ export default function CalendarSettingsPanel({
   }
 
   return (
-    <Card className="mt-4">
-      <Card.Body>
-        <Card.Title>Calendars</Card.Title>
-        <Card.Text className="text-muted small">
+    // A plain section: this sits inside the settings page's own tabs, so a
+    // card would be a box in a box and its title would repeat the tab.
+    <section className="pickl-settings-section">
+        <p className="text-muted small">
           Mirror your planned meals into your own calendar — Google Calendar,
           or any CalDAV server (Fastmail, iCloud, Nextcloud, Synology and
           friends). Events are <strong>title-only</strong> by default (for
           example <em>Dinner: Spaghetti Bolognese</em>) — turn on
           &ldquo;include recipe details&rdquo; per plan if you also want
           ingredients and instructions in the event description.
-        </Card.Text>
+        </p>
 
         {error && (
           <Alert variant="danger" dismissible onClose={() => setError(null)}>
@@ -848,7 +840,6 @@ export default function CalendarSettingsPanel({
             </Button>
           </Modal.Footer>
         </Modal>
-      </Card.Body>
-    </Card>
+    </section>
   );
 }

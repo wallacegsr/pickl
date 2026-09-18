@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Badge, Button, Card, Col, Form, Row } from "react-bootstrap";
+import { Button, Card, Col, Form, Row } from "react-bootstrap";
 import type { RecipeListRow } from "@/lib/recipeQueryParams";
 import {
   StackedBody,
@@ -204,9 +204,7 @@ export function RecipeCards(props: RecipeViewProps) {
                   </div>
                   <div className="d-flex align-items-center gap-2">
                     {recipe.visibility === "private" && (
-                      <Badge bg="info" text="dark">
-                        Private
-                      </Badge>
+                      <span className="text-body-secondary small">Private</span>
                     )}
                     <Star recipe={recipe} on={isFavorite(recipe)} onToggle={onToggleFavorite} />
                   </div>
@@ -299,17 +297,11 @@ export function RecipeTable(props: RecipeViewProps) {
                   {recipe.name}
                 </Link>
                 {recipe.visibility === "private" && (
-                  <Badge bg="info" text="dark" className="ms-2">
-                    Private
-                  </Badge>
+                  <span className="text-body-secondary small ms-2">Private</span>
                 )}
               </StackedCell>
               <StackedCell label="Meals">
-                {mealTypesOf(recipe).map((tag) => (
-                  <Badge key={tag} bg="dark" className="recipe-tag-badge me-1">
-                    {tag}
-                  </Badge>
-                ))}
+                <span className="text-body-secondary">{mealTypesOf(recipe).join(", ")}</span>
               </StackedCell>
               <StackedCell label="Tags">
                 {recipe.tags.length ? (

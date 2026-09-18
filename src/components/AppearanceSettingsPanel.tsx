@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import TagAutocompleteField from "@/components/TagAutocompleteField";
 import { formatTagInput, parseTagInput } from "@/lib/tagNames";
-import { Button, Card, Form } from "react-bootstrap";
+import { Button, Form } from "react-bootstrap";
 import {
   isThemePreference,
   readStoredPreference,
@@ -142,12 +142,12 @@ export default function AppearanceSettingsPanel({
   }
 
   return (
-    <Card>
-      <Card.Body>
-        <Card.Title>Appearance</Card.Title>
-        <Card.Text className="text-muted small">
+    // A plain section: this sits inside the settings page's own tabs, so a
+    // card would be a box in a box and its title would repeat the tab.
+    <section className="pickl-settings-section">
+        <p className="text-muted small">
           Applies straight away — there&apos;s nothing to submit.
-        </Card.Text>
+        </p>
 
         <h3 className="h6 mb-1">Light or dark</h3>
         <p className="text-muted small mb-2">
@@ -297,7 +297,6 @@ export default function AppearanceSettingsPanel({
             </div>
           )}
         </Form>
-      </Card.Body>
-    </Card>
+    </section>
   );
 }

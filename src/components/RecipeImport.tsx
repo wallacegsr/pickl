@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Alert, Button, Card, Form, Nav, Spinner, Table } from "react-bootstrap";
+import { Alert, Button, Form, Nav, Spinner } from "react-bootstrap";
+import ListRow, { ListRows } from "@/components/ui/ListRow";
 import RecipeForm, { type RecipeFormValues } from "@/components/RecipeForm";
 import type { ImportSummary } from "@/lib/recipeImport";
 
@@ -280,40 +281,29 @@ function FilePane({ isAdmin }: { isAdmin: boolean }) {
 
       {error && <Alert variant="danger">{error}</Alert>}
 
+      {/* The outcome as a sentence and a list of rows, not a card wrapping a
+          three-column table: "row 4 — Chicken Pie — already here" is one line
+          of prose, and a table made it three cells to read. */}
       {summary && (
-        <Card className="mb-3">
-          <Card.Body>
-            <Card.Title as="h3" className="h6">
-              {summary.imported} imported
-              {summary.skipped > 0 && `, ${summary.skipped} already here`}
-              {summary.failed > 0 && `, ${summary.failed} could not be read`}
-            </Card.Title>
-            {problems.length > 0 && (
-              <div className="table-responsive">
-                <Table size="sm" className="mb-0 align-middle">
-                  <thead>
-                    <tr>
-                      <th>Row</th>
-                      <th>Recipe</th>
-                      <th>What happened</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {problems.map((r) => (
-                      <tr key={r.index}>
-                        <td>{r.index + 1}</td>
-                        <td>{r.name ?? <em className="text-muted">no name</em>}</td>
-                        <td className={r.status === "failed" ? "text-danger" : undefined}>
-                          {r.reason}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </div>
-            )}
-          </Card.Body>
-        </Card>
+        <section className="mb-3">
+          <h3 className="h6">
+            {summary.imported} imported
+            {summary.skipped > 0 && `, ${summary.skipped} already here`}
+            {summary.failed > 0 && `, ${summary.failed} could not be read`}
+          </h3>
+          {problems.length > 0 && (
+            <ListRows label="Rows that need a look">
+              {problems.map((r) => (
+                <ListRow
+                  key={r.index}
+                  title={r.name ?? "No name"}
+                  meta={`Row ${r.index + 1} · ${r.reason ?? ""}`}
+                  trailing={r.status === "failed" ? <span className="text-danger">Failed</span> : "Skipped"}
+                />
+              ))}
+            </ListRows>
+          )}
+        </section>
       )}
 
       <Button type="submit" disabled={busy || !json.trim()}>

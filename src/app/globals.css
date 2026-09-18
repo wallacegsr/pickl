@@ -877,6 +877,8 @@ html[data-pickl-sidebar="collapsed"] .pickl-sidebar-toggle {
 
 .pickl-slot-chip {
   display: inline-block;
+  border-left-color: var(--bs-border-color);
+  background-color: var(--bs-tertiary-bg);
   /* Chips are links to the recipe; they keep the cell's text colour. */
   color: inherit;
   text-decoration: none;
@@ -900,40 +902,13 @@ a.pickl-slot-chip:focus-visible {
   background-color: transparent;
 }
 
-.pickl-slot-chip-1 {
-  border-left-color: #a8700f;
-  background-color: rgba(168, 112, 15, 0.12);
-}
+/* Every planned recipe used to get one of three hues by its position in the
+   slot, which made a week of meals a patchwork. They now share one quiet
+   surface: the recipe's NAME is the information, and the grid is calmer for a
+   glance across seven days.
 
-.pickl-slot-chip-2 {
-  border-left-color: #009698;
-  background-color: rgba(0, 150, 152, 0.12);
-}
-
-.pickl-slot-chip-3 {
-  border-left-color: #b8503f;
-  background-color: rgba(184, 80, 63, 0.12);
-}
-
-:root[data-bs-theme="dark"] .pickl-slot-chip-1 {
-  border-left-color: #bd8420;
-  background-color: rgba(189, 132, 32, 0.18);
-}
-
-:root[data-bs-theme="dark"] .pickl-slot-chip-2 {
-  border-left-color: #009a9d;
-  background-color: rgba(0, 154, 157, 0.18);
-}
-
-:root[data-bs-theme="dark"] .pickl-slot-chip-3 {
-  border-left-color: #c95a48;
-  background-color: rgba(201, 90, 72, 0.18);
-}
-
-/* Dessert: coloured by category rather than by position, so a dessert reads
-   the same wherever it sits in the slot. The hue is deliberately outside the
-   main sequence — a warm pink that no main-course chip uses — and it is paired
-   with a cake glyph so the category never depends on colour alone. */
+   Dessert keeps a tint of its own, still paired with a cake glyph so the
+   category never depends on colour alone. */
 .pickl-slot-chip-dessert {
   border-left-color: #a63d6d;
   background-color: rgba(166, 61, 109, 0.12);
@@ -1449,4 +1424,14 @@ a.pickl-slot-chip:focus-visible {
     background: var(--bs-border-color);
   }
 
+}
+
+/* A settings section: no border of its own — the page's tabs already bound it. */
+.pickl-settings-section {
+  display: block;
+  max-width: 44rem;
+}
+
+.pickl-settings-section + .pickl-settings-section {
+  margin-top: 2rem;
 }

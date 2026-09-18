@@ -15,13 +15,6 @@ const MEAL_LABELS: Record<MealType, string> = {
   dinner: "Dinner",
 };
 
-/**
- * How many chip colours exist before they repeat. Three covers the cases this
- * was built for — a main plus a dessert, or two mains — and the colours
- * themselves live in globals.css.
- */
-const SLOT_CHIP_VARIANTS = 3;
-
 /** How many events a day shows before collapsing the rest behind a count. */
 const OVERLAY_VISIBLE_LIMIT = 3;
 
@@ -181,41 +174,26 @@ export default function PlanGridWidget() {
                     >
                       {slot.recipes.length > 0 ? (
                         <div className="pickl-slot-chips">
-                          {(() => {
-                            // Desserts are coloured by what they are; mains by
-                            // their order in the slot. Counting mains
-                            // separately keeps the first main colour 1 whether
-                            // or not a dessert sits in front of it.
-                            let mainIndex = 0;
-                            return slot.recipes.map((planned) => {
-                              const variant = planned.isDessert
-                                ? "dessert"
-                                : (mainIndex++ % SLOT_CHIP_VARIANTS) + 1;
-                              return (
-                                // The recipe opens its page; the rest of the
-                                // cell still opens the slot editor, so the
-                                // click stops here rather than doing both.
-                                <Link
-                                  key={planned.entryId}
-                                  href={`/recipes/${planned.recipe.id}`}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className={`pickl-slot-chip pickl-slot-chip-${variant}`}
-                                  title={`Open ${planned.recipe.name}${planned.isDessert ? " (dessert)" : ""}`}
-                                >
-                                  {planned.isDessert && (
-                                    // Colour is never the only signal: the
-                                    // glyph says "dessert" to a reader who
-                                    // cannot tell these hues apart.
-                                    <CakeIcon
-                                      size={13}
-                                      className="pickl-slot-chip-icon"
-                                    />
-                                  )}
-                                  {planned.recipe.name}
-                                </Link>
-                              );
-                            });
-                          })()}
+                          {slot.recipes.map((planned) => (
+                            // The recipe opens its page; the rest of the cell
+                            // still opens the slot editor, so the click stops
+                            // here rather than doing both.
+                            <Link
+                              key={planned.entryId}
+                              href={`/recipes/${planned.recipe.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className={`pickl-slot-chip${planned.isDessert ? " pickl-slot-chip-dessert" : ""}`}
+                              title={`Open ${planned.recipe.name}${planned.isDessert ? " (dessert)" : ""}`}
+                            >
+                              {planned.isDessert && (
+                                // Colour is never the only signal: the glyph
+                                // says "dessert" to a reader who cannot tell
+                                // these tints apart.
+                                <CakeIcon size={13} className="pickl-slot-chip-icon" />
+                              )}
+                              {planned.recipe.name}
+                            </Link>
+                          ))}
                         </div>
                       ) : (
                         <span className="text-muted fst-italic">Empty jar</span>
