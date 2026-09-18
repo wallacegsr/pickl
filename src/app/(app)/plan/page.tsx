@@ -1,4 +1,6 @@
-import { getRecipePool, getWeekPlan, MEAL_TYPE_LIST } from "@/lib/plan";
+import { getRecipePool, getWeekPlan, lastPlannedByRecipe, MEAL_TYPE_LIST } from "@/lib/plan";
+import { favoriteRecipeIds } from "@/lib/favorites";
+import { pickerChipsFor } from "@/lib/pickerChips";
 import { buildShoppingListWeek } from "@/lib/shoppingList";
 import { viewerToday } from "@/lib/viewerToday";
 import { auth } from "@/lib/auth";
@@ -81,6 +83,10 @@ export default async function PlanPage({
   const poolTags = getTagsForRecipes(householdId, [
     ...new Set(poolsByMeal.flatMap(([, pool]) => pool.map((r) => r.id))),
   ]);
+  // The picker shows a star, when a recipe was last cooked and how long it
+  // takes, so those come along with the pool rather than being fetched per row.
+  const favorites = favoriteRecipeIds(session.user, householdId);
+  const lastPlanned = lastPlannedByRecipe(householdId, scope, effectiveUserId);
   const poolByMeal = Object.fromEntries(
     poolsByMeal.map(([mt, pool]) => [
       mt,
@@ -90,9 +96,19 @@ export default async function PlanPage({
         tags: poolTags.get(r.id) ?? [],
         ingredients: r.ingredients,
         mealType: r.mealType,
+        isFavorite: favorites.has(r.id),
+        lastPlanned: lastPlanned.get(r.id) ?? null,
+        totalMinutes:
+          r.prepTimeMinutes == null && r.cookTimeMinutes == null
+            ? null
+            : (r.prepTimeMinutes ?? 0) + (r.cookTimeMinutes ?? 0),
       })),
     ])
   ) as Record<MealType, RecipeOption[]>;
+
+  // Chips for the slot picker: the person's own choice, or the household's
+  // most-used tags when they have not chosen.
+  const pickerChips = pickerChipsFor(session.user, householdId);
 
   const admin = isAdmin(session.user);
   const householdUsers = admin
@@ -126,6 +142,7 @@ export default async function PlanPage({
         shoppingListDays={shoppingListDays}
         dashboardLayout={dashboardLayout}
         recipePoolByMeal={poolByMeal}
+        pickerChips={pickerChips}
         canEditShared={canEditSharedCalendar(session.user)}
         isAdmin={admin}
         currentUserId={session.user.id}

@@ -168,6 +168,12 @@ export const users = sqliteTable("users", {
   // to a new device; localStorage remains the pre-hydration (no-flash)
   // source and the DB is the tie-breaker on login. See ThemeSync.
   themePreference: text("theme_preference").notNull().default("system"),
+  /**
+   * Tags this person wants as filter chips in the recipe picker, comma
+   * separated. Empty means the default set: their favourites, quick recipes,
+   * and whichever tags the household uses most.
+   */
+  pickerChips: text("picker_chips").notNull().default(""),
   // Opt-in: draw this user's OWN external calendar events alongside the
   // meal grid (see src/lib/calendar/read.ts). Defaults to FALSE on
   // purpose — pulling somebody's calendar onto a shared-household screen

@@ -15,6 +15,14 @@ changes with it — the two must never disagree about what is running.
 
 ### Added
 
+- **A calmer recipe picker.** Choosing what goes in a meal slot is now a
+  sheet: one search box (the Name/Tag/Ingredients tickboxes are gone),
+  filter chips for favorites, quick and your tags, and rows you tap to add or
+  remove. Before you type it suggests your favorites and things you have not
+  cooked lately, each row showing when it was last cooked and how long it
+  takes. Tags read as a quiet grey line rather than a row of coloured pills.
+- **Choose your own picker chips**, under Preferences → Appearance: the
+  household's most-used tags by default, or up to eight tags of your own.
 - **Recipes in the planner open their recipe page.** Click a recipe's name
   in a slot; click anywhere else in the slot to choose recipes as before.
 - **Search for several things at once.** Separate terms with commas or

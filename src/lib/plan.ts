@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   isDessertRecipe,
@@ -352,6 +352,38 @@ export interface SetPlanEntryInput {
  * rewriting it would orphan the external events and silently lose every
  * ticked-off ingredient on days where nothing actually changed.
  */
+/**
+ * The last date each recipe was planned, from the calendars this viewer may
+ * see: the household's, plus their own private plan. Someone else's private
+ * plan is not evidence they get to read, even as a date.
+ */
+export function lastPlannedByRecipe(
+  householdId: string,
+  scope: Scope,
+  userId: string
+): Map<string, string> {
+  const rows = db
+    .select({
+      recipeId: planEntries.recipeId,
+      last: sql<string>`max(${planEntries.date})`,
+    })
+    .from(planEntries)
+    .where(
+      and(
+        eq(planEntries.householdId, householdId),
+        or(
+          eq(planEntries.scope, "shared"),
+          and(eq(planEntries.scope, "private"), eq(planEntries.userId, ownerKey(scope, userId)))
+        )
+      )
+    )
+    .groupBy(planEntries.recipeId)
+    .all();
+  const map = new Map<string, string>();
+  for (const row of rows) if (row.recipeId && row.last) map.set(row.recipeId, row.last);
+  return map;
+}
+
 export function setPlanEntry(input: SetPlanEntryInput) {
   // Every write path checks this before calling; this is the backstop, so a
   // new caller can't quietly rewrite a day the reports already count.

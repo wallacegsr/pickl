@@ -13,7 +13,6 @@ import {
   Spinner,
 } from "react-bootstrap";
 import type { MealType, Scope } from "@/db/schema";
-import RecipeSearchBar from "@/components/RecipeSearchBar";
 import { minAnimationElapsed } from "@/lib/shakeMotion";
 import {
   DEFAULT_RECIPE_SEARCH_FIELDS,
@@ -22,6 +21,7 @@ import {
 } from "@/lib/recipeSearch";
 import type { ShoppingListDayData } from "@/components/ShoppingListPanel";
 import PlanDashboard from "@/components/plan/PlanDashboard";
+import SlotPicker, { type SlotPickerChips } from "@/components/plan/SlotPicker";
 import {
   PlanContextProvider,
   type OverlayResponse,
@@ -63,6 +63,12 @@ export interface RecipeOption {
   ingredients: string;
   /** Stored comma-separated meal types, so the picker can search by them. */
   mealType: string;
+  /** The viewer's own star. */
+  isFavorite: boolean;
+  /** Last date this recipe was planned on a calendar the viewer can see. */
+  lastPlanned: string | null;
+  /** Prep + cook, when either is recorded. */
+  totalMinutes: number | null;
 }
 
 /**
@@ -93,6 +99,7 @@ export default function PlanView({
   initialDays,
   shoppingListDays,
   recipePoolByMeal,
+  pickerChips,
   canEditShared,
   isAdmin,
   currentUserId,
@@ -114,6 +121,8 @@ export default function PlanView({
    */
   shoppingListDays: ShoppingListDayData[];
   recipePoolByMeal: Record<MealType, RecipeOption[]>;
+  /** Which tag chips the slot picker offers; see the Appearance preferences. */
+  pickerChips: SlotPickerChips;
   canEditShared: boolean;
   isAdmin: boolean;
   currentUserId: string;
@@ -256,10 +265,6 @@ export default function PlanView({
     recipeIds: string[];
   } | null>(null);
   const [savingSlot, setSavingSlot] = useState(false);
-  const [slotSearch, setSlotSearch] = useState("");
-  const [slotSearchFields, setSlotSearchFields] = useState<RecipeSearchFields>(
-    DEFAULT_RECIPE_SEARCH_FIELDS
-  );
 
   function navScope(nextScope: Scope, userId?: string) {
     const params = new URLSearchParams({ week, scope: nextScope });
@@ -414,8 +419,6 @@ export default function PlanView({
     if (!isEditable) return;
     // Past days are read-only; the server refuses too.
     if (day.date < today) return;
-    setSlotSearch("");
-    setSlotSearchFields(DEFAULT_RECIPE_SEARCH_FIELDS);
     setEditingSlot({
       date: day.date,
       dayOfWeek: day.dayOfWeek,
@@ -583,166 +586,25 @@ export default function PlanView({
         </Modal.Footer>
       </Modal>
 
-      {/* Manual slot editor.
-
-          A bottom sheet on a phone (see .pickl-sheet in globals.css) and an
-          ordinary centred dialog at a desk. A slot editor is reached by
-          tapping a cell in the week grid, and a centred dialog puts the thing
-          you just tapped under your own hand while the controls sit at the
-          top of the screen, furthest from your thumb. Docked to the bottom
-          edge it opens where the tap was and keeps its controls in reach. */}
-      <Modal
+      {/* Manual slot editor — a sheet on a phone, a dialog at a desk. */}
+      <SlotPicker
         show={Boolean(editingSlot)}
-        onHide={() => setEditingSlot(null)}
-        dialogClassName="pickl-sheet"
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>
-            {editingSlot
-              ? `${MEAL_LABELS[editingSlot.mealType]} — ${editingSlot.dayOfWeek} (${editingSlot.date})`
-              : ""}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form.Group className="mb-3" controlId="slot-recipe-search">
-            <Form.Label>Search recipes</Form.Label>
-            <RecipeSearchBar
-              idPrefix="slot-recipe-search"
-              query={slotSearch}
-              onQueryChange={setSlotSearch}
-              fields={slotSearchFields}
-              onFieldsChange={setSlotSearchFields}
-              placeholder="Search by name, tag, or ingredient..."
-              size="sm"
-            />
-          </Form.Group>
-          {/* A live result list rather than a <select>.
-              Filtering the options of a collapsed <select> changed nothing the
-              user could see until they opened it, so typing in the search box
-              looked like it did nothing at all. */}
-          {editingSlot &&
-            (() => {
-              const pool = recipePoolByMeal[editingSlot.mealType] ?? [];
-              const matched = pool.filter((r) =>
-                matchesRecipeSearch(r, slotSearch, slotSearchFields)
-              );
-              const searching = slotSearch.trim().length > 0;
-              const selectedIds = editingSlot.recipeIds;
-              // Assigned recipes stay reachable even when they do not match the
-              // current search, so filtering can never strand a choice
-              // somewhere the user cannot see or remove it.
-              const chosen = selectedIds
-                .map((id) => pool.find((r) => r.id === id))
-                .filter((r): r is RecipeOption => Boolean(r));
-              const rows = [
-                ...chosen.filter((c) => !matched.some((r) => r.id === c.id)),
-                ...matched,
-              ];
-
-              // Toggle, not replace: clicking an already-chosen recipe takes it
-              // back out, which is how a slot goes from two recipes to one.
-              const toggle = (id: string) =>
-                setEditingSlot((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        recipeIds: prev.recipeIds.includes(id)
-                          ? prev.recipeIds.filter((existing) => existing !== id)
-                          : [...prev.recipeIds, id],
-                      }
-                    : prev
-                );
-
-              const pick = (id: string) =>
-                setEditingSlot((prev) => (prev ? { ...prev, recipeId: id } : prev));
-
-              return (
-                <Form.Group>
-                  <div className="d-flex justify-content-between align-items-baseline">
-                    <Form.Label className="mb-1">
-                      Assigned recipes
-                      {selectedIds.length > 1 && (
-                        <span className="ms-2 badge text-bg-secondary">
-                          {selectedIds.length}
-                        </span>
-                      )}
-                    </Form.Label>
-                    <span className="small text-body-secondary">
-                      {searching
-                        ? `${matched.length} of ${pool.length} match`
-                        : `${pool.length} available`}
-                    </span>
-                  </div>
-
-                  <ListGroup
-                    role="listbox"
-                    aria-label="Recipes for this meal"
-                    className="pickl-slot-picker"
-                  >
-                    <ListGroup.Item
-                      as="button"
-                      type="button"
-                      role="option"
-                      aria-selected={selectedIds.length === 0}
-                      active={selectedIds.length === 0}
-                      // Clears the whole slot rather than being one more
-                      // selectable row.
-                      onClick={() =>
-                        setEditingSlot((prev) =>
-                          prev ? { ...prev, recipeIds: [] } : prev
-                        )
-                      }
-                    >
-                      <span className="fst-italic">Empty jar — no recipes</span>
-                    </ListGroup.Item>
-
-                    {rows.map((r) => (
-                      <ListGroup.Item
-                        key={r.id}
-                        as="button"
-                        type="button"
-                        role="option"
-                        aria-selected={selectedIds.includes(r.id)}
-                        active={selectedIds.includes(r.id)}
-                        onClick={() => toggle(r.id)}
-                        onDoubleClick={() => {
-                          // Still means "just this one, done" — the fast path
-                          // for the common case of a slot holding one recipe.
-                          void saveSlot([r.id]);
-                        }}
-                      >
-                        <div className="d-flex flex-wrap align-items-center gap-2">
-                          <span>{r.name}</span>
-                          {r.tags.slice(0, 3).map((t) => (
-                            <Badge key={t} bg="info" className="recipe-tag-badge">
-                              {t}
-                            </Badge>
-                          ))}
-                        </div>
-                      </ListGroup.Item>
-                    ))}
-                  </ListGroup>
-
-                  {searching && matched.length === 0 && (
-                    <Form.Text className="text-body-secondary">
-                      Nothing in the jar matches that search for{" "}
-                      {MEAL_LABELS[editingSlot.mealType]}. Clear the search to see
-                      all {pool.length}.
-                    </Form.Text>
-                  )}
-                </Form.Group>
-              );
-            })()}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setEditingSlot(null)}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={() => saveSlot()} disabled={savingSlot}>
-            {savingSlot ? <Spinner animation="border" size="sm" /> : "Save"}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+        title={editingSlot ? `${editingSlot.dayOfWeek} ${MEAL_LABELS[editingSlot.mealType].toLowerCase()}` : ""}
+        subtitle={
+          editingSlot
+            ? `${editingSlot.date}${
+                editingSlot.recipeIds.length ? ` · ${editingSlot.recipeIds.length} chosen` : ""
+              }`
+            : ""
+        }
+        pool={editingSlot ? recipePoolByMeal[editingSlot.mealType] ?? [] : []}
+        selectedIds={editingSlot?.recipeIds ?? []}
+        chips={pickerChips}
+        saving={savingSlot}
+        onChange={(ids) => setEditingSlot((prev) => (prev ? { ...prev, recipeIds: ids } : prev))}
+        onSave={() => void saveSlot()}
+        onCancel={() => setEditingSlot(null)}
+      />
     </div>
   );
 }

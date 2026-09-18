@@ -9,6 +9,9 @@ import PasswordSettingsPanel from "@/components/PasswordSettingsPanel";
 import AppearanceSettingsPanel from "@/components/AppearanceSettingsPanel";
 import CalendarSettingsPanel from "@/components/CalendarSettingsPanel";
 import { buildCalendarPanelState } from "@/lib/calendar/panelState";
+import { defaultPickerChips, parsePickerChips } from "@/lib/pickerChips";
+import { listVisibleTags } from "@/lib/tags";
+import { householdScope } from "@/lib/permissions";
 
 /**
  * Per-user settings. Available to every signed-in user — deliberately NOT
@@ -40,6 +43,11 @@ export default async function PreferencesPage({
   // Note what is absent: no refresh token, encrypted or otherwise, ever
   // leaves the server.
   const calendarState = buildCalendarPanelState(user.id);
+
+  // What the picker offers with nothing chosen, so the Default option can say
+  // which tags that actually means today.
+  const householdId = householdScope(session.user);
+  const defaultChips = householdId ? defaultPickerChips(session.user, householdId) : [];
 
   return (
     <div>
@@ -84,6 +92,9 @@ export default async function PreferencesPage({
               <AppearanceSettingsPanel
                 userId={user.id}
                 savedPreference={user.themePreference}
+                savedChips={parsePickerChips(user.pickerChips)}
+                defaultChips={defaultChips}
+                tagSuggestions={listVisibleTags(session.user).map((t) => t.name)}
               />
             ),
           },

@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, Form } from "react-bootstrap";
+import { useRouter } from "next/navigation";
+import TagAutocompleteField from "@/components/TagAutocompleteField";
+import { formatTagInput, parseTagInput } from "@/lib/tagNames";
+import { Button, Card, Form } from "react-bootstrap";
 import {
   isThemePreference,
   readStoredPreference,
@@ -30,9 +33,17 @@ const OPTIONS: { value: ThemePreference; label: string; hint: string }[] = [
 export default function AppearanceSettingsPanel({
   userId,
   savedPreference,
+  savedChips,
+  defaultChips,
+  tagSuggestions,
 }: {
   userId: string;
   savedPreference: string;
+  /** This person's own chip tags; empty means they have not chosen. */
+  savedChips: string[];
+  /** What the picker offers when they have not — shown so "Default" is not a mystery. */
+  defaultChips: string[];
+  tagSuggestions: string[];
 }) {
   // Seeded from the server-rendered saved value so the checked radio matches
   // between server and client markup (no hydration mismatch); the effect then
@@ -101,6 +112,33 @@ export default function AppearanceSettingsPanel({
     // Applies to the DOM, localStorage (for the next no-flash paint) and the
     // user's record in one go.
     setThemePreference(next, { userId });
+  }
+
+  const router = useRouter();
+
+  // Chips: an empty list is the default set, so "Default" simply saves none.
+  const [custom, setCustom] = useState(savedChips.length > 0);
+  const [chipText, setChipText] = useState(formatTagInput(savedChips));
+  const [savingChips, setSavingChips] = useState(false);
+  const [chipNotice, setChipNotice] = useState<string | null>(null);
+
+  async function saveChips(tags: string[]) {
+    setSavingChips(true);
+    setChipNotice(null);
+    const res = await fetch("/api/preferences/picker-chips", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tags }),
+    }).catch(() => null);
+    setSavingChips(false);
+    if (!res || !res.ok) {
+      setChipNotice("Could not save that.");
+      return;
+    }
+    setCustom(tags.length > 0);
+    setChipText(formatTagInput(tags));
+    setChipNotice("Saved.");
+    router.refresh();
   }
 
   return (
@@ -189,6 +227,75 @@ export default function AppearanceSettingsPanel({
               }
             />
           ))}
+        </Form>
+        <hr className="my-4" />
+
+        <h3 className="h6 mb-1">Recipe picker chips</h3>
+        <p className="text-muted small mb-2">
+          The quick filters beside the search box when you choose a meal.
+          Favorites and Quick are always there; these are the tags that sit
+          after them.
+        </p>
+
+        <Form onSubmit={(e) => e.preventDefault()}>
+          <Form.Check
+            type="radio"
+            name="pickerChips"
+            id="chips-default"
+            className="mb-1"
+            checked={!custom}
+            onChange={() => void saveChips([])}
+            label={
+              <>
+                Default
+                <span className="d-block text-muted small">
+                  {defaultChips.length > 0
+                    ? `Your household's most-used tags: ${defaultChips.join(", ")}`
+                    : "Your household's most-used tags — there are none yet."}
+                </span>
+              </>
+            }
+          />
+          <Form.Check
+            type="radio"
+            name="pickerChips"
+            id="chips-custom"
+            className="mb-2"
+            checked={custom}
+            onChange={() => setCustom(true)}
+            label={
+              <>
+                Choose my own
+                <span className="d-block text-muted small">
+                  {/* Must match MAX_PICKER_CHIPS in src/lib/pickerChips.ts,
+                      which cannot be imported here: it reads the database. */}
+                  Up to 8 tags, in the order you type them.
+                </span>
+              </>
+            }
+          />
+
+          {custom && (
+            <div className="ms-4">
+              <TagAutocompleteField
+                id="picker-chip-tags"
+                value={chipText}
+                onChange={setChipText}
+                suggestions={tagSuggestions}
+                placeholder="Vegetarian, Weeknight, Slow cooker…"
+              />
+              <div className="d-flex align-items-center gap-2 mt-2">
+                <Button
+                  size="sm"
+                  disabled={savingChips}
+                  onClick={() => void saveChips(parseTagInput(chipText))}
+                >
+                  {savingChips ? "Saving…" : "Save chips"}
+                </Button>
+                {chipNotice && <span className="small text-body-secondary">{chipNotice}</span>}
+              </div>
+            </div>
+          )}
         </Form>
       </Card.Body>
     </Card>

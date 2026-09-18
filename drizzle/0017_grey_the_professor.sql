@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `picker_chips` text DEFAULT '' NOT NULL;
