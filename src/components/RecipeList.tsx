@@ -16,7 +16,6 @@ import {
   Row,
 } from "react-bootstrap";
 import { usePathname, useRouter } from "next/navigation";
-import RecipeSearchBar from "@/components/RecipeSearchBar";
 import { RecipeCards, RecipeTable } from "@/components/recipes/recipeViews";
 import RecipeBulkConfirm, { type BulkRequest } from "@/components/recipes/RecipeBulkConfirm";
 import RecipeTagPicker from "@/components/recipes/RecipeTagPicker";
@@ -340,12 +339,15 @@ export default function RecipeList({
         <Col xs={12} md={9} xl={10}>
           <Row className="align-items-start g-2 mb-3">
             <Col xs={12} lg={6}>
-              <RecipeSearchBar
-                query={search}
-                onQueryChange={setSearch}
-                fields={query.fields}
-                onFieldsChange={(fields) => update({ fields })}
-                placeholder="Search by name, tag, or ingredient..."
+              {/* One box, no field tickboxes: it searches names, tags and
+                  ingredients together, which is what everyone left them set to.
+                  Several terms separated by commas must all match. */}
+              <Form.Control
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search recipes — chicken, quick"
+                aria-label="Search recipes by name, tag or ingredient"
               />
             </Col>
             <Col xs={12} lg={6}>

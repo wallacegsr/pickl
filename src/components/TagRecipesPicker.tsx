@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alert, Button, Form, Modal, Spinner } from "react-bootstrap";
+import { Alert, Button, Form, Spinner } from "react-bootstrap";
+import Sheet from "@/components/ui/Sheet";
+import ListRow, { ListRows } from "@/components/ui/ListRow";
+import Chip, { ChipRow } from "@/components/ui/Chip";
 import { tagKey } from "@/lib/tagNames";
 import type { BulkSummary } from "@/lib/recipeBulk";
 import type { RecipePage, RecipeTab } from "@/lib/recipeQueryParams";
@@ -130,66 +133,92 @@ export default function TagRecipesPicker({
   }
 
   return (
-    <Modal show={Boolean(tagName)} onHide={saving ? undefined : onClose} centered scrollable>
-      <Modal.Header closeButton={!saving}>
-        <Modal.Title as="h2" className="h5">
-          Recipes tagged “{tagName}”
-        </Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        {error && <Alert variant="danger">{error}</Alert>}
-        <div className="d-flex flex-wrap gap-2 mb-2">
-          <Form.Select
-            size="sm"
-            className="w-auto"
-            aria-label="Which recipes"
-            value={tab}
-            onChange={(e) => {
-              setTab(e.target.value === "mine" ? "mine" : "shared");
-              setPage(1);
-            }}
-          >
-            <option value="shared">The House Jar</option>
-            <option value="mine">My Secret Stash</option>
-          </Form.Select>
-          <Form.Check
-            type="switch"
-            id="tag-picker-only-tagged"
-            className="mb-0 align-self-center"
-            label="Only ones with this tag"
-            checked={onlyTagged}
-            onChange={(e) => {
-              setOnlyTagged(e.target.checked);
-              setPage(1);
-            }}
+    <Sheet
+      show={Boolean(tagName)}
+      title={`Tagged “${tagName}”`}
+      subtitle={
+        toAdd.length || toRemove.length
+          ? `Adding to ${toAdd.length}, removing from ${toRemove.length}`
+          : data
+            ? `${data.total.toLocaleString()} recipes`
+            : "Loading…"
+      }
+      onClose={onClose}
+      onAction={save}
+      actionLabel="Save"
+      actionDisabled={toAdd.length === 0 && toRemove.length === 0}
+      busy={saving}
+      footerNote="Tap a recipe to add or remove this tag."
+      toolbar={
+        <>
+          <Form.Control
+            type="search"
+            className="mb-2"
+            placeholder="Search recipes"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search recipes by name"
           />
+          <ChipRow label="Which recipes">
+            <Chip
+              label="House Jar"
+              active={tab === "shared"}
+              onClick={() => {
+                setTab("shared");
+                setPage(1);
+              }}
+            />
+            <Chip
+              label="My Secret Stash"
+              active={tab === "mine"}
+              onClick={() => {
+                setTab("mine");
+                setPage(1);
+              }}
+            />
+            <Chip
+              label="Has this tag"
+              active={onlyTagged}
+              onClick={() => {
+                setOnlyTagged(!onlyTagged);
+                setPage(1);
+              }}
+            />
+          </ChipRow>
+        </>
+      }
+    >
+      {error && (
+        <Alert variant="danger" className="m-3">
+          {error}
+        </Alert>
+      )}
+      {!data && !error && (
+        <div className="d-flex align-items-center gap-2 text-muted p-3">
+          <Spinner animation="border" size="sm" /> Loading recipes…
         </div>
-        <Form.Control
-          className="mb-2"
-          placeholder="Find a recipe by name…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          aria-label="Find a recipe by name"
-        />
-        {!data && !error && (
-          <div className="d-flex align-items-center gap-2 text-muted">
-            <Spinner animation="border" size="sm" /> Loading recipes…
-          </div>
-        )}
-        {data && (
-          <>
+      )}
+      {data && (
+        <>
+          <ListRows label="Recipes">
             {data.rows.map((r) => {
               const editable = canEdit(r);
               const had = r.tags.some((t) => tagKey(t) === key);
               const checked = changes.get(r.id)?.now ?? had;
               return (
-                <Form.Check
+                <ListRow
                   key={r.id}
-                  type="checkbox"
-                  id={`tag-recipe-${r.id}`}
-                  checked={checked}
+                  title={r.name}
+                  meta={[
+                    r.visibility === "private" ? "Private" : null,
+                    editable ? null : "You can't change this one",
+                    ...r.tags,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                  selected={checked}
                   disabled={!editable}
-                  onChange={() =>
+                  onClick={() =>
                     setChanges((prev) => {
                       const next = new Map(prev);
                       const was = prev.get(r.id)?.was ?? had;
@@ -199,53 +228,31 @@ export default function TagRecipesPicker({
                       return next;
                     })
                   }
-                  label={
-                    <>
-                      {r.name}
-                      {r.visibility === "private" && <span className="text-muted small"> · private</span>}
-                      {!editable && <span className="text-muted small"> · you can&apos;t change this one</span>}
-                    </>
-                  }
                 />
               );
             })}
-            {data.rows.length === 0 && <p className="text-muted mb-0">No recipes match.</p>}
-            {pageCount > 1 && (
-              <div className="d-flex justify-content-between align-items-center mt-2 small">
-                <Button size="sm" variant="outline-secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-                  Previous
-                </Button>
-                <span className="text-muted">
-                  Page {data.page} of {pageCount} · {data.total.toLocaleString()} recipes
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline-secondary"
-                  disabled={page >= pageCount}
-                  onClick={() => setPage(page + 1)}
-                >
-                  Next
-                </Button>
-              </div>
-            )}
-          </>
-        )}
-      </Modal.Body>
-      <Modal.Footer className="justify-content-between">
-        <span className="small text-muted">
-          {toAdd.length || toRemove.length
-            ? `Adding to ${toAdd.length}, removing from ${toRemove.length}`
-            : "No changes yet"}
-        </span>
-        <div className="d-flex gap-2">
-          <Button variant="secondary" onClick={onClose} disabled={saving}>
-            Cancel
-          </Button>
-          <Button onClick={save} disabled={saving || (toAdd.length === 0 && toRemove.length === 0)}>
-            {saving ? <Spinner animation="border" size="sm" /> : "Save"}
-          </Button>
-        </div>
-      </Modal.Footer>
-    </Modal>
+          </ListRows>
+          {data.rows.length === 0 && <p className="pickl-sheet-note py-4 mb-0">No recipes match.</p>}
+          {pageCount > 1 && (
+            <div className="d-flex justify-content-between align-items-center gap-2 p-3 small">
+              <Button size="sm" variant="outline-secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+                Previous
+              </Button>
+              <span className="text-body-secondary">
+                Page {data.page} of {pageCount}
+              </span>
+              <Button
+                size="sm"
+                variant="outline-secondary"
+                disabled={page >= pageCount}
+                onClick={() => setPage(page + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+    </Sheet>
   );
 }

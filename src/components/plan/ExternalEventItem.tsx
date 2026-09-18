@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState, type ReactNode } from "react";
-import { Button, Modal } from "react-bootstrap";
+import Sheet from "@/components/ui/Sheet";
 import type { ExternalEventView } from "./PlanContext";
 
 /** "6:30 PM", in the viewer's locale. All-day events have no time at all. */
@@ -39,17 +39,14 @@ export default function ExternalEventItem({ event }: { event: ExternalEventView 
         <span className="plan-external-event-title">{event.summary}</span>
       </button>
 
-      <Modal show={open} onHide={() => setOpen(false)} centered scrollable>
-        <Modal.Header closeButton>
-          <Modal.Title as="h2" className="h5 text-break">
-            {event.summary}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
+      <Sheet
+        show={open}
+        title={event.summary}
+        subtitle={describeWhen(event)}
+        onClose={() => setOpen(false)}
+      >
+        <div className="p-3">
           <dl className="mb-0">
-            <dt className="small text-body-secondary fw-semibold">When</dt>
-            <dd suppressHydrationWarning>{describeWhen(event)}</dd>
-
             {event.location && (
               <>
                 <dt className="small text-body-secondary fw-semibold">Where</dt>
@@ -76,28 +73,21 @@ export default function ExternalEventItem({ event }: { event: ExternalEventView 
               </>
             )}
           </dl>
-          <p className="small text-body-secondary mt-3 mb-0">
-            From your own calendar. Only you see this, and Pickl doesn&apos;t keep it.
-          </p>
-        </Modal.Body>
-        <Modal.Footer>
           {event.link && (
-            <Button
-              as="a"
+            <a
               href={event.link}
               target="_blank"
               rel="noopener noreferrer"
-              variant="outline-secondary"
-              className="me-auto"
+              className="btn btn-outline-secondary w-100 mt-3"
             >
               Open in Google Calendar ↗
-            </Button>
+            </a>
           )}
-          <Button variant="secondary" onClick={() => setOpen(false)}>
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
+          <p className="small text-body-secondary mt-3 mb-0">
+            From your own calendar. Only you see this, and Pickl doesn&apos;t keep it.
+          </p>
+        </div>
+      </Sheet>
     </>
   );
 }

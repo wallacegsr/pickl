@@ -61,6 +61,26 @@ function Star({
   );
 }
 
+/**
+ * The quiet line under a recipe's name on a tile: what meals it suits, how
+ * long it takes, how many it serves, then its tags. Plain grey text, because
+ * a name buried under five coloured pills is hard to scan.
+ */
+function describeRecipe(recipe: RecipeListRow): string {
+  const time =
+    recipe.prepTimeMinutes == null && recipe.cookTimeMinutes == null
+      ? null
+      : `${(recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0)} min`;
+  return [
+    mealTypesOf(recipe).join(", "),
+    time,
+    recipe.servings != null ? `serves ${recipe.servings}` : null,
+    ...recipe.tags,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 function mealTypesOf(recipe: RecipeListRow): string[] {
   return recipe.mealType
     .split(",")
@@ -191,27 +211,10 @@ export function RecipeCards(props: RecipeViewProps) {
                     <Star recipe={recipe} on={isFavorite(recipe)} onToggle={onToggleFavorite} />
                   </div>
                 </div>
-                <div className="my-2 small text-muted">
-                  {recipe.prepTimeMinutes != null && (
-                    <span className="me-2">Prep: {recipe.prepTimeMinutes}m</span>
-                  )}
-                  {recipe.cookTimeMinutes != null && (
-                    <span className="me-2">Cook: {recipe.cookTimeMinutes}m</span>
-                  )}
-                  {recipe.servings != null && <span>Serves: {recipe.servings}</span>}
-                </div>
-                <div className="mb-2">
-                  {mealTypesOf(recipe).map((tag) => (
-                    <Badge key={tag} bg="dark" className="recipe-tag-badge me-1">
-                      {tag}
-                    </Badge>
-                  ))}
-                  {recipe.tags.map((tag) => (
-                    <Badge key={tag} bg="secondary" className="recipe-tag-badge">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
+                {/* One quiet line — meal, time, servings, tags — rather than a
+                    times row plus two rows of coloured pills. The name is what
+                    people scan for; it should be the loudest thing on the tile. */}
+                <div className="my-2 small text-body-secondary">{describeRecipe(recipe)}</div>
                 <Card.Text
                   className="flex-grow-1"
                   style={{
@@ -310,11 +313,7 @@ export function RecipeTable(props: RecipeViewProps) {
               </StackedCell>
               <StackedCell label="Tags">
                 {recipe.tags.length ? (
-                  recipe.tags.map((tag) => (
-                    <Badge key={tag} bg="secondary" className="recipe-tag-badge me-1">
-                      {tag}
-                    </Badge>
-                  ))
+                  <span className="text-body-secondary">{recipe.tags.join(" · ")}</span>
                 ) : (
                   <span className="text-muted">—</span>
                 )}

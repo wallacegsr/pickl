@@ -64,6 +64,11 @@ changes with it — the two must never disagree about what is running.
 
 ### Changed
 
+- **The same calm layout beyond the picker.** The Tags page's "Recipes…"
+  dialog and a calendar event's details are now the same sheet, recipe tiles
+  carry one quiet line (meal, time, servings, tags) instead of rows of
+  coloured pills, and the Recipes page has a single search box — it already
+  searched names, tags and ingredients together.
 - **Days that have passed are read-only on the planner.** They are dimmed,
   their slots no longer open for editing, and the server refuses changes to
   them, so reports reflect what was actually planned. Their recipes still
