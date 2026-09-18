@@ -11,6 +11,8 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-09-18
+
 ### Added
 
 - **A calmer recipe picker.** Choosing what goes in a meal slot is now a
@@ -457,7 +459,8 @@ Initial public release: the container image published to
 - Light and dark themes.
 - Docker deployment, with the image published to GHCR.
 
-[Unreleased]: https://github.com/wallacegsr/pickl/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/wallacegsr/pickl/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/wallacegsr/pickl/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/wallacegsr/pickl/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/wallacegsr/pickl/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/wallacegsr/pickl/compare/v2.0.0...v2.1.0
