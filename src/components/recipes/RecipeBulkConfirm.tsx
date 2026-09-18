@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alert, Button, Modal, Spinner } from "react-bootstrap";
+import { Alert, Spinner } from "react-bootstrap";
+import Sheet from "@/components/ui/Sheet";
 import type { BulkSummary } from "@/lib/recipeBulk";
 
 /**
@@ -109,24 +110,39 @@ export default function RecipeBulkConfirm({
   const selectionSize = request?.ids?.length ?? preview?.rows.length;
   const countLabel = selectionSize === undefined ? "the matching recipes" : plural(selectionSize, "recipe");
 
+  // The title names the action, the button carries the count, and the body
+  // explains the consequence — each said once.
   const title = !request
     ? ""
     : isDelete
-      ? `Delete ${countLabel}?`
+      ? "Delete recipes?"
       : isTag
         ? `${tagMode === "add" ? "Add" : "Remove"} ${request.action === "tag" && request.tags.length === 1 ? "a tag" : "tags"}?`
-        : `Copy ${countLabel} to ${destination}?`;
+        : `Copy to ${destination}?`;
 
   const refused = preview?.rows.filter((r) => r.status !== "ok") ?? [];
 
+  const verb = isDelete ? "Delete" : isTag ? (tagMode === "add" ? "Add" : "Remove") : "Copy";
+  const footerActionLabel = !preview
+    ? "Checking…"
+    : isTag
+      ? `${verb} on ${plural(preview.ok, "recipe")}`
+      : `${verb} ${plural(preview.ok, "recipe")}`;
+
   return (
-    <Modal show={Boolean(request)} onHide={running ? undefined : onClose} centered>
-      <Modal.Header closeButton={!running}>
-        <Modal.Title as="h2" className="h5">
-          {title}
-        </Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
+    <Sheet
+      show={Boolean(request)}
+      title={title}
+      subtitle={preview ? previewSubtitle(preview) : "Checking what that would do…"}
+      onClose={onClose}
+      onAction={confirm}
+      actionLabel={verb}
+      footerActionLabel={footerActionLabel}
+      actionVariant={isDelete ? "danger" : "primary"}
+      actionDisabled={!preview || preview.ok === 0}
+      busy={running}
+    >
+      <div className="p-3">
         {error && <Alert variant="danger">{error}</Alert>}
 
         {!preview && !error && (
@@ -207,29 +223,18 @@ export default function RecipeBulkConfirm({
             )}
           </>
         )}
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onClose} disabled={running}>
-          Cancel
-        </Button>
-        <Button
-          variant={isDelete ? "danger" : "primary"}
-          onClick={confirm}
-          disabled={running || !preview || preview.ok === 0}
-        >
-          {running ? (
-            <Spinner animation="border" size="sm" />
-          ) : isDelete ? (
-            `Delete ${preview ? plural(preview.ok, "recipe") : ""}`.trim()
-          ) : isTag ? (
-            `${tagMode === "add" ? "Add" : "Remove"}`
-          ) : (
-            `Copy ${preview ? plural(preview.ok, "recipe") : ""}`.trim()
-          )}
-        </Button>
-      </Modal.Footer>
-    </Modal>
+      </div>
+    </Sheet>
   );
+}
+
+/**
+ * What the header says under the title. The count belongs on the button, so
+ * this carries only the part nothing else says: what will be left alone.
+ */
+function previewSubtitle(preview: BulkSummary): string | undefined {
+  const refused = preview.skipped + preview.failed;
+  return refused > 0 ? `${refused} of your selection will be left alone` : undefined;
 }
 
 function plural(n: number, word: string) {

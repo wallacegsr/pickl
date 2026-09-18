@@ -11,7 +11,6 @@ import {
   Dropdown,
   Form,
   Nav,
-  Offcanvas,
   Pagination,
   Row,
 } from "react-bootstrap";
@@ -20,6 +19,7 @@ import { RecipeCards, RecipeTable } from "@/components/recipes/recipeViews";
 import RecipeBulkConfirm, { type BulkRequest } from "@/components/recipes/RecipeBulkConfirm";
 import RecipeTagPicker from "@/components/recipes/RecipeTagPicker";
 import RecipeFilters from "@/components/recipes/RecipeFilters";
+import Sheet from "@/components/ui/Sheet";
 import type { BulkSummary } from "@/lib/recipeBulk";
 import {
   MAX_LIMIT,
@@ -610,19 +610,45 @@ export default function RecipeList({
         </Col>
       </Row>
 
-      <Offcanvas show={filtersOpen} onHide={() => setFiltersOpen(false)} placement="start">
-        <Offcanvas.Header closeButton>
-          <Offcanvas.Title as="h2" className="h5">
-            Filter recipes
-          </Offcanvas.Title>
-        </Offcanvas.Header>
-        <Offcanvas.Body>
-          <RecipeFilters idPrefix="drawer-filter" query={query} facets={data.facets} onChange={update} />
-          <Button className="w-100 mt-3" onClick={() => setFiltersOpen(false)}>
-            Show {plural(data.total, "recipe")}
-          </Button>
-        </Offcanvas.Body>
-      </Offcanvas>
+      {/* The same sheet as everywhere else, rather than a drawer of its own:
+          filters are a question you answer and dismiss, and the answer is the
+          count on the button that closes it. */}
+      <Sheet
+        show={filtersOpen}
+        title="Filters"
+        subtitle={
+          activeFilters > 0
+            ? `${activeFilters} active · ${data.total.toLocaleString()} recipes`
+            : `${data.total.toLocaleString()} recipes`
+        }
+        onClose={() => setFiltersOpen(false)}
+        onAction={() => setFiltersOpen(false)}
+        actionLabel="Done"
+        footerActionLabel={`Show ${plural(data.total, "recipe")}`}
+        footerNote={
+          activeFilters > 0 ? (
+            <button
+              type="button"
+              className="btn btn-link btn-sm p-0 align-baseline"
+              onClick={() =>
+                update({ mealTypes: [], tags: [], favoritesOnly: false, maxMinutes: null })
+              }
+            >
+              Clear all filters
+            </button>
+          ) : undefined
+        }
+      >
+        <div className="p-3">
+          <RecipeFilters
+            idPrefix="drawer-filter"
+            heading={false}
+            query={query}
+            facets={data.facets}
+            onChange={update}
+          />
+        </div>
+      </Sheet>
 
       <RecipeTagPicker
         show={tagPickerOpen}

@@ -64,6 +64,11 @@ changes with it — the two must never disagree about what is running.
 
 ### Changed
 
+- **The bulk confirmation and the recipe filters are sheets too.** The
+  confirmation now says each thing once — the title names the action, the
+  button carries the count, the body explains the consequence — and the phone
+  filter drawer became a bottom sheet whose button shows how many recipes the
+  filters leave.
 - **The same calm layout beyond the picker.** The Tags page's "Recipes…"
   dialog and a calendar event's details are now the same sheet, recipe tiles
   carry one quiet line (meal, time, servings, tags) instead of rows of

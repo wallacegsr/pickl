@@ -25,6 +25,10 @@ export default function Sheet({
   onClose,
   onAction,
   actionLabel = "Save",
+  /** "danger" for an action that destroys something. */
+  actionVariant = "primary",
+  /** The bottom button's label, when it can afford more words than the header. */
+  footerActionLabel,
   actionDisabled,
   busy,
   footerAction = true,
@@ -40,6 +44,8 @@ export default function Sheet({
   /** Omitted for a sheet that only shows things. */
   onAction?: () => void;
   actionLabel?: string;
+  actionVariant?: "primary" | "danger";
+  footerActionLabel?: string;
   actionDisabled?: boolean;
   busy?: boolean;
   /** Repeat the action as a full-width button at the bottom. */
@@ -68,7 +74,7 @@ export default function Sheet({
         {onAction ? (
           <button
             type="button"
-            className="pickl-sheet-link fw-semibold"
+            className={`pickl-sheet-link fw-semibold${actionVariant === "danger" ? " text-danger" : ""}`}
             onClick={onAction}
             disabled={actionDisabled || busy}
           >
@@ -87,11 +93,11 @@ export default function Sheet({
         <div className="pickl-sheet-foot">
           <button
             type="button"
-            className="btn btn-primary w-100 pickl-sheet-save"
+            className={`btn btn-${actionVariant} w-100 pickl-sheet-save`}
             onClick={onAction}
             disabled={actionDisabled || busy}
           >
-            {busy ? <Spinner animation="border" size="sm" /> : actionLabel}
+            {busy ? <Spinner animation="border" size="sm" /> : footerActionLabel ?? actionLabel}
           </button>
           {footerNote && <div className="pickl-sheet-note">{footerNote}</div>}
         </div>

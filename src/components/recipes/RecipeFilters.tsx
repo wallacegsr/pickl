@@ -29,7 +29,10 @@ export default function RecipeFilters({
   facets,
   onChange,
   idPrefix = "filter",
+  heading = true,
 }: {
+  /** Off inside a sheet, whose own title already says "Filters". */
+  heading?: boolean;
   /**
    * Namespace for checkbox ids. The sidebar and the phone's filter drawer can
    * both be in the page, and duplicate ids would point each label at the
@@ -76,7 +79,7 @@ export default function RecipeFilters({
   return (
     <div className="pickl-recipe-filters small">
       <div className="d-flex justify-content-between align-items-baseline mb-2">
-        <h3 className="h6 mb-0">Filters</h3>
+        {heading ? <h3 className="h6 mb-0">Filters</h3> : <span />}
         {activeCount > 0 && (
           <Button
             variant="link"
