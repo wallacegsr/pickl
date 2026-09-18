@@ -108,6 +108,12 @@ export default function SlotPicker({
       .slice(0, SUGGESTIONS);
   }, [results, favorites]);
 
+  // A household tag called "Quick" or "Favorites" would otherwise appear twice,
+  // once as the built-in filter and once as itself.
+  const tagChips = chips.tags.filter(
+    (tag) => !["quick", "favorites", "favourites"].includes(tagKey(tag))
+  );
+
   const showSuggestions = !searching && !filtering && (favorites.length > 0 || neglected.length > 0);
   const suggested = new Set([...favorites, ...neglected].map((r) => r.id));
   const rest = showSuggestions ? results.filter((r) => !suggested.has(r.id)) : results;
@@ -172,7 +178,7 @@ export default function SlotPicker({
               onClick={() => setQuickOnly(!quickOnly)}
               title={`Prep and cook together, ${QUICK_MINUTES} minutes or less`}
             />
-            {chips.tags.map((tag) => (
+            {tagChips.map((tag) => (
               <Chip
                 key={tag}
                 label={tag}

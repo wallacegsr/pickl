@@ -11,6 +11,18 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+### Changed
+
+- **The README is a page, not a manual.** It now shows the current design in
+  fresh screenshots and says what Pickl does in a screenful; the deep
+  reference moved to `docs/calendars.md`, `docs/deployment.md` and
+  `docs/architecture.md`.
+
+### Fixed
+
+- A household tag called "Quick" no longer appears twice in the recipe
+  picker, once as the built-in filter and once as itself.
+
 ## [2.4.0] - 2026-09-18
 
 ### Added
