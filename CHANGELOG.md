@@ -11,8 +11,6 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
-## [2.3.0] - 2026-09-14
-
 ### Added
 
 - **A calmer recipe picker.** Choosing what goes in a meal slot is now a
@@ -23,6 +21,35 @@ changes with it — the two must never disagree about what is running.
   takes. Tags read as a quiet grey line rather than a row of coloured pills.
 - **Choose your own picker chips**, under Preferences → Appearance: the
   household's most-used tags by default, or up to eight tags of your own.
+
+### Changed
+
+- **Back of House and Past Preserves match the rest.** Admin panels lost
+  their cards and their badges became plain words (Suspended keeps a colour,
+  since it is a state); report and admin tables have quiet uppercase headers
+  and hairline rules; and on a phone the report filters sit in a sheet behind
+  a Filters button instead of filling the screen above the report.
+- **The rest of the app follows the same rules.** A recipe page leads with
+  its name and one line of facts, with tags and source as links. Planned
+  meals in the week grid share one quiet surface instead of three rotating
+  colours (desserts keep their tint and cake glyph). Settings panels dropped
+  the card around them and the title that repeated the tab. Import results
+  read as rows rather than a table.
+- **The bulk confirmation and the recipe filters are sheets too.** The
+  confirmation now says each thing once — the title names the action, the
+  button carries the count, the body explains the consequence — and the phone
+  filter drawer became a bottom sheet whose button shows how many recipes the
+  filters leave.
+- **The same calm layout beyond the picker.** The Tags page's "Recipes…"
+  dialog and a calendar event's details are now the same sheet, recipe tiles
+  carry one quiet line (meal, time, servings, tags) instead of rows of
+  coloured pills, and the Recipes page has a single search box — it already
+  searched names, tags and ingredients together.
+
+## [2.3.0] - 2026-09-14
+
+### Added
+
 - **Recipes in the planner open their recipe page.** Click a recipe's name
   in a slot; click anywhere else in the slot to choose recipes as before.
 - **Search for several things at once.** Separate terms with commas or
@@ -64,27 +91,6 @@ changes with it — the two must never disagree about what is running.
 
 ### Changed
 
-- **Back of House and Past Preserves match the rest.** Admin panels lost
-  their cards and their badges became plain words (Suspended keeps a colour,
-  since it is a state); report and admin tables have quiet uppercase headers
-  and hairline rules; and on a phone the report filters sit in a sheet behind
-  a Filters button instead of filling the screen above the report.
-- **The rest of the app follows the same rules.** A recipe page leads with
-  its name and one line of facts, with tags and source as links. Planned
-  meals in the week grid share one quiet surface instead of three rotating
-  colours (desserts keep their tint and cake glyph). Settings panels dropped
-  the card around them and the title that repeated the tab. Import results
-  read as rows rather than a table.
-- **The bulk confirmation and the recipe filters are sheets too.** The
-  confirmation now says each thing once — the title names the action, the
-  button carries the count, the body explains the consequence — and the phone
-  filter drawer became a bottom sheet whose button shows how many recipes the
-  filters leave.
-- **The same calm layout beyond the picker.** The Tags page's "Recipes…"
-  dialog and a calendar event's details are now the same sheet, recipe tiles
-  carry one quiet line (meal, time, servings, tags) instead of rows of
-  coloured pills, and the Recipes page has a single search box — it already
-  searched names, tags and ingredients together.
 - **Days that have passed are read-only on the planner.** They are dimmed,
   their slots no longer open for editing, and the server refuses changes to
   them, so reports reflect what was actually planned. Their recipes still
