@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, Badge, Button, Form, Table } from "react-bootstrap";
+import { Alert, Button, Form, Table } from "react-bootstrap";
 import { useRouter } from "next/navigation";
 import AddUserModal, { type CreatedUserResult } from "@/components/AddUserModal";
 
@@ -126,22 +126,20 @@ export default function AdminUserTable({
                 <tr key={u.id}>
                   <td>
                     {u.name}
-                    {isSelf && (
-                      <Badge bg="secondary" className="ms-2">
-                        you
-                      </Badge>
-                    )}
+                    {/* Quiet words, not filled pills: in a table of twenty people
+                        these are asides, and the names are the content. */}
+                    {isSelf && <span className="text-body-secondary small ms-2">you</span>}
                     {u.isGlobalAdmin && (
-                      <Badge bg="warning" text="dark" className="ms-2">
-                        Global Admin
-                      </Badge>
+                      <span className="text-warning-emphasis small ms-2" title="Administers this deployment">
+                        Global admin
+                      </span>
                     )}
                   </td>
                   <td>{u.email}</td>
                   <td>
-                    <Badge bg={u.role === "admin" ? "primary" : "light"} text={u.role === "admin" ? undefined : "dark"}>
+                    <span className={u.role === "admin" ? "fw-semibold" : "text-body-secondary"}>
                       {u.role}
-                    </Badge>
+                    </span>
                   </td>
                   <td>
                     <Form.Check

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, Button, Card, Col, Form, Row, Spinner } from "react-bootstrap";
+import { Alert, Button, Col, Form, Row, Spinner } from "react-bootstrap";
 
 export interface SmtpSettingsInitial {
   smtpHost: string;
@@ -92,10 +92,10 @@ export default function SmtpSettingsPanel({
   }
 
   return (
-    <Card className="mt-4">
-      <Card.Body>
-        <Card.Title>SMTP Settings</Card.Title>
-        <Card.Text className="text-muted small">
+    // A plain section: the settings page's tabs already bound it, and the
+    // tab says which one this is.
+    <section className="pickl-settings-section">
+        <p className="text-muted small">
           Configure the SMTP server used to send verification and invite
           emails. These settings, once saved here, take precedence over the
           server&apos;s <code>SMTP_*</code> environment variables (which
@@ -103,7 +103,7 @@ export default function SmtpSettingsPanel({
           here). Leave <strong>Host</strong> blank to fall back to the
           environment variables (or console-logging, if neither is
           configured).
-        </Card.Text>
+        </p>
 
         {saveError && (
           <Alert variant="danger" dismissible onClose={() => setSaveError(null)}>
@@ -235,7 +235,6 @@ export default function SmtpSettingsPanel({
             </Col>
           </Row>
         </Form>
-      </Card.Body>
-    </Card>
+    </section>
   );
 }

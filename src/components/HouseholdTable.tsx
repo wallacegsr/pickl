@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, Badge, Button, Form, Modal, Table } from "react-bootstrap";
+import { Alert, Button, Form, Modal, Table } from "react-bootstrap";
 
 export interface HouseholdRow {
   id: string;
@@ -151,15 +151,16 @@ export default function HouseholdTable({
               <tr key={row.id}>
                 <td>
                   {row.name}{" "}
-                  {row.suspended && (
-                    <Badge bg="warning" text="dark">
-                      Suspended
-                    </Badge>
-                  )}{" "}
+                  {/* Suspended keeps a colour — it is a state, and the row it
+                      describes is otherwise indistinguishable. The rest are asides. */}
+                  {row.suspended && <span className="text-warning-emphasis small">Suspended</span>}{" "}
                   {row.holdsGlobalAdmin && (
-                    <Badge bg="secondary" title="Contains the account that administers this deployment.">
+                    <span
+                      className="text-body-secondary small"
+                      title="Contains the account that administers this deployment."
+                    >
                       Operator&rsquo;s household
-                    </Badge>
+                    </span>
                   )}
                 </td>
                 <td className="text-end">{row.memberCount}</td>

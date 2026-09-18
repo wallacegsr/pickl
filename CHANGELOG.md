@@ -64,6 +64,11 @@ changes with it — the two must never disagree about what is running.
 
 ### Changed
 
+- **Back of House and Past Preserves match the rest.** Admin panels lost
+  their cards and their badges became plain words (Suspended keeps a colour,
+  since it is a state); report and admin tables have quiet uppercase headers
+  and hairline rules; and on a phone the report filters sit in a sheet behind
+  a Filters button instead of filling the screen above the report.
 - **The rest of the app follows the same rules.** A recipe page leads with
   its name and one line of facts, with tags and source as links. Planned
   meals in the week grid share one quiet surface instead of three rotating

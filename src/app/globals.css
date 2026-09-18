@@ -1435,3 +1435,20 @@ a.pickl-slot-chip:focus-visible {
 .pickl-settings-section + .pickl-settings-section {
   margin-top: 2rem;
 }
+
+/* Report and admin tables: hairline rules and a quiet header, so a table of
+   numbers reads like the lists elsewhere rather than like a spreadsheet. */
+.pickl-stacked-table > thead > tr > th,
+.table > thead > tr > th {
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color);
+  font-weight: 600;
+  border-bottom-color: var(--bs-border-color);
+}
+
+.pickl-stacked-table > tbody > tr > td,
+.table > tbody > tr > td {
+  border-top-color: var(--bs-border-color);
+}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import Sheet from "@/components/ui/Sheet";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Alert, Button, Col, Form, Nav, Row, Spinner } from "react-bootstrap";
 import {
@@ -98,6 +99,23 @@ const AUDIT_ACTIONS = [
   "permission_change",
 ];
 
+/**
+ * True on a phone-sized screen, decided after mount so the server render and
+ * the first client render agree — the same reasoning as the theme.
+ */
+function useIsPhone(): boolean {
+  const [isPhone, setIsPhone] = useState(false);
+  useEffect(() => {
+    if (!window.matchMedia) return;
+    const query = window.matchMedia("(max-width: 767.98px)");
+    const read = () => setIsPhone(query.matches);
+    read();
+    query.addEventListener("change", read);
+    return () => query.removeEventListener("change", read);
+  }, []);
+  return isPhone;
+}
+
 export default function ReportsView({
   isAdmin,
   householdUsers,
@@ -121,6 +139,8 @@ export default function ReportsView({
   const [grouping, setGrouping] = useState<Grouping>("flat");
 
   const [loading, setLoading] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const isPhone = useIsPhone();
   const [error, setError] = useState<string | null>(null);
   const [historyRows, setHistoryRows] = useState<MealHistoryRow[] | null>(null);
   const [frequencyRows, setFrequencyRows] = useState<RecipeFrequencyRow[] | null>(null);
@@ -241,6 +261,133 @@ export default function ReportsView({
       }));
   }
 
+  const filterBar = (
+      <Row className="g-2 align-items-end mb-3">
+          <Col xs={6} md={2}>
+            <Form.Label className="small">Start date</Form.Label>
+            <Form.Control
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </Col>
+          <Col xs={6} md={2}>
+            <Form.Label className="small">End date</Form.Label>
+            <Form.Control
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </Col>
+
+          {tab !== "audit" && (
+            <>
+              <Col xs={6} md={2}>
+                <Form.Label className="small">Scope</Form.Label>
+                <Form.Select value={scope} onChange={(e) => setScope(e.target.value)}>
+                  <option value="">All</option>
+                  <option value="shared">Shared</option>
+                  <option value="private">Private</option>
+                </Form.Select>
+              </Col>
+              <Col xs={6} md={2}>
+                <Form.Label className="small">Meal type</Form.Label>
+                <Form.Select value={mealType} onChange={(e) => setMealType(e.target.value)}>
+                  <option value="">All</option>
+                  <option value="breakfast">Breakfast</option>
+                  <option value="lunch">Lunch</option>
+                  <option value="dinner">Dinner</option>
+                </Form.Select>
+              </Col>
+              <Col xs={6} md={2}>
+                <Form.Label className="small">Tag</Form.Label>
+                <Form.Select value={tag} onChange={(e) => setTag(e.target.value)}>
+                  <option value="">All</option>
+                  {allTags.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Col>
+            </>
+          )}
+
+          {tab === "history" && (
+            <Col xs={6} md={2}>
+              <Form.Label className="small">Group by</Form.Label>
+              <Form.Select
+                value={grouping}
+                onChange={(e) => setGrouping(e.target.value as Grouping)}
+              >
+                <option value="flat">Every meal</option>
+                <option value="week">Week</option>
+                <option value="month">Month</option>
+              </Form.Select>
+            </Col>
+          )}
+
+          {tab === "audit" && (
+            <Col xs={6} md={2} className="pb-2">
+              <Form.Check
+                type="checkbox"
+                id="plan-changes-only"
+                label="Plan changes only"
+                checked={planChangesOnly}
+                onChange={(e) => setPlanChangesOnly(e.target.checked)}
+                // Tag admin, recipe edits and theme changes bury the answer when
+                // the question is "who moved dinner?".
+                title="Hide tag, recipe and preference changes"
+              />
+            </Col>
+          )}
+
+          {tab === "audit" && (
+            <Col xs={6} md={3}>
+              <Form.Label className="small">Action</Form.Label>
+              <Form.Select value={action} onChange={(e) => setAction(e.target.value)}>
+                <option value="">All</option>
+                {AUDIT_ACTIONS.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </Form.Select>
+            </Col>
+          )}
+
+          {isAdmin && (
+            <Col xs={6} md={2}>
+              <Form.Label className="small">User</Form.Label>
+              <Form.Select value={userId} onChange={(e) => setUserId(e.target.value)}>
+                <option value="">All</option>
+                {householdUsers.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
+              </Form.Select>
+            </Col>
+          )}
+
+        </Row>
+  );
+
+  const runAndExport = (
+    <div className="d-flex gap-2 mb-3">
+      <Button onClick={runReport} disabled={loading}>
+        {loading ? <Spinner animation="border" size="sm" /> : "Run report"}
+      </Button>
+      {/* Patterns has no CSV: it is five different shapes at once, and
+          flattening them into one file would produce something unusable. */}
+      {tab !== "patterns" && (
+        <Button variant="outline-secondary" href={csvUrl()} target="_blank">
+          Export CSV
+        </Button>
+      )}
+    </div>
+  );
+
   return (
     <div>
       <Nav
@@ -269,127 +416,40 @@ export default function ReportsView({
         </Alert>
       )}
 
-      <Row className="g-2 align-items-end mb-3">
-        <Col xs={6} md={2}>
-          <Form.Label className="small">Start date</Form.Label>
-          <Form.Control
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-        </Col>
-        <Col xs={6} md={2}>
-          <Form.Label className="small">End date</Form.Label>
-          <Form.Control
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-        </Col>
-
-        {tab !== "audit" && (
-          <>
-            <Col xs={6} md={2}>
-              <Form.Label className="small">Scope</Form.Label>
-              <Form.Select value={scope} onChange={(e) => setScope(e.target.value)}>
-                <option value="">All</option>
-                <option value="shared">Shared</option>
-                <option value="private">Private</option>
-              </Form.Select>
-            </Col>
-            <Col xs={6} md={2}>
-              <Form.Label className="small">Meal type</Form.Label>
-              <Form.Select value={mealType} onChange={(e) => setMealType(e.target.value)}>
-                <option value="">All</option>
-                <option value="breakfast">Breakfast</option>
-                <option value="lunch">Lunch</option>
-                <option value="dinner">Dinner</option>
-              </Form.Select>
-            </Col>
-            <Col xs={6} md={2}>
-              <Form.Label className="small">Tag</Form.Label>
-              <Form.Select value={tag} onChange={(e) => setTag(e.target.value)}>
-                <option value="">All</option>
-                {allTags.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </Form.Select>
-            </Col>
-          </>
-        )}
-
-        {tab === "history" && (
-          <Col xs={6} md={2}>
-            <Form.Label className="small">Group by</Form.Label>
-            <Form.Select
-              value={grouping}
-              onChange={(e) => setGrouping(e.target.value as Grouping)}
-            >
-              <option value="flat">Every meal</option>
-              <option value="week">Week</option>
-              <option value="month">Month</option>
-            </Form.Select>
-          </Col>
-        )}
-
-        {tab === "audit" && (
-          <Col xs={6} md={2} className="pb-2">
-            <Form.Check
-              type="checkbox"
-              id="plan-changes-only"
-              label="Plan changes only"
-              checked={planChangesOnly}
-              onChange={(e) => setPlanChangesOnly(e.target.checked)}
-              // Tag admin, recipe edits and theme changes bury the answer when
-              // the question is "who moved dinner?".
-              title="Hide tag, recipe and preference changes"
-            />
-          </Col>
-        )}
-
-        {tab === "audit" && (
-          <Col xs={6} md={3}>
-            <Form.Label className="small">Action</Form.Label>
-            <Form.Select value={action} onChange={(e) => setAction(e.target.value)}>
-              <option value="">All</option>
-              {AUDIT_ACTIONS.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-            </Form.Select>
-          </Col>
-        )}
-
-        {isAdmin && (
-          <Col xs={6} md={2}>
-            <Form.Label className="small">User</Form.Label>
-            <Form.Select value={userId} onChange={(e) => setUserId(e.target.value)}>
-              <option value="">All</option>
-              {householdUsers.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </Form.Select>
-          </Col>
-        )}
-
-        <Col xs={12} md="auto" className="d-flex gap-2">
-          <Button onClick={runReport} disabled={loading}>
-            {loading ? <Spinner animation="border" size="sm" /> : "Run Report"}
+      {/* Inline at a desk; on a phone the same controls live in a sheet behind
+          a Filters button, so the report itself is what fills the screen. */}
+      {isPhone ? (
+        <div className="d-flex gap-2 mb-3">
+          <Button variant="outline-secondary" onClick={() => setFiltersOpen(true)}>
+            Filters
           </Button>
-          {/* Patterns has no CSV: it is five different shapes at once, and
-              flattening them into one file would produce something unusable. */}
-          {tab !== "patterns" && (
-          <Button variant="outline-secondary" href={csvUrl()} target="_blank">
-            Export CSV
-          </Button>
-          )}
-        </Col>
-      </Row>
+          {runAndExport}
+        </div>
+      ) : (
+        <>
+          {filterBar}
+          {runAndExport}
+        </>
+      )}
+
+      <Sheet
+        show={isPhone && filtersOpen}
+        title="Filters"
+        subtitle={
+          startDate || endDate
+            ? `${startDate || "the beginning"} to ${endDate || "today"}`
+            : "All dates"
+        }
+        onClose={() => setFiltersOpen(false)}
+        onAction={() => {
+          setFiltersOpen(false);
+          void runReport();
+        }}
+        actionLabel="Run"
+        footerActionLabel="Run report"
+      >
+        <div className="p-3">{filtersOpen ? filterBar : null}</div>
+      </Sheet>
 
       {tab === "history" && historyRows && historyRows.length > 0 && (
         <>

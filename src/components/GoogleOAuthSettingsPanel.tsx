@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, Button, Card, Form, InputGroup, Spinner } from "react-bootstrap";
+import { Alert, Button, Form, InputGroup, Spinner } from "react-bootstrap";
 
 export interface GoogleOAuthSettingsInitial {
   clientId: string;
@@ -73,10 +73,10 @@ export default function GoogleOAuthSettingsPanel({
   }
 
   return (
-    <Card className="mt-4">
-      <Card.Body>
-        <Card.Title>Calendar Integration (Google OAuth)</Card.Title>
-        <Card.Text className="text-muted small">
+    // A plain section: the settings page's tabs already bound it, and the
+    // tab says which one this is.
+    <section className="pickl-settings-section">
+        <p className="text-muted small">
           Each user connects their <strong>own</strong> Google account from{" "}
           <strong>Preferences → Calendars</strong> and mirrors the household
           plan (and, if they like, their private plan) into a calendar of
@@ -84,7 +84,7 @@ export default function GoogleOAuthSettingsPanel({
           <strong>client</strong> credentials the whole deployment shares —
           the same category of setting as SMTP. Administrators cannot see or
           operate anyone else&apos;s calendar connection.
-        </Card.Text>
+        </p>
 
         {error && (
           <Alert variant="danger" dismissible onClose={() => setError(null)}>
@@ -210,7 +210,6 @@ export default function GoogleOAuthSettingsPanel({
           accepts a one-time &ldquo;Google hasn&apos;t verified this
           app&rdquo; warning the first time they connect.
         </Alert>
-      </Card.Body>
-    </Card>
+    </section>
   );
 }
