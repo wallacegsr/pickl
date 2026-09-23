@@ -11,6 +11,19 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+### Security
+
+- **Next.js 14 → 15.5.26 and React 18 → 19.** Clears every published Next.js
+  advisory, including the high-severity Server Component denial-of-service
+  issues that only Next 15.5.24+ fixes. Server responses got faster on the way
+  (the Recipes page 90 → 33 ms, the Shopping List 92 → 16 ms on a
+  1,500-recipe household); shared JavaScript grew 87 → 103 KB, which is React 19.
+- **drizzle-orm 0.36 → 0.45.3** and **drizzle-kit 0.28 → 0.31**, fixing an
+  identifier-escaping advisory. Existing migrations and snapshots are
+  unchanged.
+- **postcss** pinned to the patched 8.5 line under Next. Production
+  dependencies now audit clean.
+
 ## [2.4.1] - 2026-09-23
 
 ### Security

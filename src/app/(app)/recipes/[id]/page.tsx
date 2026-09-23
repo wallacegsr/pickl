@@ -18,7 +18,8 @@ const MEAL_LABELS: Record<string, string> = {
   any: "Any meal",
 };
 
-export async function generateMetadata({ params }: { params: { id: string } }) {
+export async function generateMetadata(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await auth();
   const recipe = session?.user ? findVisible(params.id, session.user) : undefined;
   return { title: recipe ? `${recipe.name} · Pickl` : "Recipe · Pickl" };
@@ -33,7 +34,8 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
  * its own permission check. Anything else is a plain 404, so a private
  * recipe's existence isn't revealed by its id.
  */
-export default async function RecipePage({ params }: { params: { id: string } }) {
+export default async function RecipePage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user) notFound();
   const recipe = findVisible(params.id, session.user);

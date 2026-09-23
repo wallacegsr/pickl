@@ -17,16 +17,16 @@ import { TIME_ZONE_COOKIE } from "@/lib/timeZoneCookie";
  * falls back to the server's own date, and TimeZoneSync refreshes the page
  * once the cookie is set.
  */
-export function viewerToday(now: Date = new Date()): string {
-  const zone = viewerTimeZone();
+export async function viewerToday(now: Date = new Date()): Promise<string> {
+  const zone = await viewerTimeZone();
   return (zone && dateInTimeZone(now, zone)) || todayDateString();
 }
 
 /** The request's reported time zone, if it is one this runtime recognises. */
-export function viewerTimeZone(): string | null {
+export async function viewerTimeZone(): Promise<string | null> {
   let value: string | undefined;
   try {
-    value = cookies().get(TIME_ZONE_COOKIE)?.value;
+    value = (await cookies()).get(TIME_ZONE_COOKIE)?.value;
   } catch {
     // Outside a request (a script, a test): no viewer to ask.
     return null;

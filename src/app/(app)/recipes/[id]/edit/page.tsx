@@ -8,11 +8,12 @@ import RecipeForm from "@/components/RecipeForm";
 import RecipeCopyButton from "@/components/recipes/RecipeCopyButton";
 import { attachTagsToRecipe, listVisibleTags } from "@/lib/tags";
 
-export default async function EditRecipePage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default async function EditRecipePage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = await props.params;
   const session = await auth();
   const householdId = householdScope(session?.user);
   if (!householdId) notFound();

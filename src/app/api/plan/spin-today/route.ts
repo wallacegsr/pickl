@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   // and a Vegetarian spin that adds a dessert nobody checked is not one.
   const spin = buildSpinFilter(session.user, householdId, { tags, tagMatch, favoritesOnly });
 
-  const today = viewerToday();
+  const today = (await viewerToday());
 
   if (!force) {
     // A slot can hold several recipes, so a conflict names all of them.

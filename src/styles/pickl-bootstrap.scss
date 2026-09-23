@@ -567,7 +567,11 @@ $navbar-dark-active-color: $white;
   // accent that carries dark ink beautifully at #0E1512 is a washed-out
   // button on white paper, and the deep version that works on paper is
   // invisible against near-black. Those palettes name both.
-  $primary-dark: if(map-has-key($c, primary-dark), map-get($c, primary-dark), $primary);
+  // @if blocks rather than Sass's if() function, which newer Sass deprecates.
+  $primary-dark: $primary;
+  @if map-has-key($c, primary-dark) {
+    $primary-dark: map-get($c, primary-dark);
+  }
   $has-dark-primary: $primary-dark != $primary;
 
   // --- Derived dark accents ---------------------------------------------
@@ -577,16 +581,14 @@ $navbar-dark-active-color: $white;
   // Derived from whichever primary dark mode actually uses, and overridable
   // outright for a palette that has a chosen hover tone rather than a
   // computed one.
-  $link-dark: if(
-    map-has-key($c, link-dark),
-    map-get($c, link-dark),
-    pickl-crisp(tint-color($primary-dark, 55%))
-  );
-  $link-dark-hover: if(
-    map-has-key($c, link-dark-hover),
-    map-get($c, link-dark-hover),
-    pickl-crisp(tint-color($primary-dark, 72%))
-  );
+  $link-dark: pickl-crisp(tint-color($primary-dark, 55%));
+  @if map-has-key($c, link-dark) {
+    $link-dark: map-get($c, link-dark);
+  }
+  $link-dark-hover: pickl-crisp(tint-color($primary-dark, 72%));
+  @if map-has-key($c, link-dark-hover) {
+    $link-dark-hover: map-get($c, link-dark-hover);
+  }
   $primary-emphasis-dark: $link-dark;
   $success-emphasis-dark: pickl-crisp(tint-color($success, 45%));
   $warning-emphasis-dark: pickl-crisp(tint-color($warning, 30%));

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { JSX, ReactNode } from "react";
 import { Button, Card } from "react-bootstrap";
 import PlanGridWidget from "./widgets/PlanGridWidget";
 import ShakeControlsWidget from "./widgets/ShakeControlsWidget";

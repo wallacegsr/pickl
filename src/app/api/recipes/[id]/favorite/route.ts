@@ -14,7 +14,8 @@ import { setFavorite } from "@/lib/favorites";
 
 const schema = z.object({ favorite: z.boolean() });
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

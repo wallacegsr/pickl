@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   }
 
   const params = req.nextUrl.searchParams;
-  const week = params.get("week") || viewerToday();
+  const week = params.get("week") || (await viewerToday());
 
   const modeParam = params.get("mode") || "week";
   if (modeParam !== "today" && modeParam !== "week") {
@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
 
   // Mirrors the panel's `visibleDays`: "today" narrows to the current date,
   // and falls back to an empty list when today is outside the requested week.
-  const today = viewerToday();
+  const today = (await viewerToday());
   const days =
     modeParam === "today" ? allDays.filter((day) => day.date === today) : allDays;
 

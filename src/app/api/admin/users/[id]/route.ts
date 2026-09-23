@@ -8,7 +8,7 @@ import { householdScope, isAdmin } from "@/lib/permissions";
 import { logAuditEntry } from "@/lib/audit";
 
 interface Params {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 const patchSchema = z.object({
@@ -18,7 +18,8 @@ const patchSchema = z.object({
   canAccessSharedCalendar: z.boolean().optional(),
 });
 
-export async function PATCH(req: NextRequest, { params }: Params) {
+export async function PATCH(req: NextRequest, props: Params) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user || !isAdmin(session.user)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

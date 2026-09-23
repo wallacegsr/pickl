@@ -16,15 +16,16 @@ import { getTagsForRecipes } from "@/lib/tags";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-export default async function PlanPage({
-  searchParams,
-}: {
-  searchParams: { week?: string; scope?: string; userId?: string };
-}) {
+export default async function PlanPage(
+  props: {
+    searchParams: Promise<{ week?: string; scope?: string; userId?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const today = viewerToday();
+  const today = (await viewerToday());
   const week = searchParams.week || today;
 
   // Handled before the resolver, and NOT with a redirect. A platform operator

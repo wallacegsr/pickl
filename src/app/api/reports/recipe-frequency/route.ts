@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { viewerToday } from "@/lib/viewerToday";
 import { auth } from "@/lib/auth";
 import { getRecipeFrequency, toCsv } from "@/lib/reports";
 import { isAdmin } from "@/lib/permissions";
@@ -19,7 +20,15 @@ export async function GET(req: NextRequest) {
   const tag = sp.get("tag") || undefined;
   const format = sp.get("format");
 
-  const rows = getRecipeFrequency(session.user, { startDate, endDate, scope, mealType, userId, tag });
+  const rows = getRecipeFrequency(session.user, {
+    startDate,
+    endDate,
+    scope,
+    mealType,
+    userId,
+    tag,
+    today: await viewerToday(),
+  });
 
   if (format === "csv") {
     const csv = toCsv(["recipeName", "scope", "count"], rows);

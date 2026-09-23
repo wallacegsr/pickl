@@ -33,13 +33,21 @@ const nextConfig = {
   // Don't advertise the framework and version to anyone scanning for it.
   poweredByHeader: false,
   // Pickl never uses next/image, but Next serves its optimiser at
-  // /_next/image regardless — and that endpoint carries critical advisories
-  // on 14.x (remote code execution via crafted AVIF). Turning it off removes
-  // the endpoint entirely.
+  // /_next/image regardless. Several of Next's advisories have been in that
+  // endpoint; with nothing to optimise, it is simply switched off.
   images: { unoptimized: true },
-  experimental: {
-    serverComponentsExternalPackages: ["better-sqlite3"],
+  // Bootstrap 5's Sass still uses @import and the global colour functions,
+  // which newer Sass (bundled with Next 15) warns about on every build — dozens
+  // of lines that would bury a real warning. Silenced until Bootstrap moves to
+  // the module system; they are deprecations, not errors.
+  sassOptions: {
+    quietDeps: true,
+    silenceDeprecations: ["import", "global-builtin", "color-functions", "legacy-js-api", "mixed-decls"],
   },
+  // Stable in Next 15 (was experimental.serverComponentsExternalPackages).
+  // better-sqlite3 is a native addon and must be required at runtime, not
+  // bundled.
+  serverExternalPackages: ["better-sqlite3"],
 };
 
 module.exports = nextConfig;

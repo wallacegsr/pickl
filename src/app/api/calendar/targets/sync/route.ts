@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const week = parsed.data.week || viewerToday();
+  const week = parsed.data.week || (await viewerToday());
   const result = await resyncWeek(target, week);
 
   logAuditEntry({

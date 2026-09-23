@@ -19,15 +19,16 @@ export const metadata = { title: "Shopping List · Pickl" };
  * and a page of scrolling. This route is the same panel with nothing above
  * it, and it is what the installed app's "Shopping list" shortcut opens.
  */
-export default async function ShoppingPage({
-  searchParams,
-}: {
-  searchParams: { week?: string; scope?: string; userId?: string };
-}) {
+export default async function ShoppingPage(
+  props: {
+    searchParams: Promise<{ week?: string; scope?: string; userId?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const today = viewerToday();
+  const today = (await viewerToday());
   const week = searchParams.week || today;
 
   if (!householdScope(session.user)) {

@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const week = req.nextUrl.searchParams.get("week") || viewerToday();
+  const week = req.nextUrl.searchParams.get("week") || (await viewerToday());
   const scope: Scope =
     req.nextUrl.searchParams.get("scope") === "private" ? "private" : "shared";
   const planOwnerUserId =

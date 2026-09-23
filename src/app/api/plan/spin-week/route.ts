@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   // Same filter for mains and desserts; see spin-today for why.
   const spin = buildSpinFilter(session.user, householdId, { tags, tagMatch, favoritesOnly });
 
-  const today = viewerToday();
+  const today = (await viewerToday());
   const remainingDays = getRemainingDaysInWeek(today);
 
   const filledDates: { mealType: MealType; date: string }[] = [];

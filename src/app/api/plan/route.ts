@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const week = req.nextUrl.searchParams.get("week") || viewerToday();
+  const week = req.nextUrl.searchParams.get("week") || (await viewerToday());
   const scopeParam = req.nextUrl.searchParams.get("scope");
   const targetUserId = req.nextUrl.searchParams.get("userId");
 
@@ -58,7 +58,7 @@ export async function PUT(req: NextRequest) {
   // A day that has passed is history, and history is what the reports read.
   // Changing it now would rewrite what the household actually ate, so past
   // slots are read-only here — the one place a person edits a slot by hand.
-  const today = viewerToday();
+  const today = (await viewerToday());
   if (date < today) {
     return NextResponse.json(
       { error: "That day has already passed, so its meals can't be changed." },

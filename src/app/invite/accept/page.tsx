@@ -3,11 +3,12 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import InviteAcceptForm from "@/components/InviteAcceptForm";
 
-export default async function InviteAcceptPage({
-  searchParams,
-}: {
-  searchParams: { token?: string };
-}) {
+export default async function InviteAcceptPage(
+  props: {
+    searchParams: Promise<{ token?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const token = searchParams.token ?? null;
 
   let error: string | null = null;

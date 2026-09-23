@@ -10,7 +10,7 @@ import { logAuditEntry } from "@/lib/audit";
 import { suspensionError } from "@/lib/households";
 
 interface Params {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -30,7 +30,8 @@ function findRecipe(householdId: string, id: string) {
     .get();
 }
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(_req: NextRequest, props: Params) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -54,7 +55,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
   return NextResponse.json(attachTagsToRecipe(householdId, recipe));
 }
 
-export async function PUT(req: NextRequest, { params }: Params) {
+export async function PUT(req: NextRequest, props: Params) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -137,7 +139,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
   return NextResponse.json(updated ? attachTagsToRecipe(householdId, updated) : null);
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(_req: NextRequest, props: Params) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

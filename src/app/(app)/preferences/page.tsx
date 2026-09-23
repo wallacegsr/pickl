@@ -18,16 +18,17 @@ import { householdScope } from "@/lib/permissions";
  * admin-gated, and deliberately self-service only: every panel here acts on
  * the caller's own record, enforced server-side in /api/preferences/*.
  */
-export default async function PreferencesPage({
-  searchParams,
-}: {
-  searchParams: {
-    error?: string;
-    /** Set by the Google OAuth connect/callback routes. */
-    calendarMessage?: string;
-    calendarError?: string;
-  };
-}) {
+export default async function PreferencesPage(
+  props: {
+    searchParams: Promise<{
+      error?: string;
+      /** Set by the Google OAuth connect/callback routes. */
+      calendarMessage?: string;
+      calendarError?: string;
+    }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const session = await auth();
   if (!session?.user) {
     redirect("/login");

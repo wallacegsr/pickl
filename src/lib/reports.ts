@@ -11,13 +11,15 @@ import {
   type Scope,
 } from "@/db/schema";
 import { householdScope, isAdmin, type SessionUser } from "@/lib/permissions";
-import { parseDateString, getSundayOfWeek, toDateString } from "@/lib/dates";
-import { viewerToday } from "@/lib/viewerToday";
+import { parseDateString, getSundayOfWeek, toDateString, todayDateString } from "@/lib/dates";
+
 import { getTagsForRecipes } from "@/lib/tags";
 import { csvField } from "@/lib/csv";
 import { tagKey } from "@/lib/tagNames";
 
 export interface ReportFilters {
+  /** Today where the viewer is (see src/lib/viewerToday.ts); the server's own date otherwise. */
+  today?: string;
   startDate?: string;
   endDate?: string;
   scope?: Scope;
@@ -223,7 +225,7 @@ export function getRecipeFrequency(
     if (!seen || row.date > seen) lastEver.set(row.recipeId, row.date);
   }
 
-  const today = viewerToday();
+  const today = filters.today ?? todayDateString();
 
   // The span the rate is measured over: the requested range when given,
   // otherwise the range the data itself covers.

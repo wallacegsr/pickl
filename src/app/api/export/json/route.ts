@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const week = req.nextUrl.searchParams.get("week") || viewerToday();
+  const week = req.nextUrl.searchParams.get("week") || (await viewerToday());
   const scopeParam = req.nextUrl.searchParams.get("scope");
   const targetUserId = req.nextUrl.searchParams.get("userId");
 

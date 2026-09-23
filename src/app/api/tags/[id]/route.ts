@@ -6,7 +6,7 @@ import { logAuditEntry } from "@/lib/audit";
 import { householdScope } from "@/lib/permissions";
 
 interface Params {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -17,7 +17,8 @@ interface Params {
  * rest. The client is expected to have shown that first (see /tags), but
  * nothing here relies on it having done so.
  */
-export async function PATCH(req: NextRequest, { params }: Params) {
+export async function PATCH(req: NextRequest, props: Params) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -70,7 +71,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 /** Takes the tag off this user's recipes. Never deletes a recipe. */
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(_req: NextRequest, props: Params) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

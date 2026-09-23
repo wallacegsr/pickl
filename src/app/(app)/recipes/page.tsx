@@ -4,11 +4,12 @@ import RecipeList from "@/components/RecipeList";
 import { listVisibleTags } from "@/lib/tags";
 import { parseRecipeQuery, queryRecipes, type RecipePage } from "@/lib/recipeQuery";
 
-export default async function RecipesPage({
-  searchParams,
-}: {
-  searchParams?: Record<string, string | string[] | undefined>;
-}) {
+export default async function RecipesPage(
+  props: {
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const session = await auth();
   const user = session!.user;
   const householdId = householdScope(user);
