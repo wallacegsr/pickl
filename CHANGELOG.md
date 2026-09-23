@@ -11,6 +11,8 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-09-23
+
 ### Added
 
 - **Forgot password.** The login page's "Forgot password?" link now works:
@@ -541,7 +543,8 @@ Initial public release: the container image published to
 - Light and dark themes.
 - Docker deployment, with the image published to GHCR.
 
-[Unreleased]: https://github.com/wallacegsr/pickl/compare/v2.4.1...HEAD
+[Unreleased]: https://github.com/wallacegsr/pickl/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/wallacegsr/pickl/compare/v2.4.1...v2.5.0
 [2.4.1]: https://github.com/wallacegsr/pickl/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/wallacegsr/pickl/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/wallacegsr/pickl/compare/v2.2.0...v2.3.0
