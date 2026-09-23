@@ -11,6 +11,8 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-09-23
+
 ### Security
 
 - **Only the platform operator can change deployment-wide settings.** The
@@ -512,7 +514,8 @@ Initial public release: the container image published to
 - Light and dark themes.
 - Docker deployment, with the image published to GHCR.
 
-[Unreleased]: https://github.com/wallacegsr/pickl/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/wallacegsr/pickl/compare/v2.4.1...HEAD
+[2.4.1]: https://github.com/wallacegsr/pickl/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/wallacegsr/pickl/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/wallacegsr/pickl/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/wallacegsr/pickl/compare/v2.1.0...v2.2.0
