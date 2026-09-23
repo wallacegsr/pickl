@@ -15,6 +15,8 @@ const MAX_ROWS = 60;
 const SUGGESTIONS = 6;
 /** The chip that means "ready in 30 minutes or less". */
 const QUICK_MINUTES = 30;
+/** Pause after typing before asking the server about ingredients. */
+const SERVER_SEARCH_DEBOUNCE_MS = 250;
 
 export interface SlotPickerChips {
   /** Tag names to offer as chips, in order. */
@@ -76,6 +78,32 @@ export default function SlotPicker({
     }
   }, [show]);
 
+  // Ingredient matches come from the server: the page no longer carries every
+  // recipe's ingredient text (see the plan page). Names and tags still match
+  // instantly here; these join the results a moment later. null = not asked.
+  const [serverHits, setServerHits] = useState<Set<string> | null>(null);
+  useEffect(() => {
+    const q = search.trim();
+    // Hits belong to the query that asked for them: keep them past a new
+    // keystroke and "salmon"'s ingredient matches would sit under "chicken".
+    setServerHits(null);
+    if (!q) return;
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      // Both tabs: a private plan's pool holds shared recipes and your own.
+      const ask = (tab: string) =>
+        fetch(`/api/recipes/search?${new URLSearchParams({ q, tab, ids: "1" })}`)
+          .then((r) => (r.ok ? (r.json() as Promise<{ ids: string[] }>) : null))
+          .catch(() => null);
+      const [shared, mine] = await Promise.all([ask("shared"), ask("mine")]);
+      if (!cancelled) setServerHits(new Set([...(shared?.ids ?? []), ...(mine?.ids ?? [])]));
+    }, SERVER_SEARCH_DEBOUNCE_MS);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [search]);
+
   const byId = useMemo(() => new Map(pool.map((r) => [r.id, r])), [pool]);
   const chosen = selectedIds.map((id) => byId.get(id)).filter((r): r is RecipeOption => Boolean(r));
 
@@ -88,9 +116,12 @@ export default function SlotPicker({
       if (favoritesOnly && !r.isFavorite) return false;
       if (quickOnly && (r.totalMinutes == null || r.totalMinutes > QUICK_MINUTES)) return false;
       if (keys.length > 0 && !keys.every((k) => r.tags.some((t) => tagKey(t) === k))) return false;
-      return matchesRecipeSearch(r, search, { name: true, tags: true, ingredients: true });
+      return (
+        matchesRecipeSearch(r, search, { name: true, tags: true, ingredients: false }) ||
+        Boolean(serverHits?.has(r.id))
+      );
     });
-  }, [pool, search, favoritesOnly, quickOnly, tagOn]);
+  }, [pool, search, favoritesOnly, quickOnly, tagOn, serverHits]);
 
   /** Chosen recipes are never hidden by a search — they must stay removable. */
   const results = matched.filter((r) => !selectedIds.includes(r.id));

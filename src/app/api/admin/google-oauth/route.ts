@@ -7,7 +7,11 @@ import {
   GOOGLE_OAUTH_SETTINGS_ID,
   type NewGoogleOauthSettings,
 } from "@/db/schema";
-import { isAdmin } from "@/lib/permissions";
+// Deployment-wide settings: they decide where every household's mail goes and
+// which OAuth client every user's calendar authorises. A household admin runs
+// one family, not the deployment, so only the platform operator may read or
+// change them — the admin page hiding the tab is not the guard, this is.
+import { isPlatformAdmin } from "@/lib/permissions";
 import { googleOauthSettingsSchema } from "@/lib/validators";
 import { encrypt } from "@/lib/crypto";
 import { logAuditEntry } from "@/lib/audit";
@@ -43,7 +47,7 @@ function toResponse() {
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user || !isAdmin(session.user)) {
+  if (!session?.user || !isPlatformAdmin(session.user)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   return NextResponse.json(toResponse());
@@ -51,7 +55,7 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   const session = await auth();
-  if (!session?.user || !isAdmin(session.user)) {
+  if (!session?.user || !isPlatformAdmin(session.user)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

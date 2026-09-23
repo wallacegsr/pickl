@@ -87,14 +87,29 @@ export default async function PlanPage({
   // takes, so those come along with the pool rather than being fetched per row.
   const favorites = favoriteRecipeIds(session.user, householdId);
   const lastPlanned = lastPlannedByRecipe(householdId, scope, effectiveUserId);
-  const poolByMeal = Object.fromEntries(
-    poolsByMeal.map(([mt, pool]) => [
-      mt,
-      pool.map((r) => ({
+  // Each recipe is sent ONCE, with the meal pools as lists of ids. It used to
+  // go out in full per meal it suited — an "any meal" recipe three times — and
+  // with its whole ingredient list every time, which on a real jar of scraped
+  // recipes made this page megabytes. Ingredient text now comes only for the
+  // recipes planned this week (the quick look shows those); the picker asks
+  // the server when it needs to search ingredients.
+  const plannedIds = new Set(
+    days.flatMap((d) => Object.values(d.meals).flatMap((m) => m.recipes.map((r) => r.recipe.id)))
+  );
+  const recipeById = new Map<string, RecipeOption>();
+  for (const [meal, pool] of poolsByMeal) {
+    for (const r of pool) {
+      const seen = recipeById.get(r.id);
+      if (seen) {
+        seen.pools.push(meal);
+        continue;
+      }
+      recipeById.set(r.id, {
+        pools: [meal],
         id: r.id,
         name: r.name,
         tags: poolTags.get(r.id) ?? [],
-        ingredients: r.ingredients,
+        ingredients: plannedIds.has(r.id) ? r.ingredients : "",
         mealType: r.mealType,
         isFavorite: favorites.has(r.id),
         lastPlanned: lastPlanned.get(r.id) ?? null,
@@ -102,9 +117,9 @@ export default async function PlanPage({
           r.prepTimeMinutes == null && r.cookTimeMinutes == null
             ? null
             : (r.prepTimeMinutes ?? 0) + (r.cookTimeMinutes ?? 0),
-      })),
-    ])
-  ) as Record<MealType, RecipeOption[]>;
+      });
+    }
+  }
 
   // Chips for the slot picker: the person's own choice, or the household's
   // most-used tags when they have not chosen.
@@ -141,7 +156,7 @@ export default async function PlanPage({
         initialDays={days}
         shoppingListDays={shoppingListDays}
         dashboardLayout={dashboardLayout}
-        recipePoolByMeal={poolByMeal}
+        recipes={[...recipeById.values()]}
         pickerChips={pickerChips}
         canEditShared={canEditSharedCalendar(session.user)}
         isAdmin={admin}

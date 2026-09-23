@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { householdScope } from "@/lib/permissions";
-import { parseRecipeQuery, queryRecipes } from "@/lib/recipeQuery";
+import { matchingRecipeIds, parseRecipeQuery, queryRecipes } from "@/lib/recipeQuery";
 
 /**
  * One page of recipes, with counts, for the same URL parameters the Recipes
@@ -26,6 +26,12 @@ export async function GET(req: NextRequest) {
       rows: [], total: 0, tabTotal: 0, page: 1, limit: query.limit,
       facets: { mealTypes: [], tags: [], favorites: 0 },
     });
+  }
+  // `?ids=1`: only which recipes match, not the rows. For the slot picker,
+  // which already has every recipe's name and needs only to know which ones
+  // a search reaches through their ingredients.
+  if (req.nextUrl.searchParams.get("ids") === "1") {
+    return NextResponse.json({ ids: matchingRecipeIds(householdId, session.user.id, query) });
   }
   return NextResponse.json(queryRecipes(householdId, session.user.id, query));
 }

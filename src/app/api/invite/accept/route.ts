@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { clientIp, hit } from "@/lib/rateLimit";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -6,6 +7,16 @@ import { users } from "@/db/schema";
 import { acceptInviteSchema } from "@/lib/validators";
 
 export async function POST(req: NextRequest) {
+  // Invite tokens are long and random, but there is no reason to let anyone
+  // try them at full speed.
+  const limit = hit(`invite:${clientIp(req.headers)}`, 20, 60 * 60 * 1000);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "Too many attempts. Try again later." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
+    );
+  }
+
   const body = await req.json().catch(() => null);
   const parsed = acceptInviteSchema.safeParse(body);
   if (!parsed.success) {

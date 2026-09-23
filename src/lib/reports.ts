@@ -14,6 +14,7 @@ import { householdScope, isAdmin, type SessionUser } from "@/lib/permissions";
 import { parseDateString, getSundayOfWeek, toDateString } from "@/lib/dates";
 import { viewerToday } from "@/lib/viewerToday";
 import { getTagsForRecipes } from "@/lib/tags";
+import { csvField } from "@/lib/csv";
 import { tagKey } from "@/lib/tagNames";
 
 export interface ReportFilters {
@@ -400,18 +401,10 @@ export function getAuditLogReport(
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 }
 
-function csvEscape(value: unknown): string {
-  const s = value === null || value === undefined ? "" : String(value);
-  if (/[",\n]/.test(s)) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
-}
-
 export function toCsv<T extends object>(headers: (keyof T & string)[], rows: T[]): string {
   const lines = [headers.join(",")];
   for (const row of rows) {
-    lines.push(headers.map((h) => csvEscape(row[h])).join(","));
+    lines.push(headers.map((h) => csvField(row[h])).join(","));
   }
   return lines.join("\n");
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { clientIp, hit } from "@/lib/rateLimit";
 import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
@@ -9,6 +10,16 @@ import { generateToken, tokenExpiryDate } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/mail";
 
 export async function POST(req: NextRequest) {
+  // Ten sign-ups an hour from one address: plenty for a family, and a wall
+  // for a script creating accounts to send verification mail at strangers.
+  const limit = hit(`signup:${clientIp(req.headers)}`, 10, 60 * 60 * 1000);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "Too many sign-ups from here. Try again later." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
+    );
+  }
+
   const body = await req.json().catch(() => null);
   const parsed = signupSchema.safeParse(body);
 

@@ -1,3 +1,4 @@
+import { csvField } from "@/lib/csv";
 import type { MealType } from "@/db/schema";
 
 export interface ExportIngredient {
@@ -46,13 +47,6 @@ export function buildShoppingListText(days: ExportDay[]): string {
     }
   }
   return lines.join("\n").trimEnd() + "\n";
-}
-
-function csvField(value: string): string {
-  if (/[",\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
 }
 
 /** One row per ingredient: Date, Day, Meal, Recipe, Ingredient, On Hand. */

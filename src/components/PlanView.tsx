@@ -63,12 +63,16 @@ export interface RecipeOption {
   ingredients: string;
   /** Stored comma-separated meal types, so the picker can search by them. */
   mealType: string;
+  // Note: `ingredients` is filled in only for recipes planned in the week on
+  // screen; elsewhere it is "". See the plan page for why.
   /** The viewer's own star. */
   isFavorite: boolean;
   /** Last date this recipe was planned on a calendar the viewer can see. */
   lastPlanned: string | null;
   /** Prep + cook, when either is recorded. */
   totalMinutes: number | null;
+  /** Which meals' pools this recipe is in — the picker for a lunch slot offers the lunch pool. */
+  pools: MealType[];
 }
 
 /**
@@ -98,7 +102,7 @@ export default function PlanView({
   requestedUserId,
   initialDays,
   shoppingListDays,
-  recipePoolByMeal,
+  recipes,
   pickerChips,
   canEditShared,
   isAdmin,
@@ -120,7 +124,8 @@ export default function PlanView({
    * shake has landed, so this must not be transformed on the way through.
    */
   shoppingListDays: ShoppingListDayData[];
-  recipePoolByMeal: Record<MealType, RecipeOption[]>;
+  /** Every recipe any meal on this calendar can use, each once, tagged with which meals. */
+  recipes: RecipeOption[];
   /** Which tag chips the slot picker offers; see the Appearance preferences. */
   pickerChips: SlotPickerChips;
   canEditShared: boolean;
@@ -139,6 +144,14 @@ export default function PlanView({
   const router = useRouter();
 
   const isEditable = scope === "shared" ? canEditShared : true;
+
+  // The per-meal pools, rebuilt here. The server sends each recipe once with
+  // the meals it suits; the widgets still get the Record they always have.
+  const recipePoolByMeal = useMemo(() => {
+    const pools = { breakfast: [], lunch: [], dinner: [] } as Record<MealType, RecipeOption[]>;
+    for (const r of recipes) for (const meal of r.pools) pools[meal]?.push(r);
+    return pools;
+  }, [recipes]);
 
   const [days, setDays] = useState<PlanDayData[]>(initialDays);
   // Server passes fresh initialDays on navigation (e.g. switching Household <-> Private,

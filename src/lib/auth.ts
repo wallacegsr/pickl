@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { clear, clientIp, hit, isLimited } from "@/lib/rateLimit";
 
 export class EmailNotVerifiedError extends CredentialsSignin {
   code = "EmailNotVerified";
@@ -17,6 +18,22 @@ export class AccountDeactivatedError extends CredentialsSignin {
   code = "AccountDeactivated";
 }
 
+export class TooManyAttemptsError extends CredentialsSignin {
+  code = "TooManyAttempts";
+}
+
+/** Failed logins allowed per email address, and per client address, per window. */
+const LOGIN_FAILURES_PER_EMAIL = 8;
+const LOGIN_FAILURES_PER_IP = 30;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+
+/**
+ * Compared against when the email has no account, so a wrong address takes as
+ * long as a wrong password. Without it, the fast "no such user" path tells
+ * anyone timing the response which addresses are registered.
+ */
+const DUMMY_HASH = bcrypt.hashSync("pickl-timing-equaliser", 10);
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   session: { strategy: "jwt" },
   pages: {
@@ -29,7 +46,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const email = String(credentials?.email || "")
           .trim()
           .toLowerCase();
@@ -37,19 +54,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!email || !password) throw new InvalidCredentialsError();
 
+        // Only failures count, so a person who types their password right is
+        // never slowed by someone else guessing at their address.
+        const ip = request ? clientIp(request.headers) : "unknown";
+        const emailKey = `login:email:${email}`;
+        const ipKey = `login:ip:${ip}`;
+        if (isLimited(emailKey, LOGIN_FAILURES_PER_EMAIL) || isLimited(ipKey, LOGIN_FAILURES_PER_IP)) {
+          throw new TooManyAttemptsError();
+        }
+        const fail = () => {
+          hit(emailKey, LOGIN_FAILURES_PER_EMAIL, LOGIN_WINDOW_MS);
+          hit(ipKey, LOGIN_FAILURES_PER_IP, LOGIN_WINDOW_MS);
+          return new InvalidCredentialsError();
+        };
+
         const user = db
           .select()
           .from(users)
           .where(eq(users.email, email))
           .get();
 
-        if (!user) throw new InvalidCredentialsError();
-
         const passwordMatches = await bcrypt.compare(
           password,
-          user.passwordHash
+          user?.passwordHash ?? DUMMY_HASH
         );
-        if (!passwordMatches) throw new InvalidCredentialsError();
+        if (!user || !passwordMatches) throw fail();
+        clear(emailKey);
 
         if (!user.emailVerified) {
           throw new EmailNotVerifiedError();
@@ -94,15 +124,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           .from(users)
           .where(eq(users.id, token.id as string))
           .get();
-        if (fresh) {
-          token.role = fresh.role;
-          token.canAccessSharedCalendar = fresh.canAccessSharedCalendar;
-          // Re-read too, so moving a user between households (or revoking
-          // platform access) takes effect without a fresh login — the same
-          // reason the role is refreshed here.
-          token.householdId = fresh.householdId ?? null;
-          token.isGlobalAdmin = fresh.isGlobalAdmin;
-        }
+        // A deleted or deactivated account ends its session here, on its next
+        // request, rather than when the JWT eventually expires. Login already
+        // refused them; without this a session opened before the change kept
+        // working for up to 30 days. Returning null signs the cookie out.
+        if (!fresh || !fresh.active) return null;
+        token.role = fresh.role;
+        token.canAccessSharedCalendar = fresh.canAccessSharedCalendar;
+        // Re-read too, so moving a user between households (or revoking
+        // platform access) takes effect without a fresh login — the same
+        // reason the role is refreshed here.
+        token.householdId = fresh.householdId ?? null;
+        token.isGlobalAdmin = fresh.isGlobalAdmin;
       }
       void trigger;
       return token;

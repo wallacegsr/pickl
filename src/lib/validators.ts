@@ -100,8 +100,10 @@ export const recipeSchema = z.object({
   // Requiring the full write-up turns adding one into a chore and stops the
   // jar getting filled. Stored as "" rather than NULL to keep the existing
   // NOT NULL columns, so no migration and no null-handling downstream.
-  ingredients: z.string().trim().optional().default(""),
-  instructions: z.string().trim().optional().default(""),
+  // Generous — a long scraped recipe is a few thousand characters — but
+  // bounded, so one request cannot post megabytes into a row every page reads.
+  ingredients: z.string().trim().max(20000, "Ingredients are limited to 20,000 characters").optional().default(""),
+  instructions: z.string().trim().max(50000, "The method is limited to 50,000 characters").optional().default(""),
   prepTimeMinutes: z.coerce.number().int().min(0).nullable().optional(),
   cookTimeMinutes: z.coerce.number().int().min(0).nullable().optional(),
   servings: z.coerce.number().int().min(0).nullable().optional(),
@@ -117,7 +119,7 @@ export const recipeSchema = z.object({
     .union([z.string().trim().url(), z.literal("")])
     .nullable()
     .optional(),
-  notes: z.string().trim().nullable().optional(),
+  notes: z.string().trim().max(10000, "Notes are limited to 10,000 characters").nullable().optional(),
   visibility: z.enum(["shared", "private"]).default("shared"),
   mealType: z
     .array(recipeMealTypeSchema)

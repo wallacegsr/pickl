@@ -11,8 +11,49 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+### Security
+
+- **Only the platform operator can change deployment-wide settings.** The
+  SMTP settings, the SMTP test email and the Google OAuth client were guarded
+  by *household* admin, so on a deployment with several households any
+  household's admin could read or replace them — redirecting every
+  household's verification and invite mail, or the OAuth client every
+  user's calendar authorises. The admin page already hid these tabs; the API
+  now refuses too.
+- **Deactivating or deleting an account ends its session.** The session
+  refresh re-read the role but not whether the account was still active, so a
+  deactivated person stayed signed in until their token expired (up to 30
+  days). They are now signed out on their next request.
+- **Login is throttled.** Eight wrong passwords for one address, or thirty
+  from one client, lock that out for fifteen minutes. Sign-up, resending a
+  verification email, and accepting an invite are limited per client too.
+  A wrong address now takes as long as a wrong password, so timing no longer
+  reveals which emails have accounts.
+- **Exports can't carry spreadsheet formulas.** A CSV field starting with
+  `=`, `+`, `-` or `@` is defused, so a recipe named like a formula stays
+  text when an export is opened in Excel or Sheets.
+- **Editing someone else's private recipe answers "not found"**, as reading it
+  does, instead of confirming the id exists.
+- **Recipe text has limits** (20,000 characters of ingredients, 50,000 of
+  method, 10,000 of notes), so one request can't store megabytes in a row every
+  page reads.
+- **Baseline security headers** on every response: no framing (clickjacking),
+  no MIME sniffing, a stricter referrer policy, and no `X-Powered-By`.
+- **Next's image optimiser is switched off.** Pickl never used it, but the
+  endpoint existed and carries critical advisories on Next 14.
+- **nodemailer 8 → 9.1.1**, fixing its five published advisories.
+
 ### Changed
 
+- **The plan page is about a third lighter.** Each recipe is sent to the
+  browser once, not once per meal it suits, and without its ingredient list
+  unless it's planned this week. The recipe picker asks the server for
+  ingredient matches instead. On real recipes, whose ingredient lists run to a
+  kilobyte or more, the saving is much larger than on test data.
+- **Database indexes** on the paths every page takes: recipes by household,
+  tags by tag, plan entries by household and date and by recipe, the audit log
+  by household and time, and the foreign keys that cascade on delete. Adds one
+  migration, which only creates indexes.
 - **The README is a page, not a manual.** It now shows the current design in
   fresh screenshots and says what Pickl does in a screenful; the deep
   reference moved to `docs/calendars.md`, `docs/deployment.md` and

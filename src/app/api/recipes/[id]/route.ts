@@ -71,6 +71,12 @@ export async function PUT(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  // Someone else's private recipe is not "forbidden": as far as this caller
+  // can tell it does not exist, the same 404 a read gives. A 403 here would
+  // confirm the id is a real recipe.
+  if (existing.visibility === "private" && existing.ownerUserId !== session.user.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
   if (!canEditRecipe(session.user, existing)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -148,6 +154,12 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  // Someone else's private recipe is not "forbidden": as far as this caller
+  // can tell it does not exist, the same 404 a read gives. A 403 here would
+  // confirm the id is a real recipe.
+  if (existing.visibility === "private" && existing.ownerUserId !== session.user.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
   if (!canEditRecipe(session.user, existing)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

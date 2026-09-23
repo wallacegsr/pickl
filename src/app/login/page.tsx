@@ -72,6 +72,8 @@ function LoginForm() {
           "Your email address has not been verified yet. Please check your inbox."
         );
         setShowResend(true);
+      } else if (result.code === "TooManyAttempts") {
+        setError("Too many failed attempts. Wait fifteen minutes and try again.");
       } else if (result.code === "AccountDeactivated") {
         setError(
           "This account has been deactivated. Contact an administrator."

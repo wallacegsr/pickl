@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, unique } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, unique, index } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 
 /**
@@ -186,7 +186,10 @@ export const users = sqliteTable("users", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
-});
+}, (table) => ({
+  // Members of one household: the admin page, the plan's user picker.
+  household: index("users_household_idx").on(table.householdId),
+}));
 
 export const recipes = sqliteTable("recipes", {
   id: text("id").primaryKey(),
@@ -216,7 +219,13 @@ export const recipes = sqliteTable("recipes", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
-});
+}, (table) => ({
+  // Every recipe read starts with "this household", then shared-or-mine.
+  // Without it each list, search, count and spin scanned the whole table.
+  householdVisibility: index("recipes_household_visibility_idx").on(table.householdId, table.visibility),
+  // Private recipes are looked up by owner, and deleting a user cascades here.
+  owner: index("recipes_owner_idx").on(table.ownerUserId),
+}));
 
 /**
  * The household's tag vocabulary — one row per distinct tag name.
@@ -281,6 +290,9 @@ export const recipeTags = sqliteTable(
   },
   (table) => ({
     recipeTagPair: unique().on(table.recipeId, table.tagId),
+    // The unique index leads with recipe; filtering and counting BY tag (the
+    // filter sidebar, "Recipes tagged X", deleting a tag) needs its own.
+    tag: index("recipe_tags_tag_idx").on(table.tagId),
   })
 );
 
@@ -315,6 +327,8 @@ export const recipeFavorites = sqliteTable(
   },
   (table) => ({
     userRecipePair: unique().on(table.userId, table.recipeId),
+    // Deleting a recipe cascades to its stars.
+    recipe: index("recipe_favorites_recipe_idx").on(table.recipeId),
   })
 );
 
@@ -378,6 +392,11 @@ export const planEntries = sqliteTable(
       table.mealType,
       table.recipeId
     ),
+    // A week of one household's plan: every /plan, shopping list and spin.
+    householdDate: index("plan_entries_household_date_idx").on(table.householdId, table.date),
+    // "When was this last cooked", and the cascade when a recipe is deleted —
+    // which otherwise scanned every plan entry for each recipe removed.
+    recipeDate: index("plan_entries_recipe_date_idx").on(table.recipeId, table.date),
   })
 );
 
@@ -667,6 +686,8 @@ export const calendarEventLinks = sqliteTable(
     // One event per planned recipe per target. Widened from
     // (targetId, date, mealType), which allowed only one event per slot.
     targetPlanEntry: unique().on(table.targetId, table.planEntryId),
+    // Removing a plan entry sets this to null; the index keeps that cheap.
+    planEntry: index("calendar_event_links_plan_entry_idx").on(table.planEntryId),
   })
 );
 
@@ -724,7 +745,10 @@ export const auditLog = sqliteTable("audit_log", {
   oldRecipeId: text("old_recipe_id"),
   newRecipeId: text("new_recipe_id"),
   notes: text("notes"),
-});
+}, (table) => ({
+  // The audit log only grows. Reports read one household's rows in a date range.
+  householdTime: index("audit_log_household_time_idx").on(table.householdId, table.timestamp),
+}));
 
 export const recipesRelations = relations(recipes, ({ one, many }) => ({
   createdBy: one(users, {

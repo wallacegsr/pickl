@@ -127,6 +127,13 @@
       "when": 1789737917974,
       "tag": "0017_grey_the_professor",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1790190082210,
+      "tag": "0018_light_human_torch",
+      "breakpoints": true
     }
   ]
 }
