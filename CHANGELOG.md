@@ -11,6 +11,15 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+### Added
+
+- **Forgot password.** The login page's "Forgot password?" link now works:
+  enter your email and Pickl sends a link to choose a new password. The link
+  works once and for one hour, and using it signs out every device on the
+  account. The page answers the same way whether or not the address has an
+  account, so it can't be used to find out who is registered. Needs working
+  mail; without SMTP the link is written to the server log.
+
 ### Security
 
 - **Next.js 14 → 15.5.26 and React 18 → 19.** Clears every published Next.js
@@ -23,6 +32,11 @@ changes with it — the two must never disagree about what is running.
   unchanged.
 - **postcss** pinned to the patched 8.5 line under Next. Production
   dependencies now audit clean.
+- **Changing your password signs out your other devices.** Preferences
+  already said it would; until now they stayed signed in. The device you
+  change it on stays signed in.
+- **Reset links are stored hashed**, so a copy of the database can't be used
+  to reset anyone's password.
 
 ## [2.4.1] - 2026-09-23
 

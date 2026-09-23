@@ -144,6 +144,15 @@ export const users = sqliteTable("users", {
   inviteTokenExpires: integer("invite_token_expires", {
     mode: "timestamp",
   }),
+  // "Forgot password": a SHA-256 of the emailed token, never the token
+  // itself, so a copy of the database cannot be used to reset anyone's
+  // password. One live reset per account; a new request replaces it.
+  resetTokenHash: text("reset_token_hash"),
+  resetTokenExpires: integer("reset_token_expires", { mode: "timestamp" }),
+  // When the password last changed. Any session issued before this moment is
+  // ended on its next request (see the jwt callback in src/lib/auth.ts), so a
+  // reset or a change signs out every other device.
+  passwordChangedAt: integer("password_changed_at", { mode: "timestamp" }),
   // Per-user permission: whether this (non-admin) user can view/edit the
   // shared household calendar. Admins always have full access; this only
   // gates members. Toggled by an admin from /admin.

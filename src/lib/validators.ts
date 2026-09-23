@@ -39,6 +39,21 @@ export const adminInviteUserSchema = z.object({
   role: adminAssignableRoleSchema,
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().email("Enter a valid email address").max(320),
+});
+
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1, "That reset link is incomplete").max(200),
+    password: z.string().min(8, "Password must be at least 8 characters").max(200),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
 export const acceptInviteSchema = z
   .object({
     token: z.string().min(1, "Missing invite token"),

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { signIn, useSession } from "next-auth/react";
 import { Alert, Button, Form, Spinner } from "react-bootstrap";
 
 export default function PasswordSettingsPanel() {
+  const { data: session } = useSession();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -28,6 +30,13 @@ export default function PasswordSettingsPanel() {
     if (!res.ok) {
       setError(data.error || "Could not change your password.");
       return;
+    }
+
+    // The change ended every session older than it, this one included. Sign
+    // back in with the new password so this device carries on where it was.
+    const email = session?.user?.email;
+    if (email) {
+      await signIn("credentials", { email, password: newPassword, redirect: false });
     }
 
     setCurrentPassword("");

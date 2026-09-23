@@ -48,7 +48,13 @@ export async function POST(req: NextRequest) {
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.newPassword, 10);
-  db.update(users).set({ passwordHash }).where(eq(users.id, userId)).run();
+  // passwordChangedAt ends every session issued before now — other devices
+  // are signed out on their next request. This device signs straight back in
+  // with the new password (see PasswordSettingsPanel), so it stays put.
+  db.update(users)
+    .set({ passwordHash, passwordChangedAt: new Date(), resetTokenHash: null, resetTokenExpires: null })
+    .where(eq(users.id, userId))
+    .run();
 
   // Records that a change happened — never any password material.
   logAuditEntry({

@@ -42,6 +42,7 @@ function LoginForm() {
   const verified = searchParams.get("verified");
   const invited = searchParams.get("invited");
   const emailChanged = searchParams.get("email_changed");
+  const passwordReset = searchParams.get("reset");
   const errorCode = errorMessageFor(searchParams.get("error"));
 
   const [email, setEmail] = useState("");
@@ -126,6 +127,11 @@ function LoginForm() {
                   address.
                 </Alert>
               )}
+              {passwordReset && (
+                <Alert variant="success">
+                  Your password has been changed. Log in with the new one.
+                </Alert>
+              )}
               {invited && (
                 <Alert variant="success">
                   Your account is ready. You can log in now.
@@ -182,12 +188,7 @@ function LoginForm() {
               <div className="text-center mt-3 small">
                 <Link href="/signup">Need an account? Sign up</Link>
                 <br />
-                <Link
-                  href="#"
-                  className="text-muted"
-                  onClick={(e) => e.preventDefault()}
-                  title="Not implemented in this release"
-                >
+                <Link href="/forgot-password" className="text-muted">
                   Forgot password?
                 </Link>
               </div>

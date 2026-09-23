@@ -60,6 +60,10 @@ export type AuditAction =
   | "email_change_confirm"
   | "email_change_cancel"
   | "password_change"
+  // "Forgot password". The request row is written only when an account was
+  // actually found, so the log never records guesses at other addresses.
+  | "password_reset_request"
+  | "password_reset"
   | "theme_change";
 
 export interface LogAuditEntryInput {

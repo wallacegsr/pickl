@@ -129,6 +129,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // refused them; without this a session opened before the change kept
         // working for up to 30 days. Returning null signs the cookie out.
         if (!fresh || !fresh.active) return null;
+        // A session older than the current password ends too: resetting or
+        // changing a password signs out every other device. `iat` is absent
+        // only while a session is being created, and is in whole seconds, as
+        // is passwordChangedAt — so a login in the same second still counts.
+        if (
+          fresh.passwordChangedAt &&
+          typeof token.iat === "number" &&
+          token.iat * 1000 < fresh.passwordChangedAt.getTime()
+        ) {
+          return null;
+        }
         token.role = fresh.role;
         token.canAccessSharedCalendar = fresh.canAccessSharedCalendar;
         // Re-read too, so moving a user between households (or revoking

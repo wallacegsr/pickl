@@ -6,7 +6,7 @@ A self-hosted web app for a household's recipes and weekly meal plan. One
 shared recipe jar and calendar for the family, a private one for each person,
 and a button that decides dinner when nobody can.
 
-Next.js 14 (App Router, TypeScript) · SQLite via Drizzle ORM · Auth.js
+Next.js 15 (App Router, React 19, TypeScript) · SQLite via Drizzle ORM · Auth.js
 credentials with email verification · react-bootstrap.
 
 ![The Pickl dashboard: a Sunday-to-Saturday meal grid, the shake controls, a recipe quick look and the shopping list](docs/screenshot-dashboard.png)
@@ -82,7 +82,11 @@ that expires in 24 hours.
 record. It covers the display name, the login email (confirmed from the new
 address, so a typo can't lock anyone out), the password, calendar connections,
 light/dark mode, one of six colour palettes, and which tag chips the recipe
-picker offers.
+picker offers. Changing the password signs out every other device.
+
+A forgotten password is reset from the login page: Pickl emails a link that
+works once, for an hour, and signs out every device on the account when used.
+It needs working mail — without SMTP the link is only written to the server log.
 
 Light/dark and the palette are applied before first paint, so the page never
 flashes the wrong theme. "Today" is worked out in the browser's own time zone,

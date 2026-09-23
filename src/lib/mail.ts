@@ -102,6 +102,36 @@ export async function sendVerificationEmail(to: string, token: string) {
   await result.transport.sendMail({ from: result.from, to, subject, text, html });
 }
 
+/** A link to choose a new password, valid for one hour and one use. */
+export async function sendPasswordResetEmail(to: string, token: string) {
+  const baseUrl = process.env.APP_BASE_URL || "http://localhost:3000";
+  const resetUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
+
+  const subject = "Reset your Pickl password";
+  const text = `Someone asked to reset the password for this Pickl account.
+
+To choose a new one, visit:
+${resetUrl}
+
+This link works once and expires in one hour.
+
+If it wasn't you, ignore this email — your password stays as it is.`;
+  const html = `
+    <p>Someone asked to reset the password for this <strong>Pickl</strong> account.</p>
+    <p><a href="${resetUrl}">Choose a new password</a></p>
+    <p>This link works once and expires in one hour.</p>
+    <p>If it wasn't you, ignore this email — your password stays as it is.</p>
+  `;
+
+  const result = getTransport();
+  if (!result) {
+    console.log(`[mail:dev] Password reset email for ${to}: ${resetUrl}`);
+    return;
+  }
+
+  await result.transport.sendMail({ from: result.from, to, subject, text, html });
+}
+
 export async function sendInviteEmail(
   to: string,
   token: string,
