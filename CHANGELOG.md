@@ -11,6 +11,22 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+### Security
+
+- **The Docker image runs Node 24, not Node 20.** Node 20 reached end of life
+  in April 2026 and has had no security fixes since; 24 is the long-term
+  support line until April 2028. CI runs on 24 too, so it checks what ships.
+- **Next.js 15.5.26 → 15.5.28**, fixing two cache-poisoning advisories in
+  static and ISR pages.
+- **nodemailer 9 → 10.1.7**, fixing five advisories: denial of service in its
+  address parser, SMTP credentials leaking between transports through a
+  shared DNS cache, and malformed recipients.
+- **sharp and source-map-js** pinned to patched versions (a librsvg flaw and an
+  event-loop denial of service). Production dependencies audit clean again.
+- **GitHub Actions moved to their Node 24 releases** (setup-node, setup-java,
+  upload-artifact, setup-gradle, action-gh-release); the Node 20 versions are
+  deprecated by GitHub.
+
 ## [2.5.0] - 2026-09-23
 
 ### Added

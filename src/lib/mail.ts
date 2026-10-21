@@ -66,7 +66,14 @@ function buildTransport(config: SmtpConfig) {
   });
 }
 
-function getTransport(): { transport: nodemailer.Transporter; from: string } | null {
+/**
+ * Named from the function that builds it: nodemailer 10 publishes no types
+ * through its package exports, so its namespace types (nodemailer.Transporter)
+ * no longer resolve.
+ */
+type Transporter = ReturnType<typeof buildTransport>;
+
+function getTransport(): { transport: Transporter; from: string } | null {
   const config = getSmtpConfig();
   if (!config) {
     console.warn(

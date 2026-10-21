@@ -21,9 +21,9 @@
     "google-auth-library": "^11.0.2",
     "ical-generator": "^8.0.1",
     "lucide-react": "^1.41.0",
-    "next": "^15.5.26",
+    "next": "15.5.28",
     "next-auth": "5.0.0-beta.32",
-    "nodemailer": "^9.1.1",
+    "nodemailer": "^10.1.7",
     "react": "19.2",
     "react-bootstrap": "^2.10.5",
     "react-chartjs-2": "^5.3.1",
@@ -42,13 +42,15 @@
     "@types/uuid": "^10.0.0",
     "drizzle-kit": "^0.31.11",
     "eslint": "^8.57.1",
-    "eslint-config-next": "^15.5.26",
+    "eslint-config-next": "15.5.28",
     "sass": "^1.103.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   },
   "overrides": {
     "nodemailer": "$nodemailer",
-    "postcss": "^8.5.28"
+    "postcss": "^8.5.28",
+    "sharp": "^0.35.5",
+    "source-map-js": "^1.2.2"
   }
 }

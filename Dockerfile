@@ -1,12 +1,15 @@
 # syntax=docker/dockerfile:1
 #
 # Pickl — "Out of the pickle, onto the plate."
-# Household recipe jar + weekly meal plan (Next.js 14 + SQLite).
+# Household recipe jar + weekly meal plan (Next.js 15 + SQLite).
+#
+# Node 24: the long-term-support line until April 2028. Node 20 reached end
+# of life in April 2026 and stopped getting security fixes.
 
 #############################################
 # Base image with build tools for native deps
 #############################################
-FROM node:20-bookworm-slim AS base
+FROM node:24-bookworm-slim AS base
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     build-essential \
@@ -41,7 +44,7 @@ RUN npm run build
 #############################################
 # Minimal runtime image
 #############################################
-FROM node:20-bookworm-slim AS runner
+FROM node:24-bookworm-slim AS runner
 WORKDIR /app
 
 LABEL org.opencontainers.image.title="Pickl"

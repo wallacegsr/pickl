@@ -42,7 +42,7 @@ const nextConfig = {
   // the module system; they are deprecations, not errors.
   sassOptions: {
     quietDeps: true,
-    silenceDeprecations: ["import", "global-builtin", "color-functions", "legacy-js-api", "mixed-decls"],
+    silenceDeprecations: ["import", "global-builtin", "color-functions", "legacy-js-api"],
   },
   // Stable in Next 15 (was experimental.serverComponentsExternalPackages).
   // better-sqlite3 is a native addon and must be required at runtime, not
