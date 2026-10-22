@@ -9,7 +9,7 @@
 #############################################
 # Base image with build tools for native deps
 #############################################
-FROM node:24-bookworm-slim AS base
+FROM node:25-bookworm-slim AS base
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     build-essential \
@@ -44,7 +44,7 @@ RUN npm run build
 #############################################
 # Minimal runtime image
 #############################################
-FROM node:24-bookworm-slim AS runner
+FROM node:25-bookworm-slim AS runner
 WORKDIR /app
 
 LABEL org.opencontainers.image.title="Pickl"
