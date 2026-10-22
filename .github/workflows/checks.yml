@@ -55,3 +55,9 @@ jobs:
         # that cancelling the run actually stops it.
         if: ${{ !cancelled() }}
         run: node scripts/check-palettes.mjs --verbose
+
+      - name: Lint
+        # Same `!cancelled()` reasoning as above. Warnings are reported but
+        # do not fail the run; only errors do.
+        if: ${{ !cancelled() }}
+        run: npm run lint

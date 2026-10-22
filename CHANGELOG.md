@@ -11,6 +11,11 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+### Changed
+
+- **CI runs lint** alongside the type and palette checks, so ESLint errors fail
+  a pull request. Warnings are reported but do not.
+
 ## [2.6.0] - 2026-10-21
 
 ### Added
