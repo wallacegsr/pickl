@@ -17,9 +17,7 @@ function ensureDataDirExists(dbPath: string) {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
   var __dinnerPlannerDb: DrizzleDb | undefined;
-  // eslint-disable-next-line no-var
   var __dinnerPlannerMigrated: boolean | undefined;
 }
 

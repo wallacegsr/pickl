@@ -6,7 +6,7 @@ A self-hosted web app for a household's recipes and weekly meal plan. One
 shared recipe jar and calendar for the family, a private one for each person,
 and a button that decides dinner when nobody can.
 
-Next.js 15 (App Router, React 19, TypeScript) · SQLite via Drizzle ORM · Auth.js
+Next.js 16 (App Router, React 19, TypeScript) · SQLite via Drizzle ORM · Auth.js
 credentials with email verification · react-bootstrap.
 
 ![The Pickl dashboard: a Sunday-to-Saturday meal grid, the shake controls, a recipe quick look and the shopping list](docs/screenshot-dashboard.png)
@@ -149,6 +149,7 @@ The database is created on first use and migrations are applied automatically.
 | --- | --- |
 | `npm run dev` | Dev server. |
 | `npm run build` | Production build, including type checking. |
+| `npm run lint` | ESLint (`eslint.config.mjs`). |
 | `npm start` | Applies migrations, then serves the build. |
 | `npm run db:generate` | Generate a migration from `src/db/schema.ts`. |
 | `npm run db:migrate` | Apply pending migrations to `DATABASE_PATH`. |

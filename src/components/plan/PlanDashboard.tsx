@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Button, Dropdown } from "react-bootstrap";
 import type { Layout } from "react-grid-layout";
@@ -283,7 +283,9 @@ export default function PlanDashboard({
   // Keep the latest flush reachable from listeners registered once, without
   // re-subscribing them on every render.
   const flushRef = useRef(flush);
-  flushRef.current = flush;
+  useLayoutEffect(() => {
+    flushRef.current = flush;
+  });
 
   /**
    * Never drop a debounced save.

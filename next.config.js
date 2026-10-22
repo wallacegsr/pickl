@@ -1,3 +1,4 @@
+const path = require("node:path");
 // The app's version comes from package.json, which is the single source the
 // changelog and the Android shell's versionName are kept in step with. Passing
 // it through `env` inlines the string at build time, so the client gets the
@@ -37,14 +38,17 @@ const nextConfig = {
   // endpoint; with nothing to optimise, it is simply switched off.
   images: { unoptimized: true },
   // Bootstrap 5's Sass still uses @import and the global colour functions,
-  // which newer Sass (bundled with Next 15) warns about on every build — dozens
+  // which newer Sass (bundled with Next) warns about on every build — dozens
   // of lines that would bury a real warning. Silenced until Bootstrap moves to
   // the module system; they are deprecations, not errors.
   sassOptions: {
+    // Turbopack resolves `bootstrap/scss/bootstrap` but not the relative
+    // imports inside it (`mixins/banner`), so give Sass that folder directly.
+    loadPaths: [path.join(__dirname, "node_modules/bootstrap/scss")],
     quietDeps: true,
     silenceDeprecations: ["import", "global-builtin", "color-functions", "legacy-js-api"],
   },
-  // Stable in Next 15 (was experimental.serverComponentsExternalPackages).
+  // Stable since Next 15 (was experimental.serverComponentsExternalPackages).
   // better-sqlite3 is a native addon and must be required at runtime, not
   // bundled.
   serverExternalPackages: ["better-sqlite3"],

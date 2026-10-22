@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 #
 # Pickl — "Out of the pickle, onto the plate."
-# Household recipe jar + weekly meal plan (Next.js 15 + SQLite).
+# Household recipe jar + weekly meal plan (Next.js 16 + SQLite).
 #
 # Node 24: the long-term-support line until April 2028. Node 20 reached end
 # of life in April 2026 and stopped getting security fixes.

@@ -1,0 +1,49 @@
+# Weekly version updates, grouped so minor and patch bumps arrive as one PR per
+# ecosystem rather than one each. Majors still come one at a time: those are
+# the ones that need reading (Next, React, Auth.js, Drizzle). Security updates
+# are separate: they are switched on under Settings → Code security and open
+# as soon as an advisory lands, whatever this schedule says.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci
+
+  # The base image in the Dockerfile (node:24-bookworm-slim).
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: docker
+
+  # The Android wrapper.
+  - package-ecosystem: gradle
+    directory: /android
+    schedule:
+      interval: monthly
+    groups:
+      android:
+        patterns: ["*"]
+    commit-message:
+      prefix: android

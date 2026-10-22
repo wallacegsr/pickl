@@ -11,13 +11,29 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+### Added
+
+- **Dependabot** checks npm packages, GitHub Actions, the Docker base image
+  and the Android wrapper every week, grouping minor and patch updates into
+  one pull request each.
+
+### Changed
+
+- **Next.js 16** (16.4.2) and React 19.3. Builds now use Turbopack, which
+  needed Bootstrap's Sass folder on the load path; nothing else changed for
+  the app.
+- **`npm run lint` runs ESLint directly** with a flat `eslint.config.mjs`, as
+  `next lint` is gone in Next 16. The new React Compiler rules found a render
+  that wrote to a ref (now done in an effect); their warnings about setting
+  state inside effects are shown but do not fail lint yet.
+
 ### Security
 
 - **The Docker image runs Node 24, not Node 20.** Node 20 reached end of life
   in April 2026 and has had no security fixes since; 24 is the long-term
   support line until April 2028. CI runs on 24 too, so it checks what ships.
-- **Next.js 15.5.26 → 15.5.28**, fixing two cache-poisoning advisories in
-  static and ISR pages.
+- **Next.js 15.5.26 → 16.4.2**, which includes the fixes for two
+  cache-poisoning advisories in static and ISR pages.
 - **nodemailer 9 → 10.1.7**, fixing five advisories: denial of service in its
   address parser, SMTP credentials leaking between transports through a
   shared DNS cache, and malformed recipients.

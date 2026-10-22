@@ -23,6 +23,8 @@ export default async function InviteAcceptPage(
       error = "That invite link is invalid.";
     } else if (
       user.inviteTokenExpires &&
+      // A server component renders once per request, so reading the clock is fine.
+      // eslint-disable-next-line react-hooks/purity
       user.inviteTokenExpires.getTime() < Date.now()
     ) {
       error = "That invite link has expired. Ask an admin to invite you again.";
