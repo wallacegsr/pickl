@@ -11,6 +11,8 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+## [2.6.1] - 2026-10-26
+
 ### Security
 
 - **CalDAV server addresses can no longer reach internal networks through an
@@ -618,7 +620,8 @@ Initial public release: the container image published to
 - Light and dark themes.
 - Docker deployment, with the image published to GHCR.
 
-[Unreleased]: https://github.com/wallacegsr/pickl/compare/v2.6.0...HEAD
+[Unreleased]: https://github.com/wallacegsr/pickl/compare/v2.6.1...HEAD
+[2.6.1]: https://github.com/wallacegsr/pickl/compare/v2.6.0...v2.6.1
 [2.6.0]: https://github.com/wallacegsr/pickl/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/wallacegsr/pickl/compare/v2.4.1...v2.5.0
 [2.4.1]: https://github.com/wallacegsr/pickl/compare/v2.4.0...v2.4.1
