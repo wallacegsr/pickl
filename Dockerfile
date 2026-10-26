@@ -66,12 +66,12 @@ COPY --from=builder /app/public ./public
 
 # Migration tooling: drizzle migrations, the migrate/start scripts, and the
 # drizzle-orm/better-sqlite3 packages needed to run them at container start.
+# better-sqlite3 13+ loads its addon from its own prebuilds/ or build/ folder,
+# so it no longer needs `bindings` or `file-uri-to-path` beside it.
 COPY --from=builder /app/drizzle ./drizzle
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
 COPY --from=builder /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
-COPY --from=builder /app/node_modules/bindings ./node_modules/bindings
-COPY --from=builder /app/node_modules/file-uri-to-path ./node_modules/file-uri-to-path
 
 RUN mkdir -p /data && chown -R nextjs:nodejs /data /app
 
