@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { hashToken } from "@/lib/tokens";
 import InviteAcceptForm from "@/components/InviteAcceptForm";
 
 export default async function InviteAcceptPage(
@@ -18,7 +19,7 @@ export default async function InviteAcceptPage(
   if (!token) {
     error = "Missing invite token.";
   } else {
-    const user = db.select().from(users).where(eq(users.inviteToken, token)).get();
+    const user = db.select().from(users).where(eq(users.inviteToken, hashToken(token))).get();
     if (!user) {
       error = "That invite link is invalid.";
     } else if (

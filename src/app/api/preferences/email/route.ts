@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { emailChangeRequestSchema } from "@/lib/validators";
-import { generateToken, tokenExpiryDate } from "@/lib/tokens";
+import { generateToken, hashToken, tokenExpiryDate } from "@/lib/tokens";
 import { sendEmailChangeVerificationEmail } from "@/lib/mail";
 import { logAuditEntry } from "@/lib/audit";
 
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
   db.update(users)
     .set({
       pendingEmail: email,
-      pendingEmailToken: token,
+      pendingEmailToken: hashToken(token),
       pendingEmailTokenExpires: tokenExpiryDate(24),
     })
     .where(eq(users.id, userId))

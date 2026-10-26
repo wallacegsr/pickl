@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { households, users } from "@/db/schema";
 import { signupSchema } from "@/lib/validators";
-import { generateToken, tokenExpiryDate } from "@/lib/tokens";
+import { generateToken, hashToken, tokenExpiryDate } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/mail";
 
 export async function POST(req: NextRequest) {
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
       email,
       passwordHash,
       emailVerified: isFirstUser ? new Date() : null,
-      verificationToken: isFirstUser ? null : token,
+      verificationToken: isFirstUser ? null : hashToken(token),
       verificationTokenExpires: isFirstUser ? null : tokenExpiryDate(24),
       // Admin of their own household either way: the first user because the
       // deployment needs one, everyone else because it is their household.

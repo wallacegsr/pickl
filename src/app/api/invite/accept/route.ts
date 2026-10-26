@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { acceptInviteSchema } from "@/lib/validators";
+import { hashToken } from "@/lib/tokens";
 
 export async function POST(req: NextRequest) {
   // Invite tokens are long and random, but there is no reason to let anyone
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
   const user = db
     .select()
     .from(users)
-    .where(eq(users.inviteToken, token))
+    .where(eq(users.inviteToken, hashToken(token)))
     .get();
 
   if (!user) {

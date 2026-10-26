@@ -14,6 +14,20 @@ interface SmtpConfig {
 
 const DEFAULT_FROM = "no-reply@pickl.local";
 
+/**
+ * For values written into an email's HTML. A display name is whatever its
+ * owner typed, so without this an invite could carry their markup — a link
+ * or a fake button — to the person being invited.
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 /** Reads SMTP config from the DB `app_settings` singleton row, if present and usable. */
 function getDbSmtpConfig(): SmtpConfig | null {
   const row = db
@@ -95,7 +109,7 @@ export async function sendVerificationEmail(to: string, token: string) {
   const html = `
     <p>Welcome to <strong>Pickl</strong>!</p>
     <p>Please verify your email address by clicking the link below:</p>
-    <p><a href="${verifyUrl}">${verifyUrl}</a></p>
+    <p><a href="${escapeHtml(verifyUrl)}">${escapeHtml(verifyUrl)}</a></p>
     <p>This link expires in 24 hours.</p>
     <p>If you did not sign up, you can ignore this email.</p>
   `;
@@ -125,7 +139,7 @@ This link works once and expires in one hour.
 If it wasn't you, ignore this email — your password stays as it is.`;
   const html = `
     <p>Someone asked to reset the password for this <strong>Pickl</strong> account.</p>
-    <p><a href="${resetUrl}">Choose a new password</a></p>
+    <p><a href="${escapeHtml(resetUrl)}">Choose a new password</a></p>
     <p>This link works once and expires in one hour.</p>
     <p>If it wasn't you, ignore this email — your password stays as it is.</p>
   `;
@@ -152,9 +166,9 @@ export async function sendInviteEmail(
   const subject = "You've been invited to Pickl";
   const text = `${invitedByName} has invited you to join Pickl!\n\nSet up your account by visiting the link below:\n${acceptUrl}\n\nThis link expires in 24 hours.\n\nIf you weren't expecting this invitation, you can ignore this email.`;
   const html = `
-    <p><strong>${invitedByName}</strong> has invited you to join <strong>Pickl</strong>!</p>
+    <p><strong>${escapeHtml(invitedByName)}</strong> has invited you to join <strong>Pickl</strong>!</p>
     <p>Set up your account by clicking the link below:</p>
-    <p><a href="${acceptUrl}">${acceptUrl}</a></p>
+    <p><a href="${escapeHtml(acceptUrl)}">${escapeHtml(acceptUrl)}</a></p>
     <p>This link expires in 24 hours.</p>
     <p>If you weren't expecting this invitation, you can ignore this email.</p>
   `;
@@ -188,10 +202,10 @@ export async function sendEmailChangeVerificationEmail(
   const subject = "Confirm your new Pickl email address";
   const text = `A request was made to change the email address on the Pickl account currently using ${currentEmail} to this address.\n\nConfirm the change by visiting the link below:\n${confirmUrl}\n\nThis link expires in 24 hours. Until you confirm, the account keeps using ${currentEmail}.\n\nIf you did not request this, you can ignore this email.`;
   const html = `
-    <p>A request was made to change the email address on the <strong>Pickl</strong> account currently using <strong>${currentEmail}</strong> to this address.</p>
+    <p>A request was made to change the email address on the <strong>Pickl</strong> account currently using <strong>${escapeHtml(currentEmail)}</strong> to this address.</p>
     <p>Confirm the change by clicking the link below:</p>
-    <p><a href="${confirmUrl}">${confirmUrl}</a></p>
-    <p>This link expires in 24 hours. Until you confirm, the account keeps using ${currentEmail}.</p>
+    <p><a href="${escapeHtml(confirmUrl)}">${escapeHtml(confirmUrl)}</a></p>
+    <p>This link expires in 24 hours. Until you confirm, the account keeps using ${escapeHtml(currentEmail)}.</p>
     <p>If you did not request this, you can ignore this email.</p>
   `;
 

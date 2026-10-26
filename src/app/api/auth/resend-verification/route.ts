@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { resendVerificationSchema } from "@/lib/validators";
-import { generateToken, tokenExpiryDate } from "@/lib/tokens";
+import { generateToken, hashToken, tokenExpiryDate } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/mail";
 
 export async function POST(req: NextRequest) {
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   const token = generateToken();
   db.update(users)
     .set({
-      verificationToken: token,
+      verificationToken: hashToken(token),
       verificationTokenExpires: tokenExpiryDate(24),
     })
     .where(eq(users.id, user.id))

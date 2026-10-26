@@ -11,8 +11,44 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+### Security
+
+- **CalDAV server addresses can no longer reach internal networks through an
+  IPv6 form.** The guard refused `169.254.169.254` and private ranges, but
+  `[::ffff:169.254.169.254]` (the same address, IPv4-mapped) got through,
+  as did NAT64, 6to4 and Teredo forms and a few reserved IPv6 ranges. IPv6
+  addresses are now parsed, and any IPv4 address inside one is judged by the
+  IPv4 rules.
+- **Invite, verification and email-change links are stored as hashes**, as
+  password-reset links already were, so a copy of the database is no longer
+  enough to accept a pending invite. Links sent before upgrading stop working;
+  send them again.
+- **Names and addresses in emails are escaped.** An admin's display name went
+  into the invite email's HTML as written.
+- **zod 3 → 4** fixes a high-severity advisory: validating an oversized
+  collection could exhaust memory. The development-only esbuild advisory
+  under drizzle-kit is also resolved, so `npm audit` is clean, dev
+  dependencies included.
+
 ### Changed
 
+- **Dependencies updated**: Next.js 16.4.3, better-sqlite3 13 (prebuilt
+  binaries for most platforms), bcryptjs 3 (new hashes use `$2b# Changelog
+
+All notable changes to this project are documented here.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+The version shown at the foot of the sidebar is the one in `package.json`. When
+it changes, the Android shell's `versionName` in `android/app/build.gradle.kts`
+changes with it — the two must never disagree about what is running.
+
+; existing
+  ones still verify), ical-generator 11, and the latest minor releases of the
+  rest. `uuid` is removed — nothing used it.
+- **Dependabot skips majors that need a deliberate move**: Node for the Docker
+  image, TypeScript 7 and ESLint 10.
 - **CI runs lint** alongside the type and palette checks, so ESLint errors fail
   a pull request. Warnings are reported but do not.
 

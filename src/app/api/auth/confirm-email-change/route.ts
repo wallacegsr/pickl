@@ -3,6 +3,7 @@ import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { logAuditEntry } from "@/lib/audit";
+import { hashToken } from "@/lib/tokens";
 
 /**
  * Consumes an email-change token and swaps the account's login address.
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
   const user = db
     .select()
     .from(users)
-    .where(eq(users.pendingEmailToken, token))
+    .where(eq(users.pendingEmailToken, hashToken(token)))
     .get();
 
   if (!user || !user.pendingEmail) return fail("invalid_token");

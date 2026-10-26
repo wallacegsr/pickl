@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { hashToken } from "@/lib/tokens";
 
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
   const user = db
     .select()
     .from(users)
-    .where(eq(users.verificationToken, token))
+    .where(eq(users.verificationToken, hashToken(token)))
     .get();
 
   if (!user) {

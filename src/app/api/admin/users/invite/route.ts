@@ -7,7 +7,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { householdScope, isAdmin } from "@/lib/permissions";
 import { adminInviteUserSchema } from "@/lib/validators";
-import { generateToken, tokenExpiryDate } from "@/lib/tokens";
+import { generateToken, hashToken, tokenExpiryDate } from "@/lib/tokens";
 import { sendInviteEmail } from "@/lib/mail";
 import { logAuditEntry } from "@/lib/audit";
 
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       role,
       active: true,
       isGlobalAdmin: false,
-      inviteToken: token,
+      inviteToken: hashToken(token),
       inviteTokenExpires: tokenExpiryDate(24),
     })
     .run();
