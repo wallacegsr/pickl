@@ -125,9 +125,10 @@ Full notes on Portainer, NAS bind mounts, reverse proxies and storage:
 ## Local development
 
 Node.js 24, the version the Docker image and CI use (Node 20 is end-of-life).
-`better-sqlite3` builds a native addon, so Windows needs Python 3.10+ and the
-"Desktop development with C++" workload; macOS and Linux need the usual build
-tools. Keep `better-sqlite3` on v12 or newer — v11 crashes on Node 24.
+`better-sqlite3` is a native addon. Since v13 it ships prebuilt binaries for
+the common platforms; anywhere else it compiles on install, which needs Python
+3.10+ and the "Desktop development with C++" workload on Windows, or the usual
+build tools on macOS and Linux. Keep it on v12 or newer — v11 crashes on Node 24.
 
 ```bash
 npm install

@@ -13,44 +13,44 @@
     "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^12.11.1",
-    "bootstrap": "^5.3.3",
-    "chart.js": "^4.5.1",
-    "drizzle-orm": "^0.45.3",
-    "google-auth-library": "^11.0.2",
-    "ical-generator": "^8.0.1",
-    "lucide-react": "^1.41.0",
-    "next": "16.4.2",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^13.0.3",
+    "bootstrap": "^5.3.8",
+    "chart.js": "^4.6.1",
+    "drizzle-orm": "^0.45.4",
+    "google-auth-library": "^11.3.1",
+    "ical-generator": "^11.1.2",
+    "lucide-react": "^1.61.0",
+    "next": "16.4.3",
     "next-auth": "5.0.0-beta.32",
-    "nodemailer": "^10.1.7",
+    "nodemailer": "^10.2.1",
     "react": "^19.3.1",
-    "react-bootstrap": "^2.10.5",
+    "react-bootstrap": "^2.10.10",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.3.1",
-    "react-grid-layout": "^2.2.4",
-    "uuid": "^11.0.3",
-    "zod": "^3.24.1"
+    "react-grid-layout": "^2.3.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/better-sqlite3": "^7.6.11",
-    "@types/node": "^20.17.9",
-    "@types/nodemailer": "^6.4.17",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^24.19.2",
+    "@types/nodemailer": "^8.0.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@types/uuid": "^10.0.0",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9.39.5",
-    "eslint-config-next": "16.4.2",
-    "sass": "^1.103.1",
-    "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "eslint-config-next": "16.4.3",
+    "sass": "^1.106.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
   },
   "overrides": {
     "nodemailer": "$nodemailer",
     "postcss": "^8.5.28",
     "sharp": "^0.35.5",
-    "source-map-js": "^1.2.2"
+    "source-map-js": "^1.2.2",
+    "@esbuild-kit/core-utils": {
+      "esbuild": "^0.25.12"
+    }
   }
 }
