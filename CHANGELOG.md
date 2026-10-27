@@ -35,18 +35,7 @@ changes with it — the two must never disagree about what is running.
 ### Changed
 
 - **Dependencies updated**: Next.js 16.4.3, better-sqlite3 13 (prebuilt
-  binaries for most platforms), bcryptjs 3 (new hashes use `$2b# Changelog
-
-All notable changes to this project are documented here.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-The version shown at the foot of the sidebar is the one in `package.json`. When
-it changes, the Android shell's `versionName` in `android/app/build.gradle.kts`
-changes with it — the two must never disagree about what is running.
-
-; existing
+  binaries for most platforms), bcryptjs 3 (new hashes use `$2b$`; existing
   ones still verify), ical-generator 11, and the latest minor releases of the
   rest. `uuid` is removed — nothing used it.
 - **Dependabot skips majors that need a deliberate move**: Node for the Docker
