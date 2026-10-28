@@ -93,6 +93,20 @@ export const households = sqliteTable("households", {
    * operator can stop a runaway or unpaid tenant without destroying anything.
    */
   suspended: integer("suspended", { mode: "boolean" }).notNull().default(false),
+  /**
+   * IANA zone ("Europe/London") that decides what "today" means for requests
+   * with no browser behind them — the /api/v1 endpoints Home Assistant calls.
+   * A browser reports its own zone (see src/lib/viewerToday.ts), so this is
+   * only the answer when there is nobody to ask. Null means the server's zone.
+   */
+  timeZone: text("time_zone"),
+  /**
+   * Whether members may create API tokens, and whether existing ones work.
+   * Off by default: a token is a credential that lives in another system's
+   * config file, so a household opts in. Turning it off disables every token
+   * at once without deleting them.
+   */
+  apiAccess: integer("api_access", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -451,6 +465,92 @@ export const shoppingListStatus = sqliteTable(
     ),
   })
 );
+
+/**
+ * Things to buy that no planned recipe asked for — milk, bin bags — added by
+ * hand or from Home Assistant. They belong to a week (its Sunday) and to one
+ * calendar, like the recipe lines beside them, so a household list and a
+ * private one never share extras.
+ */
+export const shoppingListItems = sqliteTable(
+  "shopping_list_items",
+  {
+    id: text("id").primaryKey(),
+    householdId: text("household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    scope: text("scope").notNull().default("shared"),
+    // Same convention as plan_entries.userId: '' for shared, owner for private.
+    userId: text("user_id").notNull().default(""),
+    // The Sunday that starts the week this item belongs to.
+    week: text("week").notNull(),
+    text: text("text").notNull(),
+    onHand: integer("on_hand", { mode: "boolean" }).notNull().default(false),
+    createdByUserId: text("created_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    calendarWeek: index("shopping_list_items_calendar_week_idx").on(
+      table.householdId,
+      table.scope,
+      table.userId,
+      table.week
+    ),
+  })
+);
+
+export type ShoppingListItem = typeof shoppingListItems.$inferSelect;
+
+export const API_TOKEN_SCOPES = ["read", "write", "feed"] as const;
+export type ApiTokenScope = (typeof API_TOKEN_SCOPES)[number];
+
+/**
+ * Personal API tokens, for Home Assistant and anything like it.
+ *
+ * A token acts as the user who made it, with exactly their permissions, so it
+ * can never do more than that person could in the browser. Only a SHA-256 of
+ * it is kept — like the emailed tokens — so the database alone cannot be used
+ * to call the API.
+ *
+ * Scopes: `read` sees, `write` also changes the plan and shopping list, and
+ * `feed` opens only the calendar feed. A feed key travels in a URL (Home
+ * Assistant's Remote Calendar takes nothing else), where it can end up in
+ * logs, so it is good for nothing beyond that feed.
+ */
+export const apiTokens = sqliteTable(
+  "api_tokens",
+  {
+    id: text("id").primaryKey(),
+    householdId: text("household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    // The last four characters, so the list can tell two tokens apart.
+    hint: text("hint").notNull(),
+    scope: text("scope").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    lastUsedAt: integer("last_used_at", { mode: "timestamp" }),
+    expiresAt: integer("expires_at", { mode: "timestamp" }),
+  },
+  (table) => ({
+    user: index("api_tokens_user_idx").on(table.userId),
+  })
+);
+
+export type ApiToken = typeof apiTokens.$inferSelect;
 
 // Fixed id for the (only ever one) SMTP settings row — see appSettings
 // below. Upserts always target this id, which keeps the table a singleton

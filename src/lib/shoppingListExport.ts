@@ -18,15 +18,21 @@ export interface ExportDay {
   meals: ExportMeal[];
 }
 
+/** Something added to the list by hand rather than by a planned recipe. */
+export interface ExportExtra {
+  text: string;
+  onHand: boolean;
+}
+
 const MEAL_LABELS: Record<MealType, string> = {
   breakfast: "Breakfast",
   lunch: "Lunch",
   dinner: "Dinner",
 };
 
-/** Plain-text checklist, grouped by day/meal, using unicode checkbox glyphs. */
-export function buildShoppingListText(days: ExportDay[]): string {
-  if (days.length === 0) return "No meals planned.";
+/** Plain-text checklist, grouped by day/meal, using unicode checkbox glyphs; extras last. */
+export function buildShoppingListText(days: ExportDay[], extras: ExportExtra[] = []): string {
+  if (days.length === 0 && extras.length === 0) return "No meals planned.";
 
   const lines: string[] = [];
   for (const day of days) {
@@ -46,11 +52,17 @@ export function buildShoppingListText(days: ExportDay[]): string {
       lines.push("");
     }
   }
+  if (extras.length > 0) {
+    lines.push("Extras");
+    lines.push("======");
+    lines.push("");
+    for (const extra of extras) lines.push(`  ${extra.onHand ? "☑" : "☐"} ${extra.text}`);
+  }
   return lines.join("\n").trimEnd() + "\n";
 }
 
-/** One row per ingredient: Date, Day, Meal, Recipe, Ingredient, On Hand. */
-export function buildShoppingListCsv(days: ExportDay[]): string {
+/** One row per ingredient: Date, Day, Meal, Recipe, Ingredient, On Hand. Extras have Meal "Extra". */
+export function buildShoppingListCsv(days: ExportDay[], extras: ExportExtra[] = []): string {
   const header = ["Date", "Day", "Meal", "Recipe", "Ingredient", "On Hand"];
   const rows = [header];
   for (const day of days) {
@@ -66,6 +78,9 @@ export function buildShoppingListCsv(days: ExportDay[]): string {
         ]);
       }
     }
+  }
+  for (const extra of extras) {
+    rows.push(["", "", "Extra", "", extra.text, extra.onHand ? "Yes" : "No"]);
   }
   return rows.map((row) => row.map(csvField).join(",")).join("\r\n") + "\r\n";
 }
@@ -85,8 +100,8 @@ function escapeHtml(value: string): string {
  * into an existing checklist note) fall back to the text/plain payload
  * written alongside this.
  */
-export function buildShoppingListHtml(days: ExportDay[]): string {
-  if (days.length === 0) return "<p>No meals planned.</p>";
+export function buildShoppingListHtml(days: ExportDay[], extras: ExportExtra[] = []): string {
+  if (days.length === 0 && extras.length === 0) return "<p>No meals planned.</p>";
 
   const parts: string[] = [];
   for (const day of days) {
@@ -107,6 +122,18 @@ export function buildShoppingListHtml(days: ExportDay[]): string {
       }
       parts.push("</ul>");
     }
+  }
+  if (extras.length > 0) {
+    parts.push("<h3>Extras</h3>");
+    parts.push('<ul style="list-style:none;padding-left:0;margin:0 0 12px 0;">');
+    for (const extra of extras) {
+      parts.push(
+        `<li><label><input type="checkbox" disabled${
+          extra.onHand ? " checked" : ""
+        } /> ${escapeHtml(extra.text)}</label></li>`
+      );
+    }
+    parts.push("</ul>");
   }
   return parts.join("\n");
 }

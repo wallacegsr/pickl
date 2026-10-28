@@ -32,8 +32,15 @@ or a whole file; export everything or just what a search found.
 the method as numbered steps, and the step you're on kept while the tab is
 open.
 
-**Shop from it.** The week's ingredients as a checklist, per recipe, with text
-or CSV download — on the plan dashboard and on its own screen.
+**Shop from it.** The week's ingredients as a checklist, per recipe, plus
+anything else you add by hand, with text or CSV download — on the plan
+dashboard and on its own screen.
+
+**Ask it from Home Assistant.** Personal API tokens give Home Assistant (or
+anything else) tonight's dinner, the week, recipes and the shopping list. Read
+and change tokens can also decide a meal, fill the week, and tick off or add
+shopping items. A calendar feed puts the plan on any calendar. A household
+admin turns it on; it's off by default. See [docs/api.md](docs/api.md).
 
 **Mirror it into your calendar.** Planned meals can be pushed to Google
 Calendar or any CalDAV server, and your own events can be drawn beside the
@@ -165,6 +172,8 @@ Keep imports of that module side-effect free.
 
 - [docs/calendars.md](docs/calendars.md) — Google and CalDAV sync, reading
   events back onto the plan, and the trust boundary around them.
+- [docs/api.md](docs/api.md) — the `/api/v1` endpoints, tokens, and Home
+  Assistant configuration.
 - [docs/deployment.md](docs/deployment.md) — Docker, Portainer, NAS bind
   mounts, ports, reverse proxies, storage.
 - [docs/architecture.md](docs/architecture.md) — the dashboard widgets, how

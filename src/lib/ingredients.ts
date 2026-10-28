@@ -15,3 +15,15 @@ export function splitIngredients(ingredients: string): string[] {
     .map((line) => line.trim())
     .filter(Boolean);
 }
+
+/**
+ * The method as steps: one per paragraph or line, with any "1." / "Step 2:"
+ * numbering the author typed dropped, since the list numbers them itself.
+ * Shared by the recipe page and the API, so both number a method the same way.
+ */
+export function splitSteps(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim().replace(/^(step\s*)?\d+\s*[.):-]\s*/i, ""))
+    .filter(Boolean);
+}

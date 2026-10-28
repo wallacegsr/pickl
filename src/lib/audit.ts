@@ -64,7 +64,14 @@ export type AuditAction =
   // actually found, so the log never records guesses at other addresses.
   | "password_reset_request"
   | "password_reset"
-  | "theme_change";
+  | "theme_change"
+  // API tokens (/preferences → API tokens). `notes` names the token and its
+  // scope, never the token itself. Changes made WITH a token keep their own
+  // action (spin_today, …) and say "via API token …" in `notes`.
+  | "api_token_create"
+  | "api_token_revoke"
+  // A household admin changing the time zone or turning API access on or off.
+  | "household_settings";
 
 export interface LogAuditEntryInput {
   userId: string;

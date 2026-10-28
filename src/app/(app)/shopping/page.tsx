@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { householdScope } from "@/lib/permissions";
 import { resolvePlanContext } from "@/lib/planContext";
 import { buildShoppingListWeek } from "@/lib/shoppingList";
+import { listExtras } from "@/lib/shoppingExtras";
 import { viewerToday } from "@/lib/viewerToday";
 import ShoppingListPanel from "@/components/ShoppingListPanel";
 import { Nav, NavItem } from "react-bootstrap";
@@ -69,9 +70,9 @@ export default async function ShoppingPage(
     <div>
       <h2 className="mb-1">Shopping List</h2>
       <p className="text-muted mb-4">
-        What this week&rsquo;s meals need. Tick things off as you find them —
-        that is remembered per recipe, so two dishes sharing an ingredient keep
-        their own lines.
+        What this week&rsquo;s meals need, plus anything you add yourself. Tick
+        things off as you find them — that is remembered per recipe, so two
+        dishes sharing an ingredient keep their own lines.
       </p>
       {/* Which plan's list: the same choice the Plan page offers, carried
           between the two by the sidebar links. */}
@@ -101,6 +102,7 @@ export default async function ShoppingPage(
         scope={scope}
         requestedUserId={searchParams.userId || session.user.id}
         initialDays={days}
+        initialExtras={listExtras(resolved.context, week)}
         bare
       />
     </div>

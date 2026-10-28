@@ -11,6 +11,29 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+### Added
+
+- **A JSON API for Home Assistant and similar tools**, under `/api/v1`.
+  - **Reads:** today's meals, the week (including how many slots are still
+    unplanned), recipe search and detail, and the shopping list.
+  - **Changes:** deciding today's meal and filling the week, the same as
+    Crunch Time and Weekly Picks, and ticking shopping items off.
+  - **Calendar feed:** an iCalendar feed of the plan for Home Assistant's
+    Remote Calendar or any calendar app.
+  - See [docs/api.md](docs/api.md), with example Home Assistant configuration.
+- **Personal API tokens**, under Preferences → API tokens.
+  - Three kinds: read only, read and change, or calendar feed only.
+  - Optional expiry; shown once, then stored only as a hash.
+  - A token acts as its owner and can do nothing they couldn't.
+  - Changes made through one are audited as `via API token "…"`.
+- **Household API switch and time zone**, under Back of House → Household.
+  - API access is off until a household admin turns it on. Turning it off
+    stops every token at once.
+  - The time zone sets what "today" means to the API and the times in the feed.
+- **Your own shopping-list items.** Add things no recipe calls for (milk, bin
+  bags) to the week's list. They tick off like the rest and are included in
+  the copy and download.
+
 ## [2.6.1] - 2026-10-26
 
 ### Security

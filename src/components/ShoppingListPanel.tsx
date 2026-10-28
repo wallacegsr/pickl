@@ -42,6 +42,13 @@ export interface ShoppingListDayData {
   meals: ShoppingListMealData[];
 }
 
+/** Something added to the week's list by hand — or by Home Assistant. */
+export interface ShoppingExtraData {
+  id: string;
+  text: string;
+  onHand: boolean;
+}
+
 type ViewMode = "today" | "week";
 
 export default function ShoppingListPanel({
@@ -50,6 +57,7 @@ export default function ShoppingListPanel({
   scope,
   requestedUserId,
   initialDays,
+  initialExtras = [],
   bare = false,
 }: {
   week: string;
@@ -58,6 +66,11 @@ export default function ShoppingListPanel({
   scope: Scope;
   requestedUserId: string;
   initialDays: ShoppingListDayData[];
+  /**
+   * The week's extras, when the page has them to hand. Optional: the plan
+   * dashboard's widget leaves it out and the fetch below fills them in.
+   */
+  initialExtras?: ShoppingExtraData[];
   /**
    * Drop the Card shell and the "🛒 Shopping List" title. Set when this panel
    * is rendered inside a dashboard widget, which supplies both already —
@@ -68,6 +81,9 @@ export default function ShoppingListPanel({
   bare?: boolean;
 }) {
   const [days, setDays] = useState<ShoppingListDayData[]>(initialDays);
+  const [extras, setExtras] = useState<ShoppingExtraData[]>(initialExtras);
+  const [newExtra, setNewExtra] = useState("");
+  const [adding, setAdding] = useState(false);
   const [mode, setMode] = useState<ViewMode>("today");
   const [error, setError] = useState<string | null>(null);
   const [exportFormat, setExportFormat] = useState<"txt" | "csv">("txt");
@@ -99,8 +115,12 @@ export default function ShoppingListPanel({
     if (scope === "private") params.set("userId", requestedUserId);
     fetch(`/api/shopping-list?${params.toString()}`)
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: { days?: ShoppingListDayData[] } | null) => {
-        if (!cancelled && data?.days) setDays(data.days);
+      .then((data: { days?: ShoppingListDayData[]; extras?: ShoppingExtraData[] } | null) => {
+        if (cancelled) return;
+        if (data?.days) setDays(data.days);
+        // Extras can change from outside this page — Home Assistant adding
+        // milk — so they come from here too, not only from the server render.
+        if (data?.extras) setExtras(data.extras);
       })
       .catch(() => undefined);
     return () => {
@@ -181,6 +201,69 @@ export default function ShoppingListPanel({
     }
   }
 
+  /** `?scope=&userId=` naming this list's calendar, for the extras routes. */
+  function calendarQuery() {
+    const params = new URLSearchParams({ scope });
+    if (scope === "private") params.set("userId", requestedUserId);
+    return params.toString();
+  }
+
+  async function addExtraItem(e: React.FormEvent) {
+    e.preventDefault();
+    const text = newExtra.trim();
+    if (!text) return;
+    setError(null);
+    setAdding(true);
+    const res = await fetch("/api/shopping-list/extras", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        week,
+        text,
+        scope,
+        userId: scope === "private" ? requestedUserId : undefined,
+      }),
+    });
+    setAdding(false);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(data.error || "Could not add that.");
+      return;
+    }
+    setExtras((prev) => [...prev, data as ShoppingExtraData]);
+    setNewExtra("");
+  }
+
+  async function toggleExtra(id: string, onHand: boolean) {
+    setError(null);
+    const flip = (value: boolean) =>
+      setExtras((prev) => prev.map((x) => (x.id === id ? { ...x, onHand: value } : x)));
+    flip(onHand);
+    const res = await fetch(`/api/shopping-list/extras/${encodeURIComponent(id)}?${calendarQuery()}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ onHand }),
+    });
+    if (!res.ok) {
+      flip(!onHand);
+      const data = await res.json().catch(() => ({}));
+      setError(data.error || "Could not update this item.");
+    }
+  }
+
+  async function removeExtra(id: string) {
+    setError(null);
+    const res = await fetch(`/api/shopping-list/extras/${encodeURIComponent(id)}?${calendarQuery()}`, {
+      method: "DELETE",
+    });
+    if (!res.ok && res.status !== 404) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error || "Could not remove this item.");
+      return;
+    }
+    setExtras((prev) => prev.filter((x) => x.id !== id));
+  }
+
   function handleDownload() {
     // Navigating to a route that answers with Content-Disposition, rather than
     // building a Blob here. A `blob:` URL never reaches an Android WebView's
@@ -195,8 +278,8 @@ export default function ShoppingListPanel({
   }
 
   async function handleCopy() {
-    const text = buildShoppingListText(visibleDays);
-    const html = buildShoppingListHtml(visibleDays);
+    const text = buildShoppingListText(visibleDays, extras);
+    const html = buildShoppingListHtml(visibleDays, extras);
     try {
       if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
         await navigator.clipboard.write([
@@ -313,7 +396,7 @@ export default function ShoppingListPanel({
             size="sm"
             variant="outline-secondary"
             onClick={handleDownload}
-            disabled={visibleDays.length === 0}
+            disabled={visibleDays.length === 0 && extras.length === 0}
           >
             ⬇️ Download
           </Button>
@@ -321,7 +404,7 @@ export default function ShoppingListPanel({
             size="sm"
             variant="outline-secondary"
             onClick={handleCopy}
-            disabled={visibleDays.length === 0}
+            disabled={visibleDays.length === 0 && extras.length === 0}
           >
             📋 Copy
           </Button>
@@ -359,6 +442,62 @@ export default function ShoppingListPanel({
             {day.meals.map((meal) => renderMealTable(day, meal))}
           </div>
         ))}
+
+        {/* Extras belong to the week, not a day, so they show in both views:
+            on today's trip to the shop they are still what you went for. */}
+        <section aria-labelledby="shopping-extras-heading" className="mt-3">
+          <h6 id="shopping-extras-heading" className="border-bottom pb-1 mb-2">
+            Extras
+          </h6>
+          {extras.length > 0 && (
+            <div className="table-responsive mb-2">
+              <Table size="sm" bordered className="mb-0 align-middle">
+                <tbody>
+                  {extras.map((extra) => (
+                    <tr key={extra.id}>
+                      <td style={{ width: 32 }}>
+                        <Form.Check
+                          type="checkbox"
+                          checked={extra.onHand}
+                          onChange={(e) => toggleExtra(extra.id, e.target.checked)}
+                          aria-label={extra.onHand ? `Mark ${extra.text} as need to buy` : `Mark ${extra.text} as on hand`}
+                        />
+                      </td>
+                      <td className={extra.onHand ? "text-muted text-decoration-line-through" : undefined}>
+                        {extra.text}
+                      </td>
+                      <td style={{ width: 40 }} className="text-end">
+                        <Button
+                          size="sm"
+                          variant="link"
+                          className="text-body-secondary p-0 px-1 text-decoration-none"
+                          onClick={() => removeExtra(extra.id)}
+                          aria-label={`Remove ${extra.text}`}
+                          title="Remove"
+                        >
+                          ✕
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          )}
+          <Form onSubmit={addExtraItem} className="d-flex gap-2" style={{ maxWidth: "28rem" }}>
+            <Form.Control
+              size="sm"
+              value={newExtra}
+              onChange={(e) => setNewExtra(e.target.value)}
+              placeholder="Add something — milk, bin bags…"
+              aria-label="Add an item to this week's list"
+              maxLength={200}
+            />
+            <Button type="submit" size="sm" variant="outline-secondary" disabled={adding || !newExtra.trim()}>
+              Add
+            </Button>
+          </Form>
+        </section>
     </>
   );
 

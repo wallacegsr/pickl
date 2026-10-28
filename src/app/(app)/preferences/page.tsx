@@ -12,6 +12,9 @@ import { buildCalendarPanelState } from "@/lib/calendar/panelState";
 import { defaultPickerChips, parsePickerChips } from "@/lib/pickerChips";
 import { listVisibleTags } from "@/lib/tags";
 import { householdScope } from "@/lib/permissions";
+import ApiTokensPanel from "@/components/ApiTokensPanel";
+import { householdAllowsApi, listApiTokens } from "@/lib/apiTokens";
+import { getAppBaseUrl } from "@/lib/appUrl";
 
 /**
  * Per-user settings. Available to every signed-in user — deliberately NOT
@@ -83,6 +86,17 @@ export default async function PreferencesPage(
                 initialState={calendarState}
                 initialMessage={searchParams.calendarMessage}
                 initialError={searchParams.calendarError}
+              />
+            ),
+          },
+          {
+            key: "api",
+            label: "API tokens",
+            element: (
+              <ApiTokensPanel
+                initialTokens={listApiTokens(user.id)}
+                apiAccess={householdId ? householdAllowsApi(householdId) : false}
+                baseUrl={getAppBaseUrl()}
               />
             ),
           },

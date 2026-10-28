@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { householdScope, isHouseholdAdmin } from "@/lib/permissions";
-import { getHousehold, renameHousehold, suspensionError } from "@/lib/households";
+import {
+  getHousehold,
+  renameHousehold,
+  suspensionError,
+  updateHouseholdSettings,
+} from "@/lib/households";
 import { logAuditEntry } from "@/lib/audit";
+import { isValidTimeZone, serverTimeZone } from "@/lib/householdTime";
+import type { Household } from "@/db/schema";
 
 /**
  * A household admin's own household settings.
@@ -14,9 +21,31 @@ import { logAuditEntry } from "@/lib/audit";
  * sharing it with an "or if it's yours" branch.
  */
 
-const patchSchema = z.object({
-  name: z.string().min(1, "Enter a household name.").max(80),
-});
+const patchSchema = z
+  .object({
+    name: z.string().min(1, "Enter a household name.").max(80).optional(),
+    // null clears it, so the server's own zone is used again.
+    timeZone: z
+      .string()
+      .refine(isValidTimeZone, "That isn't a time zone this server recognises.")
+      .nullable()
+      .optional(),
+    apiAccess: z.boolean().optional(),
+  })
+  .refine((v) => v.name !== undefined || v.timeZone !== undefined || v.apiAccess !== undefined, {
+    message: "Nothing to change.",
+  });
+
+function view(household: Household) {
+  return {
+    id: household.id,
+    name: household.name,
+    suspended: household.suspended,
+    timeZone: household.timeZone,
+    serverTimeZone: serverTimeZone(),
+    apiAccess: household.apiAccess,
+  };
+}
 
 export async function GET() {
   const session = await auth();
@@ -30,11 +59,7 @@ export async function GET() {
   const household = getHousehold(householdId);
   if (!household) return NextResponse.json(null);
 
-  return NextResponse.json({
-    id: household.id,
-    name: household.name,
-    suspended: household.suspended,
-  });
+  return NextResponse.json(view(household));
 }
 
 export async function PATCH(req: NextRequest) {
@@ -51,7 +76,7 @@ export async function PATCH(req: NextRequest) {
     );
   }
 
-  // A rename is a household write like any other, and the banner the panel
+  // A change is a household write like any other, and the banner the panel
   // shows while suspended promises nothing can be changed.
   const suspended = suspensionError(householdId);
   if (suspended) {
@@ -66,22 +91,41 @@ export async function PATCH(req: NextRequest) {
       { status: 400 }
     );
   }
+  const { name, timeZone, apiAccess } = parsed.data;
 
   const before = getHousehold(householdId);
-  const result = renameHousehold(householdId, parsed.data.name);
-  if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: result.status });
+  if (!before) return NextResponse.json({ error: "Household not found." }, { status: 404 });
+
+  if (name !== undefined && name !== before.name) {
+    const result = renameHousehold(householdId, name);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
+    }
+    logAuditEntry({
+      userId: session.user.id,
+      action: "household_rename",
+      notes: `Renamed household "${before.name}" to "${result.household.name}"`,
+    });
   }
 
-  logAuditEntry({
-    userId: session.user.id,
-    action: "household_rename",
-    notes: `Renamed household "${before?.name ?? "?"}" to "${result.household.name}"`,
-  });
+  const changes: string[] = [];
+  if (timeZone !== undefined && timeZone !== before.timeZone) {
+    changes.push(`time zone ${before.timeZone ?? "(server's)"} → ${timeZone ?? "(server's)"}`);
+  }
+  if (apiAccess !== undefined && apiAccess !== before.apiAccess) {
+    changes.push(apiAccess ? "turned API access on" : "turned API access off");
+  }
+  if (changes.length > 0) {
+    updateHouseholdSettings(householdId, {
+      ...(timeZone !== undefined ? { timeZone } : {}),
+      ...(apiAccess !== undefined ? { apiAccess } : {}),
+    });
+    logAuditEntry({
+      userId: session.user.id,
+      action: "household_settings",
+      notes: `Household settings: ${changes.join("; ")}`,
+    });
+  }
 
-  return NextResponse.json({
-    id: result.household.id,
-    name: result.household.name,
-    suspended: result.household.suspended,
-  });
+  return NextResponse.json(view(getHousehold(householdId)!));
 }

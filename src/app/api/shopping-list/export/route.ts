@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { viewerToday } from "@/lib/viewerToday";
 import { buildShoppingListWeek } from "@/lib/shoppingList";
+import { listExtras } from "@/lib/shoppingExtras";
 import { resolvePlanContext } from "@/lib/planContext";
 import {
   buildShoppingListCsv,
@@ -67,8 +68,11 @@ export async function GET(req: NextRequest) {
   const days =
     modeParam === "today" ? allDays.filter((day) => day.date === today) : allDays;
 
+  // Extras belong to the week rather than a day, so "today" includes them too:
+  // they are what this trip to the shop is for.
+  const extras = listExtras(resolved.context, week);
   const body =
-    formatParam === "csv" ? buildShoppingListCsv(days) : buildShoppingListText(days);
+    formatParam === "csv" ? buildShoppingListCsv(days, extras) : buildShoppingListText(days, extras);
   const mime = formatParam === "csv" ? "text/csv" : "text/plain";
   const filename = shoppingListFilename(week, modeParam, formatParam);
 

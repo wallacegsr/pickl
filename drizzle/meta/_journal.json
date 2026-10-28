@@ -141,6 +141,13 @@
       "when": 1790202748826,
       "tag": "0019_plain_jasper_sitwell",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1793198585606,
+      "tag": "0020_home_assistant_api",
+      "breakpoints": true
     }
   ]
 }

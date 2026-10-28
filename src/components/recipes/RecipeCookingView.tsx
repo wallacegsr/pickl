@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button, Col, Form, Row } from "react-bootstrap";
+import { splitSteps } from "@/lib/ingredients";
 
 /**
  * Ingredients and method, laid out for cooking from.
@@ -141,15 +142,4 @@ export default function RecipeCookingView({
       </Col>
     </Row>
   );
-}
-
-/**
- * The method as steps: one per paragraph or line, with any "1." / "Step 2:"
- * numbering the author typed dropped, since the list numbers them itself.
- */
-function splitSteps(text: string): string[] {
-  return text
-    .split(/\r?\n/)
-    .map((line) => line.trim().replace(/^(step\s*)?\d+\s*[.):-]\s*/i, ""))
-    .filter(Boolean);
 }

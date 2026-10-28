@@ -8,6 +8,7 @@ import {
   type GoogleOauthSettings,
 } from "@/db/schema";
 import { decrypt } from "@/lib/crypto";
+import { getAppBaseUrl } from "@/lib/appUrl";
 import { ReauthRequiredError } from "./types";
 
 /**
@@ -66,14 +67,7 @@ const TOKEN_REVOKE_URL = "https://oauth2.googleapis.com/revoke";
 const CALENDAR_API_BASE = "https://www.googleapis.com/calendar/v3";
 const USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
 
-/** The app's public base URL, matching the convention in src/lib/mail.ts. */
-export function getAppBaseUrl(): string {
-  return (
-    process.env.APP_BASE_URL ||
-    process.env.NEXTAUTH_URL ||
-    "http://localhost:3000"
-  ).replace(/\/+$/, "");
-}
+export { getAppBaseUrl };
 
 /**
  * The exact redirect URI that must be registered on the OAuth client in

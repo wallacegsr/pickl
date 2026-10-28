@@ -125,6 +125,25 @@ export function renameHousehold(id: string, name: string): HouseholdResult {
   return { ok: true, household: getHousehold(id)! };
 }
 
+/**
+ * A household admin's own settings beyond the name: the time zone requests
+ * with no browser are answered in, and whether API tokens work. Only the
+ * fields given change. The zone must already be validated by the caller.
+ */
+export function updateHouseholdSettings(
+  id: string,
+  settings: { timeZone?: string | null; apiAccess?: boolean }
+): HouseholdResult {
+  const existing = getHousehold(id);
+  if (!existing) return { ok: false, status: 404, error: "Household not found." };
+
+  db.update(households)
+    .set({ ...settings, updatedAt: new Date() })
+    .where(eq(households.id, id))
+    .run();
+  return { ok: true, household: getHousehold(id)! };
+}
+
 export function setHouseholdSuspended(
   id: string,
   suspended: boolean

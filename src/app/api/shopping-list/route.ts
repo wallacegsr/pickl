@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { viewerToday } from "@/lib/viewerToday";
 import { shoppingListStatusSchema } from "@/lib/validators";
 import { buildShoppingListWeek, setOnHand } from "@/lib/shoppingList";
+import { listExtras } from "@/lib/shoppingExtras";
 import { resolvePlanContext } from "@/lib/planContext";
 import { suspensionError } from "@/lib/households";
 
@@ -33,6 +34,7 @@ export async function GET(req: NextRequest) {
     scope: resolved.context.scope,
     userId: resolved.context.userId || null,
     days,
+    extras: listExtras(resolved.context, week),
   });
 }
 

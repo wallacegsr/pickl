@@ -5,6 +5,7 @@ import { users, appSettings, SMTP_SETTINGS_ID } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { householdScope, isHouseholdAdmin, isPlatformAdmin } from "@/lib/permissions";
 import { getHousehold, listHouseholds } from "@/lib/households";
+import { serverTimeZone } from "@/lib/householdTime";
 import AdminUserTable from "@/components/AdminUserTable";
 import HouseholdSettingsPanel from "@/components/HouseholdSettingsPanel";
 import HouseholdTable from "@/components/HouseholdTable";
@@ -106,6 +107,9 @@ export default async function AdminPage() {
         <HouseholdSettingsPanel
           initialName={household?.name ?? ""}
           suspended={household?.suspended ?? false}
+          initialTimeZone={household?.timeZone ?? null}
+          serverTimeZone={serverTimeZone()}
+          initialApiAccess={household?.apiAccess ?? false}
         />
       ),
     });

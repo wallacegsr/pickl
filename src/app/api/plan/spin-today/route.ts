@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { and, eq, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { viewerToday } from "@/lib/viewerToday";
-import { dessertSlotFor, getSlotEntries, getRecipePool, getWeekPlan, setPlanEntry, shuffle } from "@/lib/plan";
 import { spinTodaySchema } from "@/lib/validators";
 import { resolvePlanContext } from "@/lib/planContext";
-import { buildSpinFilter, noDessertsMessage, noMainsMessage } from "@/lib/spinFilter";
-import { db } from "@/db";
-import { recipes } from "@/db/schema";
-import type { MealType } from "@/db/schema";
+import { spinToday } from "@/lib/spin";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -31,102 +26,22 @@ export async function POST(req: NextRequest) {
   if (!resolved.ok) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
-  const { householdId, scope: ctxScope, userId: ctxUserId } = resolved.context;
 
-  // Applied to desserts as well as mains. A tag filter is often a dietary one,
-  // and a Vegetarian spin that adds a dessert nobody checked is not one.
-  const spin = buildSpinFilter(session.user, householdId, { tags, tagMatch, favoritesOnly });
-
-  const today = (await viewerToday());
-
-  if (!force) {
-    // A slot can hold several recipes, so a conflict names all of them.
-    const conflicts: { mealType: MealType; currentRecipes: unknown[] }[] = [];
-    for (const mealType of mealTypes) {
-      // Any recipe in the slot makes it a conflict; a slot with a main and a
-      // dessert is just as 'already planned' as one with a single meal.
-      const existing = getSlotEntries(householdId, today, ctxScope, ctxUserId, mealType);
-      const existingIds = existing
-        .map((e) => e.recipeId)
-        .filter((id): id is string => Boolean(id));
-      if (existingIds.length > 0) {
-        const current = db
-          .select()
-          .from(recipes)
-          .where(and(eq(recipes.householdId, householdId), inArray(recipes.id, existingIds)))
-          .all();
-        conflicts.push({ mealType, currentRecipes: current });
-      }
-    }
-    if (conflicts.length > 0) {
-      return NextResponse.json({ needsConfirmation: true, conflicts }, { status: 409 });
-    }
-  }
-
-  const weekPlan = getWeekPlan(householdId, today, ctxScope, ctxUserId);
-
-  const results: { mealType: MealType; recipe: { id: string; name: string } | null }[] = [];
-  const errors: string[] = [];
-
-  // Where a dessert goes, if one was asked for.
-  const dessertSlot = includeDessert ? dessertSlotFor(mealTypes) : null;
-
-  for (const mealType of mealTypes) {
-    // "main" so shaking for dinner never proposes cake.
-    const pool = getRecipePool(householdId, ctxScope, ctxUserId, mealType, "main", spin.filter);
-    if (pool.length === 0) {
-      errors.push(noMainsMessage(mealType, spin));
-      results.push({ mealType, recipe: null });
-      continue;
-    }
-
-    const usedThisWeek = new Set(
-      weekPlan
-        .filter((d) => d.date !== today)
-        .flatMap((d) => d.meals[mealType].recipes.map((r) => r.recipe.id))
-    );
-    const unused = pool.filter((r) => !usedThisWeek.has(r.id));
-    const drawPool = unused.length > 0 ? unused : pool;
-    const picked = shuffle(drawPool)[0];
-
-    const recipeIds = [picked.id];
-
-    if (mealType === dessertSlot) {
-      const dessertPool = getRecipePool(
-        householdId,
-        ctxScope,
-        ctxUserId,
-        mealType,
-        "dessert",
-        spin.filter
-      );
-      if (dessertPool.length === 0) {
-        errors.push(noDessertsMessage(spin));
-      } else {
-        // Second in the slot, so the main keeps position 0 and the dessert
-        // reads as following it.
-        recipeIds.push(shuffle(dessertPool)[0].id);
-      }
-    }
-
-    setPlanEntry({
-      householdId,
-      today,
-      date: today,
-      scope: ctxScope,
-      userId: ctxUserId,
-      mealType,
-      recipeIds,
-      actingUserId: session.user.id,
-      action: "spin_today",
-    });
-
-    results.push({ mealType, recipe: { id: picked.id, name: picked.name } });
-  }
-
-  return NextResponse.json({
-    date: today,
-    results,
-    note: errors.length > 0 ? errors.join(" ") : null,
+  const result = spinToday({
+    user: session.user,
+    context: resolved.context,
+    today: await viewerToday(),
+    mealTypes,
+    includeDessert,
+    filter: { tags, tagMatch, favoritesOnly },
+    force,
   });
+
+  if (result.kind === "conflict") {
+    return NextResponse.json(
+      { needsConfirmation: true, conflicts: result.conflicts },
+      { status: 409 }
+    );
+  }
+  return NextResponse.json({ date: result.date, results: result.results, note: result.note });
 }
