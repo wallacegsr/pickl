@@ -16,6 +16,8 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.wallacegsr.pickl.databinding.ActivityMainBinding
@@ -46,8 +48,15 @@ class MainActivity : AppCompatActivity() {
                 return
             }
 
+        // Light icons on the green bars, in light and dark mode alike, matching
+        // the header the web app draws directly beneath them.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(getColor(R.color.pickl_green_dark)),
+            navigationBarStyle = SystemBarStyle.dark(getColor(R.color.pickl_green_dark)),
+        )
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        padForSystemBars(binding.root)
 
         configureWebView()
         configureBackNavigation()

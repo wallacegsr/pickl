@@ -3,7 +3,13 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/pickl_green_dark"
     android:orientation="vertical">
+
+    <!-- The green background shows only in the padding SystemBars.kt adds for
+         the status and navigation bars, so the bars stay Pickl green now that
+         Android no longer honours statusBarColor. Everything inside is covered
+         by the WebView or the error panel. -->
 
     <!-- No native toolbar. The web app draws its own header with the account
          menu, and stacking a second bar above it wasted a chunk of a phone

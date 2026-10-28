@@ -36,7 +36,9 @@ The Gradle wrapper JAR is intentionally not committed. Either:
 
 - **Android Studio** — open the `android/` folder; it generates the wrapper and
   syncs automatically.
-- **Command line** — with Gradle 8.7+ and JDK 17 installed:
+- **Command line** — with JDK 17, the Gradle version named in
+  `gradle/wrapper/gradle-wrapper.properties` (9.8 or later), and an Android SDK
+  with the API 37 platform installed:
 
 ```bash
 cd android && gradle assembleDebug

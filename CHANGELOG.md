@@ -11,6 +11,26 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+### Security
+
+- **The Android app no longer copies its sign-in to a new phone.** Since
+  Android 12, a phone-to-phone transfer ignores `allowBackup="false"`, so the
+  WebView's session cookie and the server address moved across with
+  everything else. The app now declares data-extraction rules that exclude
+  everything, from cloud backups and device transfers alike.
+
+### Changed
+
+- **The Android app builds with Android Gradle Plugin 9, Kotlin 2.4 and
+  Gradle 9.8**, and its AndroidX and Material libraries are up to date. It
+  compiles against API 37 and targets Android 16 (API 36).
+- **The Android app draws edge to edge**, as Android 15 and later require.
+  The status and navigation bars stay Pickl green above and below the web
+  app. The keyboard still pushes the page up rather than covering the field
+  being typed in.
+- **CI builds the APK with the Gradle version the project names**, rather
+  than whichever one the runner image ships.
+
 ## [2.7.1] - 2026-11-08
 
 ### Security
