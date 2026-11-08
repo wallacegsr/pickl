@@ -11,6 +11,32 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+### Security
+
+- **Login and sign-up limits can no longer be dodged with a made-up address.**
+  The per-address limits read the first `X-Forwarded-For` entry, which the
+  client writes, so sending a different invented address with each attempt
+  never ran into them. They now read the address the reverse proxy itself
+  added, from the right. A new optional `TRUSTED_PROXY_HOPS` setting covers
+  deployments with more than one proxy; see
+  [docs/deployment.md](docs/deployment.md).
+- **Temporary passwords for new users come from a cryptographic random
+  source.** The Add user dialog used `Math.random`, which is not fit for
+  making credentials.
+- **The container image no longer includes npm or corepack.** Nothing runs
+  them once the image is built, and their bundled packages were showing up in
+  image vulnerability scans.
+- **A denial-of-service advisory in minimatch** (GHSA-g3hv-75wg-m249),
+  reached through the lint tooling, is fixed by moving it to 11.0.5.
+  `npm audit` is clean again.
+
+### Changed
+
+- Next.js 16.4.5, along with patch updates to google-auth-library,
+  ical-generator, lucide-react, nodemailer and sass.
+- Dependabot no longer proposes `@types/node` majors; they follow the Node
+  major the Docker image runs, like Node itself.
+
 ## [2.7.0] - 2026-10-28
 
 ### Added

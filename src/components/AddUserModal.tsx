@@ -21,10 +21,19 @@ type Mode = "manual" | "invite";
 const PASSWORD_CHARS =
   "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
 
+/**
+ * A temporary password from the browser's cryptographic RNG. Math.random is
+ * predictable enough that its output must never become a credential. Bytes at
+ * or above the largest multiple of the alphabet size are thrown away, so every
+ * character is equally likely rather than the first few being favoured.
+ */
 function generatePassword(length = 14): string {
+  const limit = 256 - (256 % PASSWORD_CHARS.length);
+  const bytes = new Uint8Array(1);
   let out = "";
-  for (let i = 0; i < length; i++) {
-    out += PASSWORD_CHARS[Math.floor(Math.random() * PASSWORD_CHARS.length)];
+  while (out.length < length) {
+    crypto.getRandomValues(bytes);
+    if (bytes[0] < limit) out += PASSWORD_CHARS[bytes[0] % PASSWORD_CHARS.length];
   }
   return out;
 }

@@ -23,6 +23,10 @@ updates:
       # not support ESLint 10 yet.
       - dependency-name: eslint
         update-types: ["version-update:semver-major"]
+      # The types describe the Node the app runs on, so their major follows
+      # the Docker image's Node major (ignored below for the same reason).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: deps
 

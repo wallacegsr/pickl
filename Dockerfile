@@ -56,8 +56,13 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV DATABASE_PATH=/data/app.db
 
-# Non-root user
-RUN groupadd --system nodejs && useradd --system --gid nodejs --uid 1001 nextjs
+# Non-root user. npm and corepack come with the base image but nothing runs
+# them at runtime (the app starts with plain `node`), so they are removed:
+# less to attack, and their bundled dependencies stop turning up in image
+# vulnerability scans for code that never runs.
+RUN groupadd --system nodejs && useradd --system --gid nodejs --uid 1001 nextjs \
+  && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+       /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 
 # Next.js standalone output (server.js + minimal traced node_modules)
 COPY --from=builder /app/.next/standalone ./

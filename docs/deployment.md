@@ -40,6 +40,7 @@ committed to source control.
 | `NEXTAUTH_URL` | Yes | The public URL the app is served at, e.g. `https://dinner.yourdomain.com`. |
 | `AUTH_TRUST_HOST` | Yes | Must be `true`. Auth.js refuses to serve auth requests from a host it doesn't already recognize as safe unless this is set — without it you'll see an `UntrustedHost` error on login. |
 | `APP_BASE_URL` | Yes | Base URL used to build verification email links **and the Google OAuth redirect URI** (`{APP_BASE_URL}/api/calendar/google/callback`). Usually identical to `NEXTAUTH_URL`. If you use Google Calendar sync, this must match the redirect URI registered on the OAuth client in Google Cloud, or every connection attempt fails with `redirect_uri_mismatch`. |
+| `TRUSTED_PROXY_HOPS` | No | How many reverse proxies sit in front of the app, each adding to `X-Forwarded-For`. Defaults to `1`. The login and sign-up limits count attempts per address, taken this many entries from the right of that header, because the entries further left come from the client and can be forged. Set `2` for, say, Cloudflare in front of nginx. |
 | `DATABASE_PATH` | Yes | Path to the SQLite file inside the container. Leave as `/data/app.db` to match the volume mount in `docker-compose.yml`. |
 | `SMTP_HOST` | Yes (for real email) | Your SMTP server's hostname, e.g. `smtp.gmail.com`. |
 | `SMTP_PORT` | Yes | SMTP port — typically `587` (STARTTLS) or `465` (implicit TLS). |
@@ -172,6 +173,10 @@ them up is the most common way a deployment half-works.
 - Forward `Host` and `X-Forwarded-Proto` from the proxy so the app sees the
   original scheme. Without `X-Forwarded-Proto: https`, cookies meant to be
   Secure may not behave as expected.
+- Have the proxy **append** the client address to `X-Forwarded-For` (nginx's
+  `$proxy_add_x_forwarded_for`; Caddy, Traefik and DSM do it by default).
+  Login and sign-up limits are counted per address read from that header;
+  see `TRUSTED_PROXY_HOPS` if more than one proxy is involved.
 - Terminating TLS at the proxy and speaking plain HTTP to the container is
   fine and expected — `NEXTAUTH_URL` still uses `https://`.
 

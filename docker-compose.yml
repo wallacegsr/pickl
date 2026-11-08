@@ -91,6 +91,12 @@ services:
       # (Admin -> Calendar Integration) shows the computed value to copy.
       APP_BASE_URL: "https://pickl.example.com"
 
+      # Optional. How many reverse proxies sit in front of the app (default 1).
+      # Login and sign-up limits are counted per client address, read this
+      # many entries from the right of X-Forwarded-For. Set 2 for e.g.
+      # Cloudflare in front of nginx.
+      # TRUSTED_PROXY_HOPS: "1"
+
       # --- Database ---
       # Path inside the container where the SQLite file is stored. Matches
       # the /data volume mount above — leave as-is unless you also change

@@ -51,11 +51,32 @@ export function clear(key: string) {
   windows.delete(key);
 }
 
-/** The caller's address, as the reverse proxy reports it. */
+/**
+ * How many reverse proxies stand in front of the app, from TRUSTED_PROXY_HOPS.
+ * One (the default) is the usual nginx, Caddy, Traefik or DSM proxy.
+ */
+function trustedProxyHops(): number {
+  const hops = Number.parseInt(process.env.TRUSTED_PROXY_HOPS ?? "", 10);
+  return Number.isInteger(hops) && hops >= 1 ? hops : 1;
+}
+
+/**
+ * The caller's address, as the reverse proxy reports it.
+ *
+ * Read from the right of X-Forwarded-For, never the left. Each proxy appends
+ * the address it was connected from, so the last entry is the one our own
+ * proxy wrote; anything to the left of the entries our proxies added came
+ * from the client and can say anything. Taking the first entry let anyone
+ * send a fresh made-up address with every login attempt and never meet the
+ * per-address limit.
+ */
 export function clientIp(headers: Headers): string {
-  return (
-    headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    headers.get("x-real-ip") ||
-    "unknown"
-  );
+  const forwarded = (headers.get("x-forwarded-for") ?? "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (forwarded.length > 0) {
+    return forwarded[Math.max(forwarded.length - trustedProxyHops(), 0)];
+  }
+  return headers.get("x-real-ip")?.trim() || "unknown";
 }
