@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.wallacegsr.pickl.databinding.ActivityConnectBinding
@@ -33,8 +34,12 @@ class ConnectActivity : AppCompatActivity() {
             return
         }
 
+        // Bars take the screen's own background, with icons that follow light
+        // and dark mode.
+        enableEdgeToEdge()
         binding = ActivityConnectBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        padForSystemBars(binding.root)
 
         if (changing && existing != null) {
             binding.serverInput.setText(existing)

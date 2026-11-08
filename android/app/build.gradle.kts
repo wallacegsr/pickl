@@ -1,6 +1,8 @@
+// No Kotlin plugin: since AGP 9, Android builds Kotlin itself, and applying
+// org.jetbrains.kotlin.android here is an error. The root build file still
+// names that plugin's version, which picks the Kotlin compiler AGP uses.
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
 }
 
 /**
@@ -17,18 +19,23 @@ val buildSha: String =
     (project.findProperty("buildSha") as String?)?.take(7)
         ?: System.getenv("GITHUB_SHA")?.take(7)
         ?: runCatching {
-            val process = ProcessBuilder("git", "rev-parse", "--short=7", "HEAD")
-                .directory(rootProject.projectDir)
-                .redirectErrorStream(true)
-                .start()
-            val text = process.inputStream.bufferedReader().use { it.readText() }.trim()
-            if (process.waitFor() == 0 && text.isNotEmpty()) text else null
+            // providers.exec rather than a bare ProcessBuilder: Gradle 9
+            // deprecates starting processes at configuration time any other
+            // way, and Gradle 11 will refuse to.
+            providers.exec {
+                commandLine("git", "rev-parse", "--short=7", "HEAD")
+                workingDir = rootProject.projectDir
+                isIgnoreExitValue = true
+            }.standardOutput.asText.get().trim().takeIf { it.isNotEmpty() }
         }.getOrNull()
         ?: "local"
 
 android {
     namespace = "com.wallacegsr.pickl"
-    compileSdk = 34
+    // compileSdk only decides which APIs the code can see, and androidx.core
+    // 1.19 requires 37. targetSdk is what opts the app into new runtime
+    // behaviour, and it moves separately, once that behaviour has been checked.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.wallacegsr.pickl"
@@ -38,7 +45,7 @@ android {
         // predate cookie and TLS behaviour this app relies on. 8.0 covers
         // effectively every device still receiving updates.
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 36
         // versionCode is the number Android actually compares when deciding
         // whether an APK is an upgrade; versionName is only ever shown to
         // people. It must increase on every build that ships, so it is bumped
@@ -95,10 +102,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         viewBinding = true
         buildConfig = true
@@ -106,10 +109,10 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.13.1")
-    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("androidx.core:core-ktx:1.19.1")
+    implementation("androidx.appcompat:appcompat:1.8.0")
     implementation("androidx.activity:activity-ktx:1.9.2")
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
-    implementation("com.google.android.material:material:1.12.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0")
+    implementation("com.google.android.material:material:1.14.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 }

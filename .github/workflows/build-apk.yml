@@ -38,10 +38,22 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # The version comes from gradle-wrapper.properties, so that file stays the
+      # one place it is set, and Dependabot's updates to it reach CI. Without
+      # this, CI ran whatever Gradle the runner image happened to ship.
+      - name: Read the Gradle version
+        id: gradle-version
+        run: |
+          version=$(sed -n 's/^distributionUrl=.*gradle-\(.*\)-bin\.zip$/\1/p' android/gradle/wrapper/gradle-wrapper.properties)
+          test -n "$version" || { echo "::error::No Gradle version in gradle-wrapper.properties"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
       - name: Set up Gradle
         # Provisions Gradle itself, so the binary wrapper jar does not have to
         # be committed to the repository.
         uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: ${{ steps.gradle-version.outputs.version }}
 
       - name: Build debug APK
         working-directory: android
