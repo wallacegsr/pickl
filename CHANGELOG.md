@@ -11,6 +11,8 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+## [2.7.2] - 2026-11-08
+
 ### Security
 
 - **The Android app no longer copies its sign-in to a new phone.** Since
@@ -682,7 +684,8 @@ Initial public release: the container image published to
 - Light and dark themes.
 - Docker deployment, with the image published to GHCR.
 
-[Unreleased]: https://github.com/wallacegsr/pickl/compare/v2.7.1...HEAD
+[Unreleased]: https://github.com/wallacegsr/pickl/compare/v2.7.2...HEAD
+[2.7.2]: https://github.com/wallacegsr/pickl/compare/v2.7.1...v2.7.2
 [2.7.1]: https://github.com/wallacegsr/pickl/compare/v2.7.0...v2.7.1
 [2.7.0]: https://github.com/wallacegsr/pickl/compare/v2.6.1...v2.7.0
 [2.6.1]: https://github.com/wallacegsr/pickl/compare/v2.6.0...v2.6.1
