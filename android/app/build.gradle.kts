@@ -44,9 +44,9 @@ android {
         // people. It must increase on every build that ships, so it is bumped
         // alongside the name rather than tracking it — the two are different
         // kinds of number and only one of them gates installation.
-        versionCode = 12
+        versionCode = 13
         // Kept in lockstep with package.json and the CHANGELOG.md heading.
-        versionName = "2.7.0"
+        versionName = "2.7.1"
     }
 
     signingConfigs {
