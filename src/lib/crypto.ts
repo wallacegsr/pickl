@@ -6,6 +6,10 @@ import crypto from "node:crypto";
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12; // 96-bit IV, the recommended size for GCM
+// The full 128-bit tag. Stated on decrypt as well as produced on encrypt:
+// left unset, Node accepts a tag cut down to as little as 4 bytes, and a
+// shorter tag is a correspondingly weaker check that the value is ours.
+const AUTH_TAG_LENGTH = 16;
 
 // Derives a 32-byte key from NEXTAUTH_SECRET via SHA-256.
 //
@@ -36,7 +40,7 @@ function getKey(): Buffer {
 export function encrypt(plaintext: string): string {
   const key = getKey();
   const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
   const ciphertext = Buffer.concat([
     cipher.update(plaintext, "utf8"),
     cipher.final(),
@@ -60,7 +64,10 @@ export function decrypt(stored: string): string {
   const iv = Buffer.from(ivHex, "hex");
   const authTag = Buffer.from(authTagHex, "hex");
   const ciphertext = Buffer.from(ciphertextHex, "hex");
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+  if (iv.length !== IV_LENGTH || authTag.length !== AUTH_TAG_LENGTH) {
+    throw new Error("Invalid encrypted value format.");
+  }
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
   decipher.setAuthTag(authTag);
   const plaintext = Buffer.concat([
     decipher.update(ciphertext),

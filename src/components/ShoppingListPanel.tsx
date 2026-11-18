@@ -274,6 +274,9 @@ export default function ShoppingListPanel({
     if (scope === "private" && requestedUserId) {
       params.set("userId", requestedUserId);
     }
+    // A download from an API route, not a page: router.push would try to
+    // render it as one, so this has to be a real navigation.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = `/api/shopping-list/export?${params.toString()}`;
   }
 

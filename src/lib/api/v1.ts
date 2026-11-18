@@ -82,7 +82,9 @@ async function guarded(
   try {
     return await handler(principal);
   } catch (err) {
-    console.error(`[api] ${req.method} ${req.nextUrl.pathname} failed:`, err);
+    // The path is the caller's, so it goes in as an argument, never as part of
+    // the format string, where a "%s" or "%o" in it would be interpreted.
+    console.error("[api] %s %s failed:", req.method, req.nextUrl.pathname, err);
     return apiError(500, "Something went wrong.");
   }
 }

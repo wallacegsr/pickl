@@ -3,6 +3,10 @@
 # the ones that need reading (Next, React, Auth.js, Drizzle). Security updates
 # are separate: they are switched on under Settings → Code security and open
 # as soon as an advisory lands, whatever this schedule says.
+#
+# Every ecosystem waits 7 days after a version is published before proposing
+# it. A hijacked release is usually caught and pulled within that window, so
+# it never reaches a PR here. The cooldown does not apply to security updates.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -27,6 +31,8 @@ updates:
       # the Docker image's Node major (ignored below for the same reason).
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: deps
 
@@ -38,6 +44,8 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: ci
 
@@ -52,6 +60,8 @@ updates:
       # and the Docker image move together. Patch and minor images still come.
       - dependency-name: node
         update-types: ["version-update:semver-major"]
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: docker
 
@@ -63,5 +73,7 @@ updates:
     groups:
       android:
         patterns: ["*"]
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: android

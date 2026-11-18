@@ -90,8 +90,11 @@ function readSettings(source) {
     vars[m[1]] = parseHex(m[2]);
   }
   const resolve = (name, fallback) => {
+    // Names are this script's own constants, but escaped anyway so the pattern
+    // can only ever match the literal variable name.
+    const literal = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const re = new RegExp(
-      "^\\$" + name + ":\\s*(\\$[a-z0-9-]+|#[0-9a-fA-F]{3,6})\\s*;",
+      "^\\$" + literal + ":\\s*(\\$[a-z0-9-]+|#[0-9a-fA-F]{3,6})\\s*;",
       "m"
     );
     const m = source.match(re);

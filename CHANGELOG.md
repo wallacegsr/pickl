@@ -11,6 +11,32 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+### Security
+
+- **Stored secrets insist on a full-length authentication tag.** The SMTP
+  password and calendar credentials are encrypted with AES-GCM, but decryption
+  accepted a tag cut down to as little as 4 bytes, a weaker check that a stored
+  value had not been tampered with. Values are now refused unless the tag is
+  the full 16 bytes and the IV the expected length. Everything already stored
+  was written that way, so nothing needs re-entering.
+- **Every GitHub Action is pinned to a commit**, not a tag that its owner
+  could move. Checkouts no longer leave the workflow's token in `.git/config`,
+  and the APK built for a release tag no longer restores the Gradle cache that
+  earlier runs wrote.
+- **Dependabot waits 7 days before proposing a new version**, so a hijacked
+  release that is pulled within days never reaches a PR. Security updates are
+  not delayed.
+- An API failure is logged with the request path as an argument rather than
+  part of the format string, so a `%s` in a path cannot garble the log.
+
+### Changed
+
+- **The container image has a `HEALTHCHECK`**, so `docker run` and any
+  orchestrator see its health, not only Compose. It and the Compose check now
+  probe `/api/health`, which answers without rendering the login page.
+- Next.js 16.4.6, better-sqlite3 13.2, Bootstrap 5.3.9, and patch updates to
+  google-auth-library, lucide-react, nodemailer and sass.
+
 ## [2.7.2] - 2026-11-08
 
 ### Security

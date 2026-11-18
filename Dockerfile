@@ -84,4 +84,10 @@ USER nextjs
 
 EXPOSE 3000
 
+# Baked into the image so `docker run` and any orchestrator get it, not only
+# the compose file. /api/health answers without rendering a page or touching
+# the database. node rather than curl or wget, which the slim image lacks.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD ["node", "-e", "require('http').get({host:'127.0.0.1',port:process.env.PORT||3000,path:'/api/health'},r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+
 CMD ["node", "scripts/start.js"]

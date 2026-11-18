@@ -30,10 +30,14 @@ jobs:
 
     steps:
       - name: Check out
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes with git, so the token is not left in .git/config
+          # for later steps (or an uploaded artifact) to pick up.
+          persist-credentials: false
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: temurin
           java-version: "17"
@@ -51,16 +55,21 @@ jobs:
       - name: Set up Gradle
         # Provisions Gradle itself, so the binary wrapper jar does not have to
         # be committed to the repository.
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
         with:
           gradle-version: ${{ steps.gradle-version.outputs.version }}
+          # A release tag builds the APK people install, so it starts from
+          # clean downloads rather than a cache an earlier run wrote: a
+          # poisoned cache entry must never reach a signed release. Branch and
+          # PR builds keep the cache for speed.
+          cache-disabled: ${{ startsWith(github.ref, 'refs/tags/') }}
 
       - name: Build debug APK
         working-directory: android
         run: gradle --no-daemon assembleDebug "-PbuildSha=${GITHUB_SHA::7}"
 
       - name: Upload debug APK
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: pickl-debug-apk
           path: android/app/build/outputs/apk/debug/*.apk
@@ -117,6 +126,6 @@ jobs:
 
       - name: Attach release APK to the GitHub release
         if: steps.keystore.outputs.path != ''
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           files: android/app/build/outputs/apk/release/*.apk
