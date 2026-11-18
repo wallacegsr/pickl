@@ -11,6 +11,21 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+### Changed
+
+- **State that follows a prop is adjusted during render, not in an effect.**
+  The plan grid, shopping list, slot picker, recipe list, tag manager, tag
+  pickers and bulk-action confirmation used to reset or prune their state one
+  frame after new data arrived, which the React Compiler lint flagged 20 times.
+  They now use the "adjust state when a prop changes" pattern, so a stale view
+  never paints. Effects that read browser-only state after mount (stored
+  layout, sidebar, cooking progress, the Android shell, calendar fetches) stay,
+  each with a one-line reason, and `react-hooks/set-state-in-effect` is back to
+  an error. No behaviour change.
+- Android: Android Gradle Plugin 9.5.1 and Gradle 9.9.1.
+- `npm run lint` skips `.claude/`, so build output left in an agent worktree
+  is not linted as if it were source.
+
 ## [2.7.3] - 2026-11-17
 
 ### Security
@@ -38,15 +53,6 @@ changes with it — the two must never disagree about what is running.
   probe `/api/health`, which answers without rendering the login page.
 - Next.js 16.4.6, better-sqlite3 13.2, Bootstrap 5.3.9, and patch updates to
   google-auth-library, lucide-react, nodemailer and sass.
-- **State that follows a prop is adjusted during render, not in an effect.**
-  The plan grid, shopping list, slot picker, recipe list, tag manager, tag
-  pickers and bulk-action confirmation used to reset or prune their state one
-  frame after new data arrived, which the React Compiler lint flagged 20 times.
-  They now use the "adjust state when a prop changes" pattern, so a stale view
-  never paints. Effects that read browser-only state after mount (stored
-  layout, sidebar, cooking progress, the Android shell, calendar fetches) stay,
-  each with a one-line reason, and `react-hooks/set-state-in-effect` is back to
-  an error. No behaviour change.
 
 ## [2.7.2] - 2026-11-08
 

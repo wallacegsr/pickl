@@ -11,5 +11,5 @@ export default defineConfig([
       "react-hooks/set-state-in-effect": "error",
     },
   },
-  globalIgnores([".next/**", "node_modules/**", "android/**", "drizzle/**", "data/**"]),
+  globalIgnores([".claude/**", ".next/**", "node_modules/**", "android/**", "drizzle/**", "data/**"]),
 ]);
