@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button, ButtonGroup, Form, Modal } from "react-bootstrap";
 import TagAutocompleteField from "@/components/TagAutocompleteField";
 import { parseTagInput, tagKey } from "@/lib/tagNames";
@@ -42,14 +42,17 @@ export default function RecipeTagPicker({
   const [removeKeys, setRemoveKeys] = useState<Set<string>>(new Set());
 
   // Fresh each time it opens: a half-typed tag from the last selection should
-  // not be waiting to be applied to this one.
-  useEffect(() => {
+  // not be waiting to be applied to this one. Adjusted during render when
+  // `show` turns on, so the old values never paint.
+  const [prevShow, setPrevShow] = useState(show);
+  if (show !== prevShow) {
+    setPrevShow(show);
     if (show) {
       setMode("add");
       setAddValue("");
       setRemoveKeys(new Set());
     }
-  }, [show]);
+  }
 
   const present = useMemo(
     () =>

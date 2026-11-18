@@ -70,6 +70,8 @@ export function useResizableColumns(columns: ColumnSpec[]) {
   useEffect(() => {
     const stored = readStored(keys);
     if (stored) {
+      // localStorage and the measured table width are only readable after mount.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setWidths(stored);
       return;
     }

@@ -31,6 +31,8 @@ export default function RecipeCookingView({
     try {
       const saved = JSON.parse(window.sessionStorage.getItem(storageKey) ?? "null");
       if (saved) {
+        // sessionStorage is only readable after mount; restoring from it is an external-system sync.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setUsed(new Set(saved.used ?? []));
         setCurrentStep(saved.step ?? null);
       }

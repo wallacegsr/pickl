@@ -59,6 +59,8 @@ export default function UserMenu() {
   // mismatch — the same trap that reset the theme once already.
   const [shell, setShell] = useState<PicklShellBridge | null>(null);
   useEffect(() => {
+    // The Android shell bridge only exists in the browser; reading it after mount avoids a hydration mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setShell(getPicklShell());
   }, []);
 

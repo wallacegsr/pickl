@@ -44,9 +44,16 @@ export default function RecipeBulkConfirm({
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
 
-  useEffect(() => {
+  // Each request starts with a clean slate, adjusted during render so the last
+  // request's preview or error never paints under this one.
+  const [prevRequest, setPrevRequest] = useState(request);
+  if (request !== prevRequest) {
+    setPrevRequest(request);
     setPreview(null);
     setError(null);
+  }
+
+  useEffect(() => {
     if (!request) return;
 
     let cancelled = false;
