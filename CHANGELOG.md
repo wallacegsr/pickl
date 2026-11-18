@@ -11,6 +11,8 @@ changes with it — the two must never disagree about what is running.
 
 ## [Unreleased]
 
+## [2.7.3] - 2026-11-17
+
 ### Security
 
 - **Stored secrets insist on a full-length authentication tag.** The SMTP
@@ -710,7 +712,8 @@ Initial public release: the container image published to
 - Light and dark themes.
 - Docker deployment, with the image published to GHCR.
 
-[Unreleased]: https://github.com/wallacegsr/pickl/compare/v2.7.2...HEAD
+[Unreleased]: https://github.com/wallacegsr/pickl/compare/v2.7.3...HEAD
+[2.7.3]: https://github.com/wallacegsr/pickl/compare/v2.7.2...v2.7.3
 [2.7.2]: https://github.com/wallacegsr/pickl/compare/v2.7.1...v2.7.2
 [2.7.1]: https://github.com/wallacegsr/pickl/compare/v2.7.0...v2.7.1
 [2.7.0]: https://github.com/wallacegsr/pickl/compare/v2.6.1...v2.7.0
