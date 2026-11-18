@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ListGroup } from "react-bootstrap";
 import { normalizeTagName, parseTagInput, tagKey } from "@/lib/tagNames";
 
@@ -93,10 +93,12 @@ export default function TagAutocompleteField({
     .slice(0, MAX_SUGGESTIONS);
 
   // A highlight left pointing past the end of a now-shorter list would make
-  // Enter do nothing.
-  useEffect(() => {
+  // Enter do nothing. `query` is derived from `value`, so watching `value` covers both.
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
     setHighlight(0);
-  }, [query, value]);
+  }
 
   const showList = open && matches.length > 0;
 

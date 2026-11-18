@@ -192,6 +192,8 @@ export default function CalendarSettingsPanel({
   }, [state.connected, state.caldav.connected, loadGoogleCalendars, loadCaldavCalendars]);
 
   useEffect(() => {
+    // Fetching from the calendar providers is a sync with an external system; the loading flags belong to it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (state.connected || state.caldav.connected) void loadCalendars();
   }, [state.connected, state.caldav.connected, loadCalendars]);
 

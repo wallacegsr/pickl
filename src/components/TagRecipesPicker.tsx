@@ -52,8 +52,10 @@ export default function TagRecipesPicker({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fresh for each tag.
-  useEffect(() => {
+  // Fresh for each tag, adjusted during render so the last tag's state never paints.
+  const [prevTagName, setPrevTagName] = useState(tagName);
+  if (tagName !== prevTagName) {
+    setPrevTagName(tagName);
     setTab("shared");
     setQuery("");
     setSent("");
@@ -61,7 +63,7 @@ export default function TagRecipesPicker({
     setPage(1);
     setChanges(new Map());
     setError(null);
-  }, [tagName]);
+  }
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -71,6 +73,20 @@ export default function TagRecipesPicker({
     return () => window.clearTimeout(t);
   }, [query]);
 
+  // A new search clears the old page while it loads. Adjusted during render
+  // (React re-renders with the reset state above before getting here again).
+  const [prevSearch, setPrevSearch] = useState({ tagName, tab, sent, onlyTagged, page });
+  if (
+    prevSearch.tagName !== tagName ||
+    prevSearch.tab !== tab ||
+    prevSearch.sent !== sent ||
+    prevSearch.onlyTagged !== onlyTagged ||
+    prevSearch.page !== page
+  ) {
+    setPrevSearch({ tagName, tab, sent, onlyTagged, page });
+    if (tagName) setData(null);
+  }
+
   useEffect(() => {
     if (!tagName) return;
     let cancelled = false;
@@ -78,7 +94,6 @@ export default function TagRecipesPicker({
     if (tab === "mine") params.set("tab", "mine");
     if (sent.trim()) params.set("q", sent);
     if (onlyTagged) params.set("tag", tagName);
-    setData(null);
     (async () => {
       const res = await fetch(`/api/recipes/search?${params}`);
       const body = res.ok ? ((await res.json()) as RecipePage) : null;

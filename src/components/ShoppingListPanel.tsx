@@ -100,10 +100,18 @@ export default function ShoppingListPanel({
   // Without it the list sat stale until a manual reload. `initialDays` is a
   // prop reference, so this only fires when the server actually re-rendered —
   // local state changes here (ticking an ingredient) don't retrigger it, and
-  // it adds no fetch of its own.
-  useEffect(() => {
+  // it adds no fetch of its own. Adjusted during render, so the old list never
+  // paints after the new one has arrived.
+  const [synced, setSynced] = useState({ initialDays, scope, requestedUserId, week });
+  if (
+    synced.initialDays !== initialDays ||
+    synced.scope !== scope ||
+    synced.requestedUserId !== requestedUserId ||
+    synced.week !== week
+  ) {
+    setSynced({ initialDays, scope, requestedUserId, week });
     setDays(initialDays);
-  }, [initialDays, scope, requestedUserId, week]);
+  }
 
   // And once more from the API on arrival. Next's client router can hand back
   // a cached render of a page visited earlier, whose ticks are from then — so

@@ -39,6 +39,7 @@ export function useSidebarCollapsed() {
   useEffect(() => {
     // The pre-hydration script has already decided; read its answer off the
     // DOM rather than re-reading localStorage, so the two can never diverge.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncs from the DOM attribute set before hydration.
     setCollapsed(
       document.documentElement.getAttribute(SIDEBAR_HTML_ATTRIBUTE) === "collapsed"
     );

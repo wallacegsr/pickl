@@ -124,6 +124,8 @@ export default function RecipeList({
     } catch {
       // Storage unavailable; fall through to the default.
     }
+    // Reading localStorage after mount keeps the server and first client render in agreement.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (stored === "list" || stored === "cards") setView(stored);
     else if (data.tabTotal > LIST_BY_DEFAULT_ABOVE) setView("list");
     // Only on arrival: switching tabs should not flip a layout under someone.
@@ -142,7 +144,6 @@ export default function RecipeList({
 
   // --- Stars, optimistic over what the page arrived with ---
   const [starOverride, setStarOverride] = useState<Map<string, boolean>>(new Map());
-  useEffect(() => setStarOverride(new Map()), [data]);
   const isFavorite = (r: RecipeListRow) => starOverride.get(r.id) ?? r.isFavorite;
 
   async function toggleFavorite(recipe: RecipeListRow) {
@@ -168,18 +169,26 @@ export default function RecipeList({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [allMatching, setAllMatching] = useState(false);
   const queryKey = recipeQueryToParams(query).toString();
-  useEffect(() => {
-    setSelected(new Set());
+  // Both adjusted during render when the page or query changes, so a stale
+  // selection or star never paints.
+  const [prevQueryKey, setPrevQueryKey] = useState(queryKey);
+  const [prevData, setPrevData] = useState(data);
+  let selectionBase = selected;
+  if (queryKey !== prevQueryKey) {
+    setPrevQueryKey(queryKey);
+    selectionBase = new Set();
+    setSelected(selectionBase);
     setAllMatching(false);
-  }, [queryKey]);
-  useEffect(() => {
+  }
+  if (data !== prevData) {
+    setPrevData(data);
+    // Optimistic stars are superseded by what the page now says.
+    setStarOverride(new Map());
     // After a delete, drop ids that are gone from the page.
     const present = new Set(data.rows.map((r) => r.id));
-    setSelected((prev) => {
-      const kept = [...prev].filter((id) => present.has(id));
-      return kept.length === prev.size ? prev : new Set(kept);
-    });
-  }, [data]);
+    const kept = [...selectionBase].filter((id) => present.has(id));
+    if (kept.length !== selectionBase.size) setSelected(new Set(kept));
+  }
 
   const [request, setRequest] = useState<BulkRequest | null>(null);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);

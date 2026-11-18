@@ -5,11 +5,10 @@ export default defineConfig([
   ...nextCoreWebVitals,
   {
     rules: {
-      // New with eslint-config-next 16 (React Compiler rules). The effects it
-      // flags — resetting a dialog when it opens, restoring sessionStorage
-      // after mount — work as written; restructuring them is its own change,
-      // so they show as warnings until then rather than failing lint.
-      "react-hooks/set-state-in-effect": "warn",
+      // New with eslint-config-next 16 (React Compiler rules). State that
+      // follows a prop is adjusted during render; the effects that remain read
+      // browser-only state after mount and carry a disable with their reason.
+      "react-hooks/set-state-in-effect": "error",
     },
   },
   globalIgnores([".next/**", "node_modules/**", "android/**", "drizzle/**", "data/**"]),

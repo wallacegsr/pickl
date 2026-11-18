@@ -159,10 +159,16 @@ export default function PlanView({
   // instance persists across client-side router.push navigations, so useState's initial
   // value is only used once. Re-sync local state whenever the identity of "what plan we're
   // viewing" changes so tab/user switches don't show stale data from the previous view.
-  useEffect(() => {
+  // Adjusted during render rather than in an effect, so the stale view never paints.
+  const [daysView, setDaysView] = useState({ scope, requestedUserId, week });
+  if (
+    daysView.scope !== scope ||
+    daysView.requestedUserId !== requestedUserId ||
+    daysView.week !== week
+  ) {
+    setDaysView({ scope, requestedUserId, week });
     setDays(initialDays);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope, requestedUserId, week]);
+  }
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
@@ -185,16 +191,24 @@ export default function PlanView({
   const overlayApplies =
     overlayEnabled && (scope === "shared" || requestedUserId === currentUserId);
   const [overlay, setOverlay] = useState<OverlayResponse | null>(null);
+  // A new week or plan starts with no overlay until its own response lands.
+  const overlayView = { overlayApplies, week, scope, requestedUserId };
+  const [prevOverlayView, setPrevOverlayView] = useState(overlayView);
+  if (
+    prevOverlayView.overlayApplies !== overlayApplies ||
+    prevOverlayView.week !== week ||
+    prevOverlayView.scope !== scope ||
+    prevOverlayView.requestedUserId !== requestedUserId
+  ) {
+    setPrevOverlayView(overlayView);
+    setOverlay(null);
+  }
 
   useEffect(() => {
-    if (!overlayApplies) {
-      setOverlay(null);
-      return;
-    }
+    if (!overlayApplies) return;
     // Ignore a response that lands after the user has navigated to another
     // week or plan, so one view can never render another view's events.
     let cancelled = false;
-    setOverlay(null);
     const params = new URLSearchParams({ week, scope });
     if (scope === "private") params.set("userId", requestedUserId);
     fetch(`/api/calendar/overlay?${params.toString()}`)

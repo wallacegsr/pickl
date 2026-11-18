@@ -69,24 +69,31 @@ export default function SlotPicker({
   const [tagOn, setTagOn] = useState<string[]>([]);
 
   // Fresh each time it opens: last night's search is not this slot's question.
-  useEffect(() => {
+  // Adjusted during render when `show` turns on, so the old filters never paint.
+  const [prevShow, setPrevShow] = useState(show);
+  if (show !== prevShow) {
+    setPrevShow(show);
     if (show) {
       setSearch("");
       setFavoritesOnly(false);
       setQuickOnly(false);
       setTagOn([]);
     }
-  }, [show]);
+  }
 
   // Ingredient matches come from the server: the page no longer carries every
   // recipe's ingredient text (see the plan page). Names and tags still match
   // instantly here; these join the results a moment later. null = not asked.
   const [serverHits, setServerHits] = useState<Set<string> | null>(null);
+  // Hits belong to the query that asked for them: keep them past a new
+  // keystroke and "salmon"'s ingredient matches would sit under "chicken".
+  const [prevSearch, setPrevSearch] = useState(search);
+  if (search !== prevSearch) {
+    setPrevSearch(search);
+    setServerHits(null);
+  }
   useEffect(() => {
     const q = search.trim();
-    // Hits belong to the query that asked for them: keep them past a new
-    // keystroke and "salmon"'s ingredient matches would sit under "chicken".
-    setServerHits(null);
     if (!q) return;
     let cancelled = false;
     const timer = window.setTimeout(async () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -78,13 +78,15 @@ export default function TagManager({
   // A selection only holds tags on screen: after a delete, a refresh, or when
   // the filter hides some. Same rule as the recipe list — Delete must never
   // reach a tag the person cannot see.
-  useEffect(() => {
-    setSelected((prev) => {
-      const present = new Set(shown.map((t) => t.id));
-      const kept = [...prev].filter((id) => present.has(id));
-      return kept.length === prev.size ? prev : new Set(kept);
-    });
-  }, [shown]);
+  // Adjusted during render when `shown` changes, so a hidden tag is never
+  // painted as selected.
+  const [prevShown, setPrevShown] = useState(shown);
+  if (shown !== prevShown) {
+    setPrevShown(shown);
+    const present = new Set(shown.map((t) => t.id));
+    const kept = [...selected].filter((id) => present.has(id));
+    if (kept.length !== selected.size) setSelected(new Set(kept));
+  }
 
   const allSelected = shown.length > 0 && shown.every((t) => selected.has(t.id));
   const someSelected = selected.size > 0 && !allSelected;
